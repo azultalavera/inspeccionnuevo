@@ -14,7 +14,13 @@ const AuthContext = createContext<AuthContextType | null>(null)
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<Usuario | null>(() => {
     const saved = localStorage.getItem('clicsalud_user')
-    return saved ? JSON.parse(saved) : null
+    if (saved) return JSON.parse(saved)
+    // Por defecto inicia como EFECTOR para saltar la pantalla de selección
+    const efectorUser = USUARIOS.find(u => u.rol === 'EFECTOR') ?? null
+    if (efectorUser) {
+      localStorage.setItem('clicsalud_user', JSON.stringify(efectorUser))
+    }
+    return efectorUser
   })
 
   const login = (rol: Rol) => {
