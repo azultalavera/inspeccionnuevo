@@ -842,3 +842,20 @@
   .main-content { margin-left: 0; }
   .page-content { padding: var(--space-4) var(--space-3); }
 }
+
+@media (min-width: 1025px) {
+  .tablet-card-grid {
+    display: none !important;
+  }
+}
+
+@media (max-width: 1024px) {
+  .desktop-table-view {
+    display: none !important;
+  }
+  .tablet-card-grid {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: var(--space-4);
+  }
+}

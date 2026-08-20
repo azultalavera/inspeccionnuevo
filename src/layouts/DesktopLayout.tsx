@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { Outlet, NavLink } from 'react-router-dom'
+import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import UserAvatarMenu from '../components/UserAvatarMenu'
 import logoMinisterio from '../assets/logo-ministerio.webp'
@@ -19,6 +19,8 @@ function useIsTablet() {
 export default function DesktopLayout() {
   const { user } = useAuth()
   const isTablet = useIsTablet()
+  const navigate = useNavigate()
+  const location = useLocation()
   const [isCollapsed, setIsCollapsed] = useState(() => {
     const stored = localStorage.getItem('sidebar_collapsed')
     return stored !== null ? stored === 'true' : true
@@ -31,10 +33,10 @@ export default function DesktopLayout() {
   ])
 
   useEffect(() => {
-    if (!showNotifications) return;
-    const handleClose = () => setShowNotifications(false);
-    window.addEventListener('click', handleClose);
-    return () => window.removeEventListener('click', handleClose);
+    if (!showNotifications) return
+    const handleClose = () => setShowNotifications(false)
+    window.addEventListener('click', handleClose)
+    return () => window.removeEventListener('click', handleClose)
   }, [showNotifications])
 
   const unreadCount = notifications.filter(n => !n.read).length
@@ -43,51 +45,152 @@ export default function DesktopLayout() {
     setNotifications(notifications.map(n => ({ ...n, read: true })))
   }
 
+  const [openModules, setOpenModules] = useState<Record<string, boolean>>({
+    inspecciones: true,
+    tramites: true,
+  })
+
+  const toggleModule = (id: string, e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setOpenModules(prev => ({ ...prev, [id]: !prev[id] }))
+  }
+
+  useEffect(() => {
+    const navItems = getNavItems()
+    navItems.forEach((item: any) => {
+      if (item.subItems?.some((sub: any) => location.pathname === sub.to || location.pathname.startsWith(sub.to))) {
+        setOpenModules(prev => ({ ...prev, [item.id]: true }))
+      }
+    })
+  }, [location.pathname])
+
   const getNavItems = () => {
     switch (user?.rol) {
       case 'INSPECTOR':
         return [
-          { to: '/inspector/home', icon: 'home', label: 'Inicio' },
-          { to: '/inspector/expedientes', icon: 'folder', label: 'Expedientes Abiertos' },
-          { to: '/inspector/inspecciones', icon: 'fact_check', label: 'Bandeja de Inspecciones' },
-          { to: '/inspector/bandeja', icon: 'assignment', label: 'Bandeja de Trámites' },
-          { to: '/inspector/establecimientos', icon: 'business', label: 'Consulta Establecimientos' },
+          { id: 'home', to: '/inspector/home', icon: 'home', label: 'Inicio', shortLabel: 'Inicio' },
+          {
+            id: 'inspecciones',
+            to: '/inspector/inspecciones',
+            icon: 'fact_check',
+            label: 'Módulo Inspección',
+            shortLabel: 'Inspecciones',
+            subItems: [
+              { to: '/inspector/inspeccion-tipo/bandeja', icon: 'fact_check', label: 'Bandeja Inspección', dotColor: '#5B6ABF' },
+              { to: '/inspector/inspeccion-tipo/habilitacion', icon: 'verified', label: 'Inspección Habilitación', dotColor: '#27AE60' },
+              { to: '/inspector/inspeccion-tipo/rutina', icon: 'schedule', label: 'Inspección Rutina', dotColor: '#2980B9' },
+              { to: '/inspector/inspeccion-tipo/denuncia', icon: 'report', label: 'Inspección Denuncia', dotColor: '#E74C3C' },
+            ]
+          },
+          {
+            id: 'tramites',
+            to: '/inspector/bandeja',
+            icon: 'assignment',
+            label: 'Módulo Trámites',
+            shortLabel: 'Trámites',
+            subItems: [
+              { to: '/inspector/expedientes', icon: 'folder', label: 'Trámites en Curso' },
+              { to: '/inspector/bandeja', icon: 'search', label: 'Consulta de Trámites' },
+            ]
+          },
+          { id: 'establecimientos', to: '/inspector/establecimientos', icon: 'business', label: 'Módulo Establecimientos', shortLabel: 'Locales' },
         ]
       case 'ARQUITECTO':
         return [
-          { to: '/arquitecto/home', icon: 'home', label: 'Inicio' },
-          { to: '/arquitecto/expedientes', icon: 'folder', label: 'Expedientes Abiertos' },
-          { to: '/arquitecto/bandeja', icon: 'assignment', label: 'Consulta de Trámites' },
+          { id: 'home', to: '/arquitecto/home', icon: 'home', label: 'Inicio', shortLabel: 'Inicio' },
+          {
+            id: 'tramites',
+            to: '/arquitecto/bandeja',
+            icon: 'assignment',
+            label: 'Módulo Trámites',
+            shortLabel: 'Trámites',
+            subItems: [
+              { to: '/arquitecto/expedientes', icon: 'folder', label: 'Trámites en Curso' },
+              { to: '/arquitecto/bandeja', icon: 'search', label: 'Consulta de Trámites' },
+            ]
+          },
         ]
       case 'AUDITOR':
         return [
-          { to: '/auditor/home', icon: 'home', label: 'Inicio' },
-          { to: '/auditor/expedientes', icon: 'folder', label: 'Expedientes Abiertos' },
-          { to: '/auditor/bandeja', icon: 'assignment', label: 'Consulta de Trámites' },
-          { to: '/auditor/establecimientos', icon: 'business', label: 'Consulta Establecimientos' },
+          { id: 'home', to: '/auditor/home', icon: 'home', label: 'Inicio', shortLabel: 'Inicio' },
+          { id: 'alertas', to: '/auditor/alertas-rutina', icon: 'notifications_active', label: 'Módulo Alertas Rutina', shortLabel: 'Alertas' },
+          {
+            id: 'tramites',
+            to: '/auditor/bandeja',
+            icon: 'assignment',
+            label: 'Módulo Trámites',
+            shortLabel: 'Trámites',
+            subItems: [
+              { to: '/auditor/expedientes', icon: 'folder', label: 'Trámites en Curso' },
+              { to: '/auditor/bandeja', icon: 'search', label: 'Consulta de Trámites' },
+            ]
+          },
+          { id: 'establecimientos', to: '/auditor/establecimientos', icon: 'business', label: 'Módulo Establecimientos', shortLabel: 'Locales' },
         ]
       case 'COORDINADOR':
         return [
-          { to: '/coordinador/home', icon: 'home', label: 'Inicio' },
-          { to: '/coordinador/asignacion', icon: 'people', label: 'Asignación de Trámites' },
-          { to: '/coordinador/adecuacion', icon: 'assignment', label: 'Consultar Adecuación' },
+          { id: 'home', to: '/coordinador/home', icon: 'home', label: 'Inicio', shortLabel: 'Inicio' },
+          {
+            id: 'inspecciones',
+            to: '/coordinador/inspecciones',
+            icon: 'fact_check',
+            label: 'Módulo Inspección',
+            shortLabel: 'Inspecciones',
+            subItems: [
+              { to: '/coordinador/inspeccion/bandeja', icon: 'fact_check', label: 'Bandeja Inspección', dotColor: '#5B6ABF' },
+              { to: '/coordinador/inspeccion/habilitacion', icon: 'verified', label: 'Inspección Habilitación', dotColor: '#27AE60' },
+              { to: '/coordinador/inspeccion/rutina', icon: 'schedule', label: 'Inspección Rutina', dotColor: '#2980B9' },
+              { to: '/coordinador/inspeccion/denuncia', icon: 'report', label: 'Inspección Denuncia', dotColor: '#E74C3C' },
+            ]
+          },
+          {
+            id: 'tramites',
+            to: '/coordinador/tramites',
+            icon: 'assignment',
+            label: 'Módulo Trámites',
+            shortLabel: 'Trámites',
+            subItems: [
+              { to: '/coordinador/asignacion', icon: 'people', label: 'Asignación de Trámites', dotColor: '#0055A5' },
+              { to: '/coordinador/adecuacion', icon: 'rule', label: 'Consultar Adecuación', dotColor: '#8E44AD' },
+            ]
+          },
         ]
       case 'PROTOCOLIZADOR':
         return [
-          { to: '/protocolizador/home', icon: 'home', label: 'Inicio' },
-          { to: '/protocolizador/expedientes', icon: 'folder', label: 'Expedientes Abiertos' },
-          { to: '/protocolizador/bandeja', icon: 'assignment', label: 'Consulta de Trámites' },
-          { to: '/protocolizador/establecimientos', icon: 'business', label: 'Consulta Establecimientos' },
+          { id: 'home', to: '/protocolizador/home', icon: 'home', label: 'Inicio', shortLabel: 'Inicio' },
+          {
+            id: 'tramites',
+            to: '/protocolizador/bandeja',
+            icon: 'assignment',
+            label: 'Módulo Trámites',
+            shortLabel: 'Trámites',
+            subItems: [
+              { to: '/protocolizador/expedientes', icon: 'folder', label: 'Trámites en Curso' },
+              { to: '/protocolizador/bandeja', icon: 'search', label: 'Consulta de Trámites' },
+            ]
+          },
+          { id: 'establecimientos', to: '/protocolizador/establecimientos', icon: 'business', label: 'Módulo Establecimientos', shortLabel: 'Locales' },
         ]
       case 'EFECTOR':
         return [
-          { to: '/efector/home', icon: 'home', label: 'Inicio' },
-          { to: '/efector/establecimientos', icon: 'business', label: 'Mis Establecimientos' },
-          { to: '/efector/bandeja', icon: 'assignment', label: 'Mis Trámites' },
+          { id: 'home', to: '/efector/home', icon: 'home', label: 'Inicio', shortLabel: 'Inicio' },
+          { id: 'alertas', to: '/efector/alertas', icon: 'notifications_active', label: 'Módulo Alertas', shortLabel: 'Alertas' },
+          {
+            id: 'tramites',
+            to: '/efector/bandeja',
+            icon: 'assignment',
+            label: 'Módulo Trámites',
+            shortLabel: 'Trámites',
+            subItems: [
+              { to: '/efector/bandeja', icon: 'folder', label: 'Mis Trámites' },
+            ]
+          },
+          { id: 'establecimientos', to: '/efector/establecimientos', icon: 'business', label: 'Módulo Establecimientos', shortLabel: 'Locales' },
         ]
       case 'CONSULTOR':
         return [
-          { to: '/consultor/establecimientos', icon: 'business', label: 'Bandeja Establecimientos' },
+          { id: 'establecimientos', to: '/consultor/establecimientos', icon: 'business', label: 'Módulo Establecimientos', shortLabel: 'Locales' },
         ]
       default:
         return []
@@ -96,9 +199,96 @@ export default function DesktopLayout() {
 
   const navItems = getNavItems()
 
-  // On tablet: render just the Outlet — the child page owns its full layout
+  // On tablet/mobile: render Outlet with persistent bottom navbar
   if (isTablet) {
-    return <Outlet />
+    return (
+      <div style={{
+        minHeight: '100vh',
+        background: 'var(--ios-gray6, #f2f2f7)',
+        display: 'flex',
+        flexDirection: 'column',
+        position: 'relative',
+        paddingBottom: 'calc(var(--tab-bar-height, 82px) + env(safe-area-inset-bottom, 0px))',
+        boxSizing: 'border-box'
+      }}>
+        <div style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
+          <Outlet />
+        </div>
+
+        {/* Persistent Bottom Tab Bar */}
+        <nav style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-around',
+          height: 'var(--tab-bar-height, 82px)',
+          background: 'rgba(255, 255, 255, 0.94)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          borderTop: '1px solid rgba(0, 0, 0, 0.08)',
+          paddingBottom: 'env(safe-area-inset-bottom, 12px)',
+          position: 'fixed',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          zIndex: 9999,
+          maxWidth: 768,
+          margin: '0 auto',
+          boxShadow: '0 -4px 16px rgba(0, 0, 0, 0.04)',
+        }}>
+          {navItems.map((item: any) => {
+            const isActive = location.pathname === item.to || location.pathname.startsWith(item.to + '/')
+            return (
+              <button
+                key={item.to}
+                onClick={() => navigate(item.to)}
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 4,
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontFamily: 'var(--font-family, system-ui, -apple-system)',
+                  flex: 1,
+                  height: '100%',
+                  padding: '8px 0',
+                }}
+              >
+                <div style={{
+                  position: 'relative',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: 48,
+                  height: 28,
+                  borderRadius: 14,
+                  background: isActive ? 'rgba(0, 122, 255, 0.12)' : 'transparent',
+                  transition: 'all 0.2s ease',
+                }}>
+                  <span className="material-icons" style={{
+                    fontSize: 24,
+                    color: isActive ? 'var(--ios-blue, #007aff)' : '#7f8c8d',
+                    transition: 'all 0.2s ease',
+                    transform: isActive ? 'scale(1.05)' : 'scale(1)',
+                  }}>{item.icon}</span>
+                </div>
+                <span style={{
+                  fontSize: 11,
+                  fontWeight: isActive ? 700 : 500,
+                  color: isActive ? 'var(--ios-blue, #007aff)' : '#7f8c8d',
+                  lineHeight: 1.2,
+                  letterSpacing: '0.2px',
+                }}>
+                  {item.shortLabel || item.label}
+                </span>
+              </button>
+            )
+          })}
+        </nav>
+      </div>
+    )
   }
 
   return (
@@ -123,9 +313,9 @@ export default function DesktopLayout() {
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
           <button
             onClick={() => {
-              const next = !isCollapsed;
-              setIsCollapsed(next);
-              localStorage.setItem('sidebar_collapsed', String(next));
+              const next = !isCollapsed
+              setIsCollapsed(next)
+              localStorage.setItem('sidebar_collapsed', String(next))
             }}
             style={{
               background: 'none',
@@ -175,8 +365,8 @@ export default function DesktopLayout() {
           <div style={{ position: 'relative' }}>
             <button
               onClick={(e) => {
-                e.stopPropagation();
-                setShowNotifications(!showNotifications);
+                e.stopPropagation()
+                setShowNotifications(!showNotifications)
               }}
               style={{
                 background: 'none',
@@ -296,18 +486,74 @@ export default function DesktopLayout() {
       }}>
         <div style={{ height: '16px' }} />
 
-        <nav className="sidebar-nav">
-          {navItems.map(item => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              title={item.label}
-              className={({ isActive }) => `sidebar-nav-item ${isActive ? 'active' : ''}`}
-            >
-              <span className="material-icons sidebar-nav-icon" style={{ fontSize: 20 }}>{item.icon}</span>
-              <span className="sidebar-nav-label">{item.label}</span>
-            </NavLink>
-          ))}
+        <nav className="sidebar-nav" style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          {navItems.map((item: any) => {
+            const hasSubItems = item.subItems && item.subItems.length > 0
+            const isExpanded = openModules[item.id] ?? false
+
+            return (
+              <div key={item.to || item.id} style={{ display: 'flex', flexDirection: 'column' }}>
+                <div style={{ display: 'flex', alignItems: 'center', position: 'relative' }}>
+                  <NavLink
+                    to={item.to}
+                    title={item.label}
+                    className={({ isActive }) => `sidebar-nav-item ${isActive ? 'active' : ''}`}
+                    style={{ flex: 1 }}
+                  >
+                    <span className="material-icons sidebar-nav-icon" style={{ fontSize: 20 }}>{item.icon}</span>
+                    <span className="sidebar-nav-label" style={{ fontWeight: hasSubItems ? 700 : 500 }}>{item.label}</span>
+                  </NavLink>
+
+                  {hasSubItems && !isCollapsed && (
+                    <button
+                      onClick={(e) => toggleModule(item.id, e)}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: 'rgba(255, 255, 255, 0.7)',
+                        cursor: 'pointer',
+                        padding: '6px 8px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        position: 'absolute',
+                        right: 8,
+                        zIndex: 2,
+                      }}
+                      title={isExpanded ? 'Contraer submódulos' : 'Expandir submódulos'}
+                    >
+                      <span className="material-icons" style={{ fontSize: 18 }}>
+                        {isExpanded ? 'expand_more' : 'chevron_right'}
+                      </span>
+                    </button>
+                  )}
+                </div>
+
+                {hasSubItems && isExpanded && !isCollapsed && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 2, paddingLeft: 16, marginTop: 2 }}>
+                    {item.subItems.map((sub: any) => (
+                      <NavLink
+                        key={sub.to}
+                        to={sub.to}
+                        title={sub.label}
+                        className={({ isActive }) => `sidebar-nav-item ${isActive ? 'active' : ''}`}
+                        style={{
+                          fontSize: '13px',
+                          padding: '8px 12px',
+                          borderRadius: 8,
+                        }}
+                      >
+                        <span className="material-icons sidebar-nav-icon" style={{ fontSize: 17, color: sub.dotColor || 'inherit' }}>
+                          {sub.icon}
+                        </span>
+                        <span className="sidebar-nav-label" style={{ fontSize: '12.5px' }}>{sub.label}</span>
+                      </NavLink>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )
+          })}
         </nav>
       </aside>
 

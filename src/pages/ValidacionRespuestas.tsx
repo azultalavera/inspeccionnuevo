@@ -1,8 +1,217 @@
 import React, { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { TRAMITES, HALLAZGOS, type Hallazgo } from '../data/mockData'
+import { TRAMITES, HALLAZGOS, OPCIONES_EMPLAZAMIENTO, type Hallazgo } from '../data/mockData'
 
 type RevisionEstado = 'PENDIENTE' | 'ACEPTADO' | 'RECHAZADO'
+
+// ── Modal 2.1: Solicitar Re-Inspección ─────────────────────────────
+function ModalReInspeccion({ onConfirm, onCancel }: { onConfirm: (motivo: string) => void; onCancel: () => void }) {
+  const [motivo, setMotivo] = useState('')
+  return (
+    <div className="modal-overlay" onClick={onCancel}>
+      <div className="modal" style={{ maxWidth: 520 }} onClick={e => e.stopPropagation()}>
+        <div className="modal-header">
+          <div className="modal-title" style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+            <span className="material-icons" style={{ color: '#D97706', fontSize: 22 }}>assignment_return</span>
+            Solicitar Re-Inspección al Coordinador
+          </div>
+          <button className="btn-icon" onClick={onCancel}>✕</button>
+        </div>
+        <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+          <div style={{
+            background: '#FFFBEB', border: '1px solid #FDE68A',
+            borderRadius: 'var(--radius-md)', padding: 'var(--space-3)',
+            fontSize: 13, color: '#92400E', lineHeight: 1.5,
+            display: 'flex', gap: 8, alignItems: 'flex-start'
+          }}>
+            <span className="material-icons" style={{ fontSize: 18, color: '#D97706', flexShrink: 0, marginTop: 1 }}>info</span>
+            <span>
+              La documentación enviada por el efector es correcta. Se solicitará al coordinador que asigne una nueva inspección con fecha límite.
+            </span>
+          </div>
+          <div>
+            <label style={{ fontSize: 13, fontWeight: 700, color: 'var(--color-gray-700)', display: 'block', marginBottom: 6 }}>
+              Justificación / Motivo de Re-Inspección:
+            </label>
+            <textarea
+              rows={4}
+              value={motivo}
+              onChange={e => setMotivo(e.target.value)}
+              placeholder="Describí los puntos que deben verificarse en la re-inspección..."
+              style={{
+                width: '100%', padding: 'var(--space-3)',
+                borderRadius: 'var(--radius-md)', border: '1.5px solid var(--color-gray-300)',
+                fontFamily: 'var(--font-family)', fontSize: 14, resize: 'none', outline: 'none',
+                background: 'var(--color-gray-50)'
+              }}
+            />
+          </div>
+        </div>
+        <div className="modal-footer">
+          <button className="btn btn-secondary" onClick={onCancel}>Cancelar</button>
+          <button
+            className="btn btn-warning"
+            disabled={!motivo.trim()}
+            style={{ opacity: motivo.trim() ? 1 : 0.4, background: '#D97706', color: 'white', border: 'none' }}
+            onClick={() => onConfirm(motivo)}
+          >
+            <span className="material-icons" style={{ fontSize: 16, verticalAlign: 'middle', marginRight: 4 }}>send</span>
+            Enviar al Coordinador
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ── Modal 2.2: Nuevo Emplazamiento ─────────────────────────────────
+function ModalNuevoEmplazamiento({ onConfirm, onCancel }: { onConfirm: (fecha: string) => void; onCancel: () => void }) {
+  const [plazoSeleccionado, setPlazoSeleccionado] = useState<string | null>(null)
+  const [plazoManual, setPlazoManual] = useState('')
+  const [plazoUnidad, setPlazoUnidad] = useState<'Horas' | 'Días' | 'Semanas'>('Días')
+
+  const calcFecha = (opId: string | null) => {
+    if (!opId) return null
+    let horas = 0
+    if (opId === 'MANUAL') {
+      const val = Number(plazoManual)
+      horas = plazoUnidad === 'Horas' ? val : plazoUnidad === 'Días' ? val * 24 : val * 24 * 7
+    } else {
+      horas = OPCIONES_EMPLAZAMIENTO.find(o => o.id === opId)?.horas ?? 0
+    }
+    const fecha = new Date()
+    let diasAgregados = 0
+    const diasTotal = Math.ceil(horas / 24)
+    while (diasAgregados < diasTotal) {
+      fecha.setDate(fecha.getDate() + 1)
+      const dow = fecha.getDay()
+      if (dow !== 0 && dow !== 6) diasAgregados++
+    }
+    return fecha.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+  }
+
+  const fechaCalculada = calcFecha(plazoSeleccionado)
+  const puedeConfirmar = plazoSeleccionado && !(plazoSeleccionado === 'MANUAL' && !plazoManual)
+
+  return (
+    <div className="modal-overlay" onClick={onCancel}>
+      <div className="modal" style={{ maxWidth: 520 }} onClick={e => e.stopPropagation()}>
+        <div className="modal-header">
+          <div className="modal-title" style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+            <span className="material-icons" style={{ color: 'var(--color-danger)', fontSize: 22 }}>gavel</span>
+            Nuevo Emplazamiento
+          </div>
+          <button className="btn-icon" onClick={onCancel}>✕</button>
+        </div>
+        <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+          <div style={{
+            background: '#FEF2F2', border: '1px solid #FECACA',
+            borderRadius: 'var(--radius-md)', padding: 'var(--space-3)',
+            fontSize: 13, color: '#991B1B', lineHeight: 1.5,
+            display: 'flex', gap: 8, alignItems: 'flex-start'
+          }}>
+            <span className="material-icons" style={{ fontSize: 18, color: 'var(--color-danger)', flexShrink: 0, marginTop: 1 }}>warning</span>
+            <span>
+              La documentación enviada no es correcta. El efector deberá volver a cargar la documentación en el nuevo plazo asignado.
+            </span>
+          </div>
+
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--color-gray-700)', marginBottom: 10 }}>
+              Seleccioná el nuevo plazo:
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {OPCIONES_EMPLAZAMIENTO.map(opt => (
+                <button
+                  key={opt.id}
+                  onClick={() => setPlazoSeleccionado(opt.id)}
+                  style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    padding: '12px 16px', borderRadius: 'var(--radius-md)',
+                    border: `2px solid ${plazoSeleccionado === opt.id ? 'var(--color-danger)' : 'var(--color-gray-200)'}`,
+                    background: plazoSeleccionado === opt.id ? 'rgba(220,53,69,0.05)' : 'white',
+                    cursor: 'pointer', fontFamily: 'var(--font-family)',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  <span style={{ fontSize: 14, fontWeight: 600, color: plazoSeleccionado === opt.id ? 'var(--color-danger)' : 'var(--color-gray-800)' }}>
+                    {opt.label}
+                  </span>
+                  {plazoSeleccionado === opt.id && <span style={{ color: 'var(--color-danger)' }}>✓</span>}
+                </button>
+              ))}
+              <button
+                onClick={() => setPlazoSeleccionado('MANUAL')}
+                style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  padding: '12px 16px', borderRadius: 'var(--radius-md)',
+                  border: `2px solid ${plazoSeleccionado === 'MANUAL' ? 'var(--color-warning)' : 'var(--color-gray-200)'}`,
+                  background: plazoSeleccionado === 'MANUAL' ? 'rgba(255,193,7,0.06)' : 'white',
+                  cursor: 'pointer', fontFamily: 'var(--font-family)',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                <span style={{ fontSize: 14, fontWeight: 600, color: plazoSeleccionado === 'MANUAL' ? '#92400E' : 'var(--color-gray-700)' }}>
+                  + Manual
+                </span>
+                {plazoSeleccionado === 'MANUAL' && <span style={{ color: '#92400E' }}>✓</span>}
+              </button>
+            </div>
+          </div>
+
+          {plazoSeleccionado === 'MANUAL' && (
+            <div style={{ display: 'flex', gap: 8 }}>
+              <input
+                type="number" min={1}
+                value={plazoManual}
+                onChange={e => setPlazoManual(e.target.value)}
+                placeholder="Cantidad"
+                style={{ flex: 1, padding: '10px 14px', borderRadius: 8, border: '1.5px solid var(--color-gray-300)', fontFamily: 'var(--font-family)', fontSize: 16, outline: 'none' }}
+              />
+              <select
+                value={plazoUnidad}
+                onChange={e => setPlazoUnidad(e.target.value as typeof plazoUnidad)}
+                style={{ flex: 1, padding: '10px 14px', borderRadius: 8, border: '1.5px solid var(--color-gray-300)', fontFamily: 'var(--font-family)', fontSize: 14, outline: 'none', background: 'white' }}
+              >
+                <option>Horas</option>
+                <option>Días</option>
+                <option>Semanas</option>
+              </select>
+            </div>
+          )}
+
+          {fechaCalculada && (
+            <div style={{
+              background: 'rgba(220,53,69,0.06)', border: '1.5px solid rgba(220,53,69,0.2)',
+              borderRadius: 'var(--radius-md)', padding: 'var(--space-3)', textAlign: 'center'
+            }}>
+              <div style={{ fontSize: 11, color: 'var(--color-gray-500)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>
+                Nueva fecha límite
+              </div>
+              <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--color-danger)' }}>{fechaCalculada}</div>
+              <div style={{ fontSize: 11, color: 'var(--color-gray-400)', marginTop: 4 }}>No incluye sábados, domingos ni feriados</div>
+            </div>
+          )}
+        </div>
+        <div className="modal-footer">
+          <button className="btn btn-secondary" onClick={onCancel}>Cancelar</button>
+          <button
+            className="btn btn-danger"
+            disabled={!puedeConfirmar}
+            style={{ opacity: puedeConfirmar ? 1 : 0.4 }}
+            onClick={() => puedeConfirmar && fechaCalculada && onConfirm(fechaCalculada)}
+          >
+            <span className="material-icons" style={{ fontSize: 16, verticalAlign: 'middle', marginRight: 4 }}>gavel</span>
+            Confirmar Nuevo Emplazamiento
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ── Pantalla de confirmación genérica ─────────────────────────────
+type SuccessScreen = 'RE_INSPECCION' | 'NUEVO_EMPLAZAMIENTO'
 
 export default function ValidacionRespuestas() {
   const { id } = useParams<{ id: string }>()
@@ -10,6 +219,14 @@ export default function ValidacionRespuestas() {
   const tramite = TRAMITES.find(t => t.id === id) ?? TRAMITES[1]
   const [revisiones, setRevisiones] = useState<Record<string, RevisionEstado>>({})
   const [visorId, setVisorId] = useState<string | null>(null)
+
+  // Modal state
+  const [showReInspeccion, setShowReInspeccion] = useState(false)
+  const [showNuevoEmplaz, setShowNuevoEmplaz] = useState(false)
+
+  // Success screens
+  const [successScreen, setSuccessScreen] = useState<SuccessScreen | null>(null)
+  const [successData, setSuccessData] = useState<string>('') // motivo or fecha
 
   const hallazgos = HALLAZGOS
   const total = hallazgos.length
@@ -45,7 +262,6 @@ export default function ValidacionRespuestas() {
           )}
         </td>
         <td>
-          {/* Respuesta del efector (simulada) */}
           <button onClick={() => setVisorId(h.id)} style={{ fontSize: 12, color: 'var(--ios-blue)', background: 'rgba(0,122,255,0.08)', border: 'none', borderRadius: 6, padding: '4px 10px', cursor: 'pointer', fontFamily: 'var(--font-family)', fontWeight: 600, marginBottom: 6, display: 'block' }}>
             👁 Ver respuesta
           </button>
@@ -97,10 +313,102 @@ export default function ValidacionRespuestas() {
     )
   }
 
+  // ── PANTALLA DE ÉXITO ────────────────────────────────────────────
+  if (successScreen === 'RE_INSPECCION') {
+    return (
+      <>
+        <div className="topbar">
+          <div className="topbar-title" style={{ flex: 1, textAlign: 'center' }}>Revisión de Respuestas de Emplazamiento</div>
+        </div>
+        <div className="page-content" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', gap: 24, maxWidth: 500, margin: '0 auto' }}>
+          <div style={{
+            width: 80, height: 80, borderRadius: '50%',
+            background: '#FFFBEB', display: 'flex', alignItems: 'center', justifyContent: 'center'
+          }}>
+            <span className="material-icons" style={{ fontSize: 44, color: '#D97706' }}>assignment_return</span>
+          </div>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--color-gray-900)', marginBottom: 6 }}>
+              Re-Inspección Solicitada
+            </div>
+            <div style={{ fontSize: 14, color: 'var(--color-gray-500)', lineHeight: 1.6 }}>
+              La solicitud fue enviada al coordinador. Una vez que asigne un inspector y una fecha límite, el trámite continuará su curso.
+            </div>
+          </div>
+          <div style={{
+            width: '100%', background: '#FFFBEB', border: '1px solid #FDE68A',
+            borderRadius: 12, padding: 16, fontSize: 13, color: '#92400E', lineHeight: 1.6
+          }}>
+            <div style={{ fontWeight: 700, marginBottom: 4 }}>Motivo enviado:</div>
+            {successData}
+          </div>
+          <div style={{
+            width: '100%', background: 'var(--color-gray-50)', borderRadius: 12,
+            padding: 14, fontSize: 13, color: 'var(--color-gray-600)', lineHeight: 1.5,
+            display: 'flex', gap: 8, alignItems: 'flex-start'
+          }}>
+            <span className="material-icons" style={{ fontSize: 18, color: 'var(--color-gray-400)', flexShrink: 0, marginTop: 1 }}>info</span>
+            El coordinador recibirá la solicitud y asignará inspector y fecha límite para la re-inspección.
+          </div>
+          <button className="btn btn-primary btn-lg" style={{ width: '100%' }} onClick={() => navigate('/inspector/inspecciones')}>
+            Volver a Bandeja
+          </button>
+        </div>
+      </>
+    )
+  }
+
+  if (successScreen === 'NUEVO_EMPLAZAMIENTO') {
+    return (
+      <>
+        <div className="topbar">
+          <div className="topbar-title" style={{ flex: 1, textAlign: 'center' }}>Revisión de Respuestas de Emplazamiento</div>
+        </div>
+        <div className="page-content" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', gap: 24, maxWidth: 500, margin: '0 auto' }}>
+          <div style={{
+            width: 80, height: 80, borderRadius: '50%',
+            background: '#FEF2F2', display: 'flex', alignItems: 'center', justifyContent: 'center'
+          }}>
+            <span className="material-icons" style={{ fontSize: 44, color: 'var(--color-danger)' }}>gavel</span>
+          </div>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--color-gray-900)', marginBottom: 6 }}>
+              Nuevo Emplazamiento Emitido
+            </div>
+            <div style={{ fontSize: 14, color: 'var(--color-gray-500)', lineHeight: 1.6 }}>
+              El establecimiento fue emplazado nuevamente. Deberá cargar la documentación corregida antes de la fecha límite.
+            </div>
+          </div>
+          <div style={{
+            width: '100%', background: '#FEF2F2', border: '1px solid #FECACA',
+            borderRadius: 12, padding: 16, textAlign: 'center'
+          }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#991B1B', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>
+              Nueva fecha límite
+            </div>
+            <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--color-danger)' }}>{successData}</div>
+          </div>
+          <div style={{
+            width: '100%', background: 'var(--color-gray-50)', borderRadius: 12,
+            padding: 14, fontSize: 13, color: 'var(--color-gray-600)', lineHeight: 1.5,
+            display: 'flex', gap: 8, alignItems: 'flex-start'
+          }}>
+            <span className="material-icons" style={{ fontSize: 18, color: 'var(--color-gray-400)', flexShrink: 0, marginTop: 1 }}>info</span>
+            Una vez que el efector cargue la nueva respuesta, recibirás la notificación para revisarla. El proceso de revisión se repite con los mismos escenarios.
+          </div>
+          <button className="btn btn-primary btn-lg" style={{ width: '100%' }} onClick={() => navigate('/inspector/inspecciones')}>
+            Volver a Bandeja
+          </button>
+        </div>
+      </>
+    )
+  }
+
+  // ── VISTA PRINCIPAL ──────────────────────────────────────────────
   return (
     <>
       <div className="topbar">
-        <button className="btn btn-ghost btn-sm" onClick={() => navigate('/inspector/bandeja')}>← Volver</button>
+        <button className="btn btn-ghost btn-sm" onClick={() => navigate('/inspector/inspecciones')}>← Volver</button>
         <div className="topbar-title" style={{ flex: 1, textAlign: 'center' }}>Revisión de Respuestas de Emplazamiento</div>
       </div>
 
@@ -157,30 +465,71 @@ export default function ValidacionRespuestas() {
           </div>
         </div>
 
-        {/* Action buttons */}
-        <div style={{ display: 'flex', gap: 'var(--space-3)', justifyContent: 'flex-end' }}>
+        {/* ── Action buttons ── */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
           {!todosRevisados && (
-            <div className="alert alert-warning" style={{ flex: 1, marginBottom: 0, display: 'flex', gap: 8, alignItems: 'center' }}>
+            <div className="alert alert-warning" style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
               <span className="material-icons" style={{ color: '#b91c1c', fontSize: 18 }}>warning</span>
               <div>Revisá todos los ítems para habilitar los botones de acción.</div>
             </div>
           )}
-          <button
-            className="btn btn-success btn-lg"
-            disabled={!todosRevisados || !todosAceptados}
-            style={{ opacity: (todosRevisados && todosAceptados) ? 1 : 0.4 }}
-            onClick={() => navigate('/inspector/bandeja')}
-          >
-            Crear Acta
-          </button>
-          <button
-            className="btn btn-danger btn-lg"
-            disabled={!todosRevisados || !algunoRechazado}
-            style={{ opacity: (todosRevisados && algunoRechazado) ? 1 : 0.4 }}
-            onClick={() => navigate('/inspector/bandeja')}
-          >
-            Rechazar
-          </button>
+
+          {todosRevisados && (
+            <div style={{
+              background: '#F8FAFC', border: '1px solid #E2E8F0',
+              borderRadius: 12, padding: '16px 20px',
+              display: 'flex', flexDirection: 'column', gap: 10
+            }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--color-gray-700)', marginBottom: 2 }}>
+                Resultado de la revisión:
+              </div>
+
+              {/* 2.1 — Documentación correcta → pedir re-inspección */}
+              {todosAceptados && (
+                <>
+                  <div style={{
+                    background: '#FFFBEB', border: '1px solid #FDE68A',
+                    borderRadius: 8, padding: '10px 14px',
+                    fontSize: 13, color: '#92400E', lineHeight: 1.5
+                  }}>
+                    ✓ Toda la documentación fue aceptada. Podés solicitar una re-inspección al coordinador para verificar in situ.
+                  </div>
+                  <button
+                    className="btn btn-lg"
+                    style={{
+                      background: '#D97706', color: 'white', border: 'none',
+                      display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8
+                    }}
+                    onClick={() => setShowReInspeccion(true)}
+                  >
+                    <span className="material-icons" style={{ fontSize: 20 }}>assignment_return</span>
+                    Solicitar Re-Inspección al Coordinador
+                  </button>
+                </>
+              )}
+
+              {/* 2.2 — Documentación incorrecta → nuevo emplazamiento */}
+              {algunoRechazado && (
+                <>
+                  <div style={{
+                    background: '#FEF2F2', border: '1px solid #FECACA',
+                    borderRadius: 8, padding: '10px 14px',
+                    fontSize: 13, color: '#991B1B', lineHeight: 1.5
+                  }}>
+                    ✗ Hay documentación rechazada. Debés volver a emplazar al establecimiento para que corrija y reenvíe.
+                  </div>
+                  <button
+                    className="btn btn-danger btn-lg"
+                    style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
+                    onClick={() => setShowNuevoEmplaz(true)}
+                  >
+                    <span className="material-icons" style={{ fontSize: 20 }}>gavel</span>
+                    Volver a Emplazar
+                  </button>
+                </>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
@@ -214,6 +563,30 @@ export default function ValidacionRespuestas() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Modal 2.1: Re-Inspección */}
+      {showReInspeccion && (
+        <ModalReInspeccion
+          onConfirm={(motivo) => {
+            setSuccessData(motivo)
+            setShowReInspeccion(false)
+            setSuccessScreen('RE_INSPECCION')
+          }}
+          onCancel={() => setShowReInspeccion(false)}
+        />
+      )}
+
+      {/* Modal 2.2: Nuevo Emplazamiento */}
+      {showNuevoEmplaz && (
+        <ModalNuevoEmplazamiento
+          onConfirm={(fecha) => {
+            setSuccessData(fecha)
+            setShowNuevoEmplaz(false)
+            setSuccessScreen('NUEVO_EMPLAZAMIENTO')
+          }}
+          onCancel={() => setShowNuevoEmplaz(false)}
+        />
       )}
     </>
   )

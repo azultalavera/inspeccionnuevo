@@ -16,6 +16,15 @@ import ValidacionRespuestas from './pages/ValidacionRespuestas'
 import InspeccionShell from './pages/tablet/InspeccionShell'
 import FormularioHabilitacion from './pages/FormularioHabilitacion'
 import BandejaInspecciones from './pages/BandejaInspecciones'
+import BandejaDenunciasEfector from './pages/BandejaDenunciasEfector'
+import BandejaAntecedentesEfector from './pages/BandejaAntecedentesEfector'
+import BandejaAlertasRutina from './pages/BandejaAlertasRutina'
+import BandejaAlertasEfector from './pages/BandejaAlertasEfector'
+import InspeccionHabilitacionPage from './pages/InspeccionHabilitacionPage'
+import InspeccionRutinaPage from './pages/InspeccionRutinaPage'
+import InspeccionDenunciaPage from './pages/InspeccionDenunciaPage'
+import ModuloTramites from './pages/ModuloTramites'
+import BandejaTodasInspeccionesPage from './pages/BandejaTodasInspeccionesPage'
 
 function AppRoutes() {
   const { user } = useAuth()
@@ -34,9 +43,14 @@ function AppRoutes() {
             <Route path="home" element={<HomeDashboard />} />
             <Route path="expedientes" element={<BandejaExpedientesAbiertos />} />
             <Route path="inspecciones" element={<BandejaInspecciones />} />
+            <Route path="inspeccion-tipo/bandeja" element={<BandejaTodasInspeccionesPage />} />
+            <Route path="inspeccion-tipo/habilitacion" element={<InspeccionHabilitacionPage />} />
+            <Route path="inspeccion-tipo/rutina" element={<InspeccionRutinaPage />} />
+            <Route path="inspeccion-tipo/denuncia" element={<InspeccionDenunciaPage />} />
             <Route path="bandeja" element={<BandejaTramites />} />
             <Route path="establecimientos" element={<BandejaEstablecimientos />} />
             <Route path="validacion/:id" element={<ValidacionRespuestas />} />
+            <Route path="admin/denuncias" element={<BandejaDenunciasEfector />} />
           </Route>
           <Route path="/inspector/inspeccion/:id" element={<InspeccionShell />} />
         </>
@@ -60,6 +74,7 @@ function AppRoutes() {
             <Route path="home" element={<HomeDashboard />} />
             <Route path="expedientes" element={<BandejaExpedientesAbiertos />} />
             <Route path="bandeja" element={<BandejaTramites />} />
+            <Route path="alertas-rutina" element={<BandejaAlertasRutina />} />
             <Route path="establecimientos" element={<BandejaEstablecimientos />} />
           </Route>
         </>
@@ -70,7 +85,14 @@ function AppRoutes() {
         <>
           <Route path="/coordinador" element={<DesktopLayout />}>
             <Route path="home" element={<HomeDashboard />} />
+            <Route path="inspecciones" element={<BandejaInspecciones />} />
+            <Route path="inspeccion/bandeja" element={<BandejaTodasInspeccionesPage />} />
+            <Route path="inspeccion/habilitacion" element={<InspeccionHabilitacionPage />} />
+            <Route path="inspeccion/rutina" element={<InspeccionRutinaPage />} />
+            <Route path="inspeccion/denuncia" element={<InspeccionDenunciaPage />} />
+            <Route path="tramites" element={<ModuloTramites />} />
             <Route path="asignacion" element={<BandejaAsignacion />} />
+            <Route path="alertas-rutina" element={<BandejaAlertasRutina />} />
             <Route path="adecuacion" element={<BandejaAdecuacion />} />
           </Route>
         </>
@@ -93,8 +115,11 @@ function AppRoutes() {
         <>
           <Route path="/efector" element={<DesktopLayout />}>
             <Route path="home" element={<HomeDashboard />} />
+            <Route path="alertas" element={<BandejaAlertasEfector />} />
             <Route path="establecimientos" element={<BandejaEstablecimientos />} />
             <Route path="bandeja" element={<BandejaTramitesEfector />} />
+            <Route path="mis-denuncias" element={<BandejaDenunciasEfector />} />
+            <Route path="antecedentes" element={<BandejaAntecedentesEfector />} />
             <Route path="responder/:id" element={<BandejaEfector />} />
             <Route path="alta-habilitacion/:id" element={<FormularioHabilitacion />} />
           </Route>

@@ -205,7 +205,7 @@ export default function BandejaExpedientesAbiertos() {
         <div style={{ flex: 1, overflowY: 'auto', padding: '14px' }}>
           <div style={{ marginBottom: 14 }}>
             <div style={{ fontSize: 22, fontWeight: 800, color: '#0F172A', letterSpacing: '-0.4px' }}>
-              Expedientes abiertos
+              Trámites en curso
             </div>
             <div style={{ fontSize: 12, color: '#64748B', marginTop: 2 }}>
               Bandeja de validaciones y seguimiento rápido ({filtrados.length})
@@ -215,7 +215,7 @@ export default function BandejaExpedientesAbiertos() {
           {filtrados.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--ios-gray)' }}>
               <div style={{ fontSize: 36, marginBottom: 6 }}>📥</div>
-              <div style={{ fontWeight: 700, color: 'var(--color-gray-700)', fontSize: 13 }}>Sin expedientes asignados</div>
+              <div style={{ fontWeight: 700, color: 'var(--color-gray-700)', fontSize: 13 }}>Sin trámites asignados</div>
             </div>
           ) : (
             groupedTramites.map(group => (
@@ -292,23 +292,6 @@ export default function BandejaExpedientesAbiertos() {
             ))
           )}
         </div>
-
-        {/* Bottom Tab Bar */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-around', height: 'var(--tab-bar-height)', background: 'rgba(255, 255, 255, 0.90)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', borderTop: '1px solid rgba(0,0,0,0.08)', paddingBottom: 'env(safe-area-inset-bottom, 12px)', position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 200, maxWidth: 768, margin: '0 auto' }}>
-          {[
-            { icon: 'folder', label: 'Abiertos', active: true, path: null },
-            { icon: 'assignment', label: 'Trámites', active: false, path: `/${user?.rol.toLowerCase()}/bandeja` },
-          ].map(tab => (
-            <button key={tab.label} onClick={() => tab.path && navigate(tab.path)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-family)', flex: 1, height: '100%', padding: '4px 0' }}>
-              <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 44, height: 28, borderRadius: 14, background: tab.active ? 'rgba(0, 122, 255, 0.1)' : 'transparent' }}>
-                <span className="material-icons" style={{ fontSize: 22, color: tab.active ? 'var(--ios-blue)' : '#7f8c8d' }}>{tab.icon}</span>
-              </div>
-              <span style={{ fontSize: 11, fontWeight: tab.active ? 700 : 500, color: tab.active ? 'var(--ios-blue)' : '#7f8c8d' }}>
-                {tab.label}
-              </span>
-            </button>
-          ))}
-        </div>
       </div>
     )
   }
@@ -318,7 +301,7 @@ export default function BandejaExpedientesAbiertos() {
     <>
       <div className="topbar" style={{ height: 48, padding: '0 20px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <span style={{ fontSize: 18, fontWeight: 800, color: '#0F172A' }}>Expedientes abiertos</span>
+          <span style={{ fontSize: 18, fontWeight: 800, color: '#0F172A' }}>Trámites en curso</span>
           <span style={{ fontSize: 12, color: '#64748B', borderLeft: '1px solid #CBD5E1', paddingLeft: 12 }}>
             Bandeja de validaciones y seguimiento rápido ({filtrados.length})
           </span>
@@ -337,7 +320,7 @@ export default function BandejaExpedientesAbiertos() {
             boxShadow: '0 4px 20px rgba(0,0,0,0.02)'
           }}>
             <span className="material-icons" style={{ fontSize: 36, color: '#CBD5E1', marginBottom: 6, display: 'block' }}>inbox</span>
-            <div style={{ fontWeight: 700, fontSize: 13, color: '#1E293B' }}>No hay expedientes asignados en este momento</div>
+            <div style={{ fontWeight: 700, fontSize: 13, color: '#1E293B' }}>No hay trámites asignados en este momento</div>
           </div>
         ) : (
           groupedTramites.map(group => (

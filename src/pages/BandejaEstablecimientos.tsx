@@ -245,53 +245,6 @@ export default function BandejaEstablecimientos() {
             ))}
           </div>
         </div>
-
-        {/* Tab Bar */}
-        <div style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'space-around',
-          height: 'var(--tab-bar-height)',
-          background: 'rgba(255, 255, 255, 0.90)',
-          backdropFilter: 'blur(20px)',
-          WebkitBackdropFilter: 'blur(20px)',
-          borderTop: '1px solid rgba(0,0,0,0.08)',
-          paddingBottom: 'env(safe-area-inset-bottom, 12px)',
-          position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 200,
-          maxWidth: 768, margin: '0 auto',
-          boxShadow: '0 -4px 16px rgba(0,0,0,0.04)',
-        }}>
-          {user?.rol === 'INSPECTOR' ? (
-            [
-              { icon: 'home', label: 'Inicio', active: false, path: '/inspector/home' },
-              { icon: 'folder', label: 'Abiertos', active: false, path: '/inspector/expedientes' },
-              { icon: 'assignment', label: 'Trámites', active: false, path: '/inspector/bandeja' },
-              { icon: 'business', label: 'Locales', active: true, path: '/inspector/establecimientos' },
-            ].map(tab => (
-              <button key={tab.label} onClick={() => navigate(tab.path)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6, background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-family)', flex: 1, height: '100%', padding: '8px 0' }}>
-                <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 52, height: 32, borderRadius: 16, background: tab.active ? 'rgba(0, 122, 255, 0.1)' : 'transparent', transition: 'all 0.2s ease' }}>
-                  <span className="material-icons" style={{ fontSize: 26, color: tab.active ? 'var(--ios-blue)' : '#7f8c8d', transition: 'all 0.2s ease', transform: tab.active ? 'scale(1.05)' : 'scale(1)' }}>{tab.icon}</span>
-                </div>
-                <span style={{ fontSize: 12, fontWeight: tab.active ? 700 : 500, color: tab.active ? 'var(--ios-blue)' : '#7f8c8d', lineHeight: 1.2, letterSpacing: '0.2px' }}>
-                  {tab.label}
-                </span>
-              </button>
-            ))
-          ) : (
-            [
-              { icon: 'home', label: 'Inicio', active: false, path: '/efector/home' },
-              { icon: 'business', label: 'Locales', active: true, path: '/efector/establecimientos' },
-              { icon: 'assignment', label: 'Trámites', active: false, path: '/efector/bandeja' },
-            ].map(tab => (
-              <button key={tab.label} onClick={() => navigate(tab.path)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6, background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-family)', flex: 1, height: '100%', padding: '8px 0' }}>
-                <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 52, height: 32, borderRadius: 16, background: tab.active ? 'rgba(0, 122, 255, 0.1)' : 'transparent', transition: 'all 0.2s ease' }}>
-                  <span className="material-icons" style={{ fontSize: 26, color: tab.active ? 'var(--ios-blue)' : '#7f8c8d', transition: 'all 0.2s ease', transform: tab.active ? 'scale(1.05)' : 'scale(1)' }}>{tab.icon}</span>
-                </div>
-                <span style={{ fontSize: 12, fontWeight: tab.active ? 700 : 500, color: tab.active ? 'var(--ios-blue)' : '#7f8c8d', lineHeight: 1.2, letterSpacing: '0.2px' }}>
-                  {tab.label}
-                </span>
-              </button>
-            ))
-          )}
-        </div>
       </div>
     )
   }
@@ -414,9 +367,14 @@ export default function BandejaEstablecimientos() {
                   <td>{est.localidad}</td>
                   <td>{est.tipologia}</td>
                   <td>
-                    <span className={`badge ${est.estado === 'Habilitado' ? 'badge-success' : 'badge-warning'}`}>
-                      {est.estado}
-                    </span>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                      <span className={`badge ${est.estado === 'Habilitado' ? 'badge-success' : 'badge-warning'}`}>
+                        {est.estado}
+                      </span>
+                      <span style={{ fontSize: 10.5, fontWeight: 700, color: '#0055A5', background: '#EFF6FF', padding: '2px 6px', borderRadius: 4, whiteSpace: 'nowrap' }}>
+                        🔄 Fiscalización: {est.tipologia.toLowerCase().includes('geriátric') ? '3/año' : '1/año'}
+                      </span>
+                    </div>
                   </td>
                   <td>
                     <TableActionsMenu
@@ -430,7 +388,14 @@ export default function BandejaEstablecimientos() {
                           label: 'Ver Documentos',
                           icon: 'folder_open',
                           onClick: () => handleOpenDocumentos(est)
-                        }
+                        },
+                        ...(user?.rol === 'COORDINADOR' && est.estado === 'Habilitado' ? [{
+                          label: 'Ordenar Rutina In Situ',
+                          icon: 'assignment_turned_in',
+                          onClick: () => {
+                            navigate('/coordinador/asignacion')
+                          }
+                        }] : [])
                       ]}
                     />
                   </td>

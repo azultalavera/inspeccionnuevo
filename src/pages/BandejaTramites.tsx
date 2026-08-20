@@ -26,7 +26,7 @@ function useIsTablet() {
 }
 
 // ── Tablet: Card de trámite ──────────────────────────────────────
-function TramiteCard({ t, onAction }: { t: Tramite; onAction: () => void }) {
+function TramiteCard({ t, onAction, onCertificado }: { t: Tramite; onAction: () => void; onCertificado: (t: Tramite) => void }) {
   const conf = ESTADO_CONFIG[t.estado]
   const canInspect = t.estado === 'ACEPTADO_DOC_AUD'
   const needsReview = t.estado === 'DESCARGO_INSP'
@@ -100,64 +100,171 @@ function TramiteCard({ t, onAction }: { t: Tramite; onAction: () => void }) {
           ))}
         </div>
 
-        {/* Type badge + Action */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
+        {/* Type badges */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', marginBottom: '12px' }}>
           <span className={`badge ${t.tipoInspeccion === 'INICIAL' ? 'badge-brand' : 'badge-warning'}`}>
             {t.tipoInspeccion === 'INICIAL' ? 'Inicial' : 'Re-inspección'}
           </span>
           <span className="badge badge-neutral">
             {t.formatoInspeccion}
           </span>
-          <div style={{ flex: 1 }} />
+        </div>
 
+        {/* ACCIONES DEL INSPECTOR (TODOS LOS BOTONES DEL MISMO TAMAÑO EN UNA FILA) */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6, paddingTop: 10, borderTop: '1px solid #F1F5F9' }}>
           {canInspect && (
             <button
               onClick={onAction}
               style={{
-                display: 'flex', alignItems: 'center', gap: 6,
-                padding: '10px 20px',
+                height: 36,
+                padding: '0 4px',
                 background: 'var(--ios-blue)',
                 color: 'white',
                 border: 'none',
-                borderRadius: 'var(--radius-xl)',
-                fontFamily: 'var(--font-family)',
-                fontSize: 14,
-                fontWeight: 700,
+                borderRadius: 8,
+                fontSize: 11.5,
+                fontWeight: 750,
                 cursor: 'pointer',
-                transition: 'all 0.15s ease',
-                boxShadow: '0 4px 12px rgba(0,122,255,0.30)',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 4,
+                boxShadow: '0 2px 6px rgba(0,122,255,0.2)',
+                whiteSpace: 'nowrap',
+                width: '100%'
               }}
             >
-              <span className="material-icons" style={{ fontSize: 16 }}>search</span>
+              <span className="material-icons" style={{ fontSize: 15 }}>search</span>
               {t.estado === 'ACEPTADO_DOC_AUD' ? 'Iniciar' : 'Continuar'}
             </button>
           )}
+
           {needsReview && (
             <button
               onClick={onAction}
               style={{
-                display: 'flex', alignItems: 'center', gap: 6,
-                padding: '10px 20px',
+                height: 36,
+                padding: '0 4px',
                 background: 'rgba(255,149,0,0.12)',
                 color: 'var(--ios-orange)',
-                border: '1.5px solid rgba(255,149,0,0.35)',
-                borderRadius: 'var(--radius-xl)',
-                fontFamily: 'var(--font-family)',
-                fontSize: 14,
-                fontWeight: 700,
+                border: '1px solid rgba(255,149,0,0.4)',
+                borderRadius: 8,
+                fontSize: 11.5,
+                fontWeight: 750,
                 cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 4,
+                whiteSpace: 'nowrap',
+                width: '100%'
               }}
             >
-              <span className="material-icons" style={{ fontSize: 16 }}>rate_review</span>
+              <span className="material-icons" style={{ fontSize: 15 }}>rate_review</span>
               Revisar
             </button>
           )}
-          {closed && (
-            <span style={{ fontSize: 13, color: 'var(--ios-gray)', display: 'flex', alignItems: 'center', gap: 4 }}>
-              <span className="material-icons" style={{ fontSize: 16, color: 'var(--ios-green)' }}>check_circle</span>
-              Cerrado
-            </span>
+
+          {!canInspect && !needsReview && (
+            <button
+              onClick={() => alert(`Ficha de Trámite N° ${t.nroTramite}`)}
+              style={{
+                height: 36,
+                padding: '0 4px',
+                background: '#F1F5F9',
+                color: '#334155',
+                border: '1px solid #CBD5E1',
+                borderRadius: 8,
+                fontSize: 11.5,
+                fontWeight: 750,
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 4,
+                whiteSpace: 'nowrap',
+                width: '100%'
+              }}
+            >
+              <span className="material-icons" style={{ fontSize: 15 }}>visibility</span>
+              Detalle
+            </button>
           )}
+
+          <button
+            onClick={() => onCertificado(t)}
+            title="Certificado de trámite en curso"
+            style={{
+              height: 36,
+              padding: '0 4px',
+              background: '#eff6ff',
+              color: '#0284c7',
+              border: '1px solid #bae6fd',
+              borderRadius: 8,
+              fontSize: 11.5,
+              fontWeight: 750,
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 4,
+              whiteSpace: 'nowrap',
+              width: '100%'
+            }}
+          >
+            <span className="material-icons" style={{ fontSize: 15, color: '#0284c7' }}>workspace_premium</span>
+            Certificado
+          </button>
+
+          <button
+            onClick={() => alert(`Historial del Trámite N° ${t.nroTramite}`)}
+            title="Ver Historial"
+            style={{
+              height: 36,
+              padding: '0 4px',
+              background: '#F8FAFC',
+              border: '1px solid #CBD5E1',
+              borderRadius: 8,
+              color: '#475569',
+              fontSize: 11.5,
+              fontWeight: 750,
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 4,
+              whiteSpace: 'nowrap',
+              width: '100%'
+            }}
+          >
+            <span className="material-icons" style={{ fontSize: 15 }}>history</span>
+            Historial
+          </button>
+
+          <button
+            onClick={() => alert(`Descargando PDF Expediente N° ${t.nroExpediente}...`)}
+            title="Descargar PDF"
+            style={{
+              height: 36,
+              padding: '0 4px',
+              background: '#F8FAFC',
+              border: '1px solid #CBD5E1',
+              borderRadius: 8,
+              color: '#475569',
+              fontSize: 11.5,
+              fontWeight: 750,
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 4,
+              whiteSpace: 'nowrap',
+              width: '100%'
+            }}
+          >
+            <span className="material-icons" style={{ fontSize: 15 }}>picture_as_pdf</span>
+            PDF
+          </button>
         </div>
       </div>
     </div>
@@ -175,6 +282,7 @@ export default function BandejaTramites() {
   const [filtroEstado, setFiltroEstado] = useState<EstadoTramite | 'TODOS'>('TODOS')
   const [busqueda, setBusqueda] = useState('')
   const [showSearch, setShowSearch] = useState(false)
+  const [selectedCertificadoTramite, setSelectedCertificadoTramite] = useState<Tramite | null>(null)
 
   // Advanced Filter states
   const [showFiltrosAvanzados, setShowFiltrosAvanzados] = useState(false)
@@ -417,6 +525,7 @@ export default function BandejaTramites() {
                 <TramiteCard
                   key={t.id}
                   t={t}
+                  onCertificado={(selected) => setSelectedCertificadoTramite(selected)}
                   onAction={() => {
                     if (t.estado === 'ACEPTADO_DOC_AUD') {
                       handleAbrirInspeccion(t.id, t.estado)
@@ -427,60 +536,6 @@ export default function BandejaTramites() {
                 />
               ))}
             </div>
-          )}
-        </div>
-
-        {/* iOS-style bottom tab bar */}
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-around',
-          height: 'var(--tab-bar-height)',
-          background: 'rgba(255, 255, 255, 0.90)',
-          backdropFilter: 'blur(20px)',
-          WebkitBackdropFilter: 'blur(20px)',
-          borderTop: '1px solid rgba(0,0,0,0.08)',
-          paddingBottom: 'env(safe-area-inset-bottom, 12px)',
-          position: 'fixed',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          zIndex: 200,
-          maxWidth: 768,
-          margin: '0 auto',
-          boxShadow: '0 -4px 16px rgba(0,0,0,0.04)',
-        }}>
-          {user?.rol === 'INSPECTOR' ? (
-            [
-              { icon: 'home', label: 'Inicio', active: false, path: '/inspector/home' },
-              { icon: 'folder', label: 'Abiertos', active: false, path: '/inspector/expedientes' },
-              { icon: 'assignment', label: 'Trámites', active: true, path: '/inspector/bandeja' },
-              { icon: 'business', label: 'Locales', active: false, path: '/inspector/establecimientos' },
-            ].map(tab => (
-              <button key={tab.label} onClick={() => navigate(tab.path)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6, background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-family)', flex: 1, height: '100%', padding: '8px 0' }}>
-                <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 52, height: 32, borderRadius: 16, background: tab.active ? 'rgba(0, 122, 255, 0.1)' : 'transparent', transition: 'all 0.2s ease' }}>
-                  <span className="material-icons" style={{ fontSize: 26, color: tab.active ? 'var(--ios-blue)' : '#7f8c8d', transition: 'all 0.2s ease', transform: tab.active ? 'scale(1.05)' : 'scale(1)' }}>{tab.icon}</span>
-                </div>
-                <span style={{ fontSize: 12, fontWeight: tab.active ? 700 : 500, color: tab.active ? 'var(--ios-blue)' : '#7f8c8d', lineHeight: 1.2, letterSpacing: '0.2px' }}>
-                  {tab.label}
-                </span>
-              </button>
-            ))
-          ) : (
-            [
-              { icon: 'assignment', label: 'Trámites', active: true },
-              { icon: 'search', label: 'Inspección', active: false },
-              { icon: 'analytics', label: 'Reportes', active: false },
-            ].map(tab => (
-              <button key={tab.label} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6, background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-family)', flex: 1, height: '100%', padding: '8px 0' }}>
-                <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 52, height: 32, borderRadius: 16, background: tab.active ? 'rgba(0, 122, 255, 0.1)' : 'transparent', transition: 'all 0.2s ease' }}>
-                  <span className="material-icons" style={{ fontSize: 26, color: tab.active ? 'var(--ios-blue)' : '#7f8c8d', transition: 'all 0.2s ease', transform: tab.active ? 'scale(1.05)' : 'scale(1)' }}>{tab.icon}</span>
-                </div>
-                <span style={{ fontSize: 12, fontWeight: tab.active ? 700 : 500, color: tab.active ? 'var(--ios-blue)' : '#7f8c8d', lineHeight: 1.2, letterSpacing: '0.2px' }}>
-                  {tab.label}
-                </span>
-              </button>
-            ))
           )}
         </div>
       </div>
@@ -657,12 +712,12 @@ export default function BandejaTramites() {
                       </div>
                       <div style={{ fontSize: 11, color: 'var(--color-gray-500)' }}>
                         Etapa: <strong style={{ color: 'var(--color-brand-700)' }}>{getEtapaLabel(t.estado)}</strong>
-                      </div>
+              </div>
                     </td>
                     <td>
                       <TableActionsMenu
                         options={[
-                          ...(t.estado === 'ACEPTADO_DOC_AUD' ? [{
+                          ...(t.estado === 'ACEPTADO_DOC_AUD' || t.estado === 'RE_INSP_SOLICITADA' ? [{
                             label: t.estado === 'ACEPTADO_DOC_AUD' ? 'Iniciar Inspección' : 'Continuar Inspección',
                             icon: 'search',
                             onClick: () => handleAbrirInspeccion(t.id, t.estado)
@@ -672,6 +727,11 @@ export default function BandejaTramites() {
                             icon: 'rate_review',
                             onClick: () => handleVerValidacion(t.id)
                           }] : []),
+                          {
+                            label: 'Certificado Trámite en Curso',
+                            icon: 'workspace_premium',
+                            onClick: () => setSelectedCertificadoTramite(t)
+                          },
                           {
                             label: 'Ver Historial',
                             icon: 'history',
@@ -692,6 +752,110 @@ export default function BandejaTramites() {
           </table>
         </div>
       </div>
+
+      {/* MODAL CERTIFICADO DE TRÁMITE EN CURSO */}
+      {selectedCertificadoTramite && (
+        <div style={{
+          position: 'fixed',
+          top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(15, 23, 42, 0.6)',
+          backdropFilter: 'blur(4px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000,
+          padding: 16
+        }}>
+          <div style={{
+            background: '#FFFFFF',
+            borderRadius: 16,
+            maxWidth: 520,
+            width: '100%',
+            padding: 24,
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)',
+            border: '1px solid #E2E8F0',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 16
+          }}>
+            {/* Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ width: 42, height: 42, borderRadius: 10, background: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <span className="material-icons" style={{ fontSize: 24, color: '#0284C7' }}>workspace_premium</span>
+                </div>
+                <div>
+                  <div style={{ fontSize: 11, fontWeight: 800, color: '#0284C7', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                    Gobierno de Córdoba — Ministerio de Salud
+                  </div>
+                  <h3 style={{ margin: '2px 0 0 0', fontSize: 17, fontWeight: 800, color: '#0F172A' }}>
+                    Certificado de Trámite en Curso
+                  </h3>
+                </div>
+              </div>
+              <button
+                onClick={() => setSelectedCertificadoTramite(null)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748B' }}
+              >
+                <span className="material-icons">close</span>
+              </button>
+            </div>
+
+            {/* Certificate Body */}
+            <div style={{
+              background: '#F8FAFC',
+              border: '1px dashed #CBD5E1',
+              borderRadius: 12,
+              padding: '16px 18px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 10
+            }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#64748B', fontFamily: 'monospace' }}>
+                N° CERTIFICADO: CERT-2026-{selectedCertificadoTramite.nroActa || '00982'} | EMISIÓN: 04/08/2026
+              </div>
+              <div style={{ fontSize: 15, fontWeight: 800, color: '#0F172A' }}>
+                {selectedCertificadoTramite.denominacion}
+              </div>
+              <div style={{ fontSize: 12, color: '#475569' }}>
+                CUIT: <strong>{selectedCertificadoTramite.cuit}</strong> | Tipología: <strong>{selectedCertificadoTramite.tipologia}</strong>
+              </div>
+              <div style={{ fontSize: 12, color: '#475569' }}>
+                N° Trámite: <strong>{selectedCertificadoTramite.nroTramite}</strong> | N° Expediente: <strong>{selectedCertificadoTramite.nroExpediente}</strong>
+              </div>
+              <div style={{ fontSize: 12, color: '#0284C7', background: '#EFF6FF', padding: '8px 12px', borderRadius: 8, marginTop: 4, lineHeight: 1.4, fontWeight: 600 }}>
+                ✓ Se acredita formalmente que la firma cuenta con trámite de fiscalización en curso de evaluación técnica y cumplimiento inspectivo. Validez por 60 días.
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', paddingTop: 4 }}>
+              <button
+                onClick={() => {
+                  alert(`Descargando PDF del Certificado N° CERT-2026-${selectedCertificadoTramite.nroActa || '00982'} para ${selectedCertificadoTramite.denominacion}...`)
+                  setSelectedCertificadoTramite(null)
+                }}
+                style={{
+                  background: '#0284C7',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: 8,
+                  padding: '9px 16px',
+                  fontSize: 13,
+                  fontWeight: 750,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6
+                }}
+              >
+                <span className="material-icons" style={{ fontSize: 18 }}>file_download</span>
+                Descargar PDF Certificado
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   )
 }

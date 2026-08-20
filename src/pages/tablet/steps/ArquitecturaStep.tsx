@@ -65,13 +65,13 @@ export default function ArquitecturaStep({ onNext, onPrev }: StepProps) {
               width: '100%', display: 'flex', alignItems: 'center', gap: 'var(--space-3)', padding: 'var(--space-4)',
               background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-family)',
             }}>
-              <span style={{ fontSize: 20 }}>🏗️</span>
+              <span className="material-icons" style={{ fontSize: 20, color: '#0055A5' }}>domain</span>
               <div style={{ flex: 1, textAlign: 'left' }}>
                 <div style={{ fontSize: 16, fontWeight: 700 }}>{svc}</div>
                 <div style={{ fontSize: 12, color: 'var(--ios-gray)', marginTop: 2 }}>{items.length} criterio{items.length > 1 ? 's' : ''}</div>
               </div>
               {irregs > 0 && <span className="badge badge-danger">{irregs} irregularidad{irregs > 1 ? 'es' : ''}</span>}
-              <span style={{ fontSize: 14, color: 'var(--ios-gray)', transform: openSvc === svc ? 'rotate(90deg)' : 'rotate(0)', transition: 'transform 0.2s ease', display: 'inline-block' }}>▶</span>
+              <span className="material-icons" style={{ fontSize: 20, color: 'var(--ios-gray)', transform: openSvc === svc ? 'rotate(90deg)' : 'rotate(0)', transition: 'transform 0.2s ease', display: 'inline-block' }}>chevron_right</span>
             </button>
 
             {openSvc === svc && items.map((item, idx) => (

@@ -1,9 +1,10 @@
 import React, { useState } from 'react'
 import type { StepProps } from '../InspeccionShell'
-import { TRAMITES } from '../../../data/mockData'
+import { useApp } from '../../../context/AppContext'
 
 export default function SyncStep({ tramiteId, onNext }: StepProps) {
-  const tramite = TRAMITES.find(t => t.id === tramiteId)!
+  const { tramites } = useApp()
+  const tramite = tramites.find(t => t.id === tramiteId)!
   const [synced, setSynced] = useState(false)
   const [syncing, setSyncing] = useState(false)
 

@@ -32,6 +32,7 @@ export default function BandejaAsignacion() {
   const [selectedRol, setSelectedRol] = useState('')
   const [motivo, setMotivo] = useState('')
   const [isMasivo, setIsMasivo] = useState(false)
+  const [fechaLimiteReInsp, setFechaLimiteReInsp] = useState('')
 
   // Advanced Filters
   const [filtroTipoTramite, setFiltroTipoTramite] = useState('')
@@ -64,11 +65,13 @@ export default function BandejaAsignacion() {
   const agentesDisponibles = USUARIOS.filter(u => u.rol !== 'EFECTOR' && u.rol !== 'COORDINADOR')
 
   const handleOpenAsignar = (t: Tramite) => {
+    const esReInsp = t.estado === 'RE_INSP_SOLICITADA' || Boolean(t.motivoReInspeccion)
     setSelectedTramite(t)
-    setSelectedAgente(t.agenteAsignado ?? '')
-    setSelectedRol('')
-    setMotivo('')
+    setSelectedAgente(t.inspectorAsignado || t.agenteAsignado || '')
+    setSelectedRol(esReInsp ? 'INSPECTOR' : '')
+    setMotivo(t.motivoReInspeccion ? `Re-inspección solicitada: ${t.motivoReInspeccion}` : '')
     setIsMasivo(false)
+    setFechaLimiteReInsp(t.fechaLimiteReInspeccion ?? '')
   }
 
   const handleOpenAsignarMasivo = () => {
@@ -94,12 +97,27 @@ export default function BandejaAsignacion() {
       alert(`✓ ${selectedIds.size} trámite(s) asignado(s) con éxito a: ${selectedAgente || 'Sin asignar'}`)
       setSelectedIds(new Set())
     } else {
+      const esReInsp = selectedTramite.estado === 'RE_INSP_SOLICITADA' || Boolean(selectedTramite.motivoReInspeccion)
+      const agenteFinal = selectedAgente || selectedTramite.inspectorAsignado || selectedTramite.agenteAsignado || 'Inspector'
       setLocalTramites(prev => prev.map(t =>
         t.id === selectedTramite.id
-          ? { ...t, agenteAsignado: selectedAgente, inspectorAsignado: selectedAgente || 'Sin asignar' }
+          ? {
+              ...t,
+              agenteAsignado: agenteFinal,
+              inspectorAsignado: agenteFinal,
+              ...(esReInsp ? {
+                estado: 'ACEPTADO_DOC_AUD' as const,
+                tipoInspeccion: 'RE_INSPECCION' as const,
+                fechaLimiteReInspeccion: fechaLimiteReInsp
+              } : {})
+            }
           : t
       ))
-      alert(`✓ Trámite asignado con éxito a: ${selectedAgente || 'Sin asignar'}`)
+      if (esReInsp) {
+        alert(`✓ Re-Inspección asignada a ${agenteFinal} con fecha límite ${fechaLimiteReInsp || 'sin fecha'}. El trámite pasa a estado de re-inspección.`)
+      } else {
+        alert(`✓ Trámite asignado con éxito a: ${agenteFinal}`)
+      }
     }
     setSelectedTramite(null)
   }
@@ -275,6 +293,7 @@ export default function BandejaAsignacion() {
       case 'OBSERVADO_INSP':
       case 'DESCARGO_INSP':
       case 'ACEPTADO_INSP':
+      case 'RE_INSP_SOLICITADA':
         return 'INSPECCIÓN';
       case 'EN_PROTOCOLIZACION':
         return 'PROTOCOLIZACIÓN';
@@ -308,6 +327,7 @@ export default function BandejaAsignacion() {
   // Historial modals
   const [showHistorialEstados, setShowHistorialEstados] = useState<Tramite | null>(null)
   const [showHistorialAsignacion, setShowHistorialAsignacion] = useState<Tramite | null>(null)
+  const [showMotivoTramite, setShowMotivoTramite] = useState<Tramite | null>(null)
 
   const filterFieldsConfig: FilterFieldConfig[] = [
     {
@@ -402,9 +422,11 @@ export default function BandejaAsignacion() {
   return (
     <>
       <div className="topbar">
-        <div className="topbar-title">Asignación de Trámites</div>
-        <div style={{ fontSize: 13, color: 'var(--color-gray-500)' }}>
-          {filtrados.length} trámite{filtrados.length !== 1 ? 's' : ''}
+        <div>
+          <div className="topbar-title">Asignación de Trámites Sanitarios</div>
+          <div style={{ fontSize: 13, color: '#64748B', marginTop: 2 }}>
+            Gestión y asignación de responsables para trámites de habilitación y renovación
+          </div>
         </div>
       </div>
 
@@ -655,6 +677,11 @@ export default function BandejaAsignacion() {
                               icon: 'assignment_ind',
                               onClick: () => handleOpenAsignar(t)
                             },
+                            ...(t.motivoReInspeccion ? [{
+                              label: 'VER MOTIVO RE-INSPECCIÓN',
+                              icon: 'assignment_return',
+                              onClick: () => setShowMotivoTramite(t)
+                            }] : []),
                             {
                               label: 'HISTORIAL TRAMITE',
                               icon: 'history',
@@ -671,82 +698,254 @@ export default function BandejaAsignacion() {
                     </tr>
                   )
                 })}
-            </tbody>
-          </table>
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
-    </div>
 
       {/* Modal Asignar */}
-      {selectedTramite && (
-        <div className="modal-overlay" onClick={() => setSelectedTramite(null)}>
-          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 500, borderRadius: 20, padding: 0, overflow: 'hidden' }}>
-            <div className="modal-header" style={{ background: '#0055A5', padding: '18px 24px' }}>
-              <div className="modal-title" style={{ color: 'white', fontSize: 17, fontWeight: 800 }}>
-                {isMasivo
-                  ? `Asignar ${selectedIds.size} Trámite(s)`
-                  : `Asignar Trámite N° ${selectedTramite.nroTramite}`
-                }
-              </div>
-              <button className="btn-icon" onClick={() => setSelectedTramite(null)} style={{ color: 'white', background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: '50%', width: 30, height: 30, cursor: 'pointer' }}>✕</button>
-            </div>
-            <div className="modal-body" style={{ padding: '24px' }}>
-              <div className="form-group" style={{ marginBottom: 16 }}>
-                <label className="form-label" style={{ fontWeight: 700, fontSize: 12, color: '#475569', marginBottom: 6, display: 'block' }}>Agente Asignado <span style={{ color: '#EF4444' }}>*</span></label>
-                <select
-                  value={selectedAgente}
-                  onChange={e => setSelectedAgente(e.target.value)}
-                  className="form-input"
-                  style={{ width: '100%', height: 40, borderRadius: 10, border: '1.5px solid #CBD5E1', background: 'white', padding: '8px 12px', fontSize: 13 }}
-                >
-                  <option value="">Seleccionar agente...</option>
-                  {agentesDisponibles.map(ag => (
-                    <option key={ag.id} value={`${ag.nombre} ${ag.apellido}`}>
-                      {ag.nombre} {ag.apellido}
-                    </option>
-                  ))}
-                </select>
-              </div>
+      {selectedTramite && (() => {
+        const esReInspModal = selectedTramite.estado === 'RE_INSP_SOLICITADA' || Boolean(selectedTramite.motivoReInspeccion)
+        const inspectorNombre = selectedTramite.inspectorAsignado || selectedTramite.agenteAsignado || 'Inspector Interviniente'
 
-              <div className="form-group" style={{ marginBottom: 16 }}>
-                <label className="form-label" style={{ fontWeight: 700, fontSize: 12, color: '#475569', marginBottom: 6, display: 'block' }}>Rol <span style={{ color: '#EF4444' }}>*</span></label>
-                <select
-                  value={selectedRol}
-                  onChange={e => setSelectedRol(e.target.value)}
-                  className="form-input"
-                  style={{ width: '100%', height: 40, borderRadius: 10, border: '1.5px solid #CBD5E1', background: 'white', padding: '8px 12px', fontSize: 13 }}
-                >
-                  <option value="">Seleccionar rol...</option>
-                  <option value="ARQUITECTO">Arquitecto</option>
-                  <option value="AUDITOR">Auditor</option>
-                  <option value="INSPECTOR">Inspector</option>
-                  <option value="PROTOCOLIZADOR">Protocolizador</option>
-                </select>
+        return (
+          <div className="modal-overlay" onClick={() => setSelectedTramite(null)}>
+            <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 500, borderRadius: 20, padding: 0, overflow: 'hidden' }}>
+              <div className="modal-header" style={{ background: esReInspModal ? '#D97706' : '#0055A5', padding: '18px 24px' }}>
+                <div className="modal-title" style={{ color: 'white', fontSize: 17, fontWeight: 800 }}>
+                  {isMasivo
+                    ? `Asignar ${selectedIds.size} Trámite(s)`
+                    : esReInspModal
+                      ? `Asignar Fecha Límite de Re-Inspección — Trámite N° ${selectedTramite.nroTramite}`
+                      : `Asignar Trámite N° ${selectedTramite.nroTramite}`
+                  }
+                </div>
+                <button className="btn-icon" onClick={() => setSelectedTramite(null)} style={{ color: 'white', background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: '50%', width: 30, height: 30, cursor: 'pointer' }}>✕</button>
               </div>
+              <div className="modal-body" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
 
-              <div className="form-group">
-                <label className="form-label" style={{ fontWeight: 700, fontSize: 12, color: '#475569', marginBottom: 6, display: 'block' }}>Motivo <span style={{ color: '#EF4444' }}>*</span></label>
-                <textarea
-                  value={motivo}
-                  onChange={e => setMotivo(e.target.value)}
-                  rows={4}
-                  className="form-input"
-                  placeholder="Ingrese el motivo de la asignación..."
-                  style={{ width: '100%', borderRadius: 10, border: '1.5px solid #CBD5E1', background: 'white', padding: '10px 12px', fontSize: 13, resize: 'vertical', fontFamily: 'inherit' }}
-                />
+                {/* Banner especial para Re-Inspección */}
+                {esReInspModal && (
+                  <div style={{
+                    background: '#FFFBEB', border: '1.5px solid #FDE68A',
+                    borderRadius: 10, padding: '12px 16px',
+                    display: 'flex', gap: 10, alignItems: 'flex-start'
+                  }}>
+                    <span className="material-icons" style={{ fontSize: 20, color: '#D97706', flexShrink: 0, marginTop: 1 }}>assignment_return</span>
+                    <div>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: '#92400E', marginBottom: 4 }}>Re-Inspección Solicitada por el Inspector</div>
+                      {selectedTramite.motivoReInspeccion && (
+                        <div style={{ fontSize: 12.5, color: '#92400E', lineHeight: 1.5 }}>
+                          <strong>Motivo:</strong> {selectedTramite.motivoReInspeccion}
+                        </div>
+                      )}
+                      <div style={{ fontSize: 11.5, color: '#B45309', marginTop: 4 }}>El trámite se re-asigna automáticamente al inspector original. Establecé la fecha límite.</div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Si es re-inspección: Mostrar inspector como solo lectura */}
+                {esReInspModal ? (
+                  <div className="form-group">
+                    <label className="form-label" style={{ fontWeight: 700, fontSize: 12, color: '#475569', marginBottom: 6, display: 'block' }}>
+                      Inspector Interviniente (Re-asignado automáticamente)
+                    </label>
+                    <div style={{
+                      background: '#F8FAFC', border: '1.5px solid #E2E8F0', borderRadius: 10,
+                      padding: '10px 14px', fontSize: 13.5, fontWeight: 700, color: '#0F172A',
+                      display: 'flex', alignItems: 'center', gap: 8
+                    }}>
+                      <span className="material-icons" style={{ fontSize: 18, color: '#D97706' }}>badge</span>
+                      <span>{inspectorNombre}</span>
+                      <span style={{ marginLeft: 'auto', fontSize: 11, background: '#FEF3C7', color: '#B45309', padding: '2px 8px', borderRadius: 12, fontWeight: 700 }}>
+                        Inspector Original
+                      </span>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <div className="form-group">
+                      <label className="form-label" style={{ fontWeight: 700, fontSize: 12, color: '#475569', marginBottom: 6, display: 'block' }}>Agente Asignado <span style={{ color: '#EF4444' }}>*</span></label>
+                      <select
+                        value={selectedAgente}
+                        onChange={e => setSelectedAgente(e.target.value)}
+                        className="form-input"
+                        style={{ width: '100%', height: 40, borderRadius: 10, border: '1.5px solid #CBD5E1', background: 'white', padding: '8px 12px', fontSize: 13 }}
+                      >
+                        <option value="">Seleccionar agente...</option>
+                        {agentesDisponibles.map(ag => (
+                          <option key={ag.id} value={`${ag.nombre} ${ag.apellido}`}>
+                            {ag.nombre} {ag.apellido}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="form-group">
+                      <label className="form-label" style={{ fontWeight: 700, fontSize: 12, color: '#475569', marginBottom: 6, display: 'block' }}>Rol <span style={{ color: '#EF4444' }}>*</span></label>
+                      <select
+                        value={selectedRol}
+                        onChange={e => setSelectedRol(e.target.value)}
+                        className="form-input"
+                        style={{ width: '100%', height: 40, borderRadius: 10, border: '1.5px solid #CBD5E1', background: 'white', padding: '8px 12px', fontSize: 13 }}
+                      >
+                        <option value="">Seleccionar rol...</option>
+                        <option value="ARQUITECTO">Arquitecto</option>
+                        <option value="AUDITOR">Auditor</option>
+                        <option value="INSPECTOR">Inspector</option>
+                        <option value="PROTOCOLIZADOR">Protocolizador</option>
+                      </select>
+                    </div>
+                  </>
+                )}
+
+                {/* Campo Fecha Límite — Obligatorio en re-inspección */}
+                {esReInspModal && (
+                  <div className="form-group">
+                    <label className="form-label" style={{ fontWeight: 700, fontSize: 12, color: '#475569', marginBottom: 6, display: 'block' }}>
+                      Fecha Límite de Inspección <span style={{ color: '#EF4444' }}>*</span>
+                    </label>
+                    <input
+                      type="date"
+                      value={fechaLimiteReInsp}
+                      onChange={e => setFechaLimiteReInsp(e.target.value)}
+                      min={new Date().toISOString().split('T')[0]}
+                      className="form-input"
+                      style={{ width: '100%', height: 40, borderRadius: 10, border: '1.5px solid #CBD5E1', background: 'white', padding: '8px 12px', fontSize: 13 }}
+                    />
+                  </div>
+                )}
+
+                <div className="form-group">
+                  <label className="form-label" style={{ fontWeight: 700, fontSize: 12, color: '#475569', marginBottom: 6, display: 'block' }}>Motivo / Observaciones del Coordinador</label>
+                  <textarea
+                    value={motivo}
+                    onChange={e => setMotivo(e.target.value)}
+                    rows={3}
+                    className="form-input"
+                    placeholder="Ingrese observaciones para el inspector..."
+                    style={{ width: '100%', borderRadius: 10, border: '1.5px solid #CBD5E1', background: 'white', padding: '10px 12px', fontSize: 13, resize: 'vertical', fontFamily: 'inherit' }}
+                  />
+                </div>
+              </div>
+              <div className="modal-footer" style={{ padding: '16px 24px', background: '#F8FAFC', borderTop: '1px solid #E2E8F0', display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
+                <button className="btn btn-secondary" onClick={() => setSelectedTramite(null)} style={{ height: 38, padding: '0 18px', borderRadius: 10, background: 'white', border: '1.5px solid #CBD5E1', color: '#475569', fontWeight: 600 }}>
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleConfirmarAsignacion}
+                  disabled={esReInspModal ? !fechaLimiteReInsp : !selectedAgente}
+                  className="btn btn-primary"
+                  style={{
+                    height: 38, padding: '0 22px', borderRadius: 10,
+                    background: esReInspModal ? '#D97706' : '#0055A5',
+                    border: 'none', color: 'white', fontWeight: 700,
+                    opacity: (esReInspModal ? Boolean(fechaLimiteReInsp) : Boolean(selectedAgente)) ? 1 : 0.5
+                  }}
+                >
+                  {esReInspModal ? 'Asignar Re-Inspección' : 'Asignar'}
+                </button>
               </div>
             </div>
-            <div className="modal-footer" style={{ padding: '16px 24px', background: '#F8FAFC', borderTop: '1px solid #E2E8F0', display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
-              <button className="btn btn-secondary" onClick={() => setSelectedTramite(null)} style={{ height: 38, padding: '0 18px', borderRadius: 10, background: 'white', border: '1.5px solid #CBD5E1', color: '#475569', fontWeight: 600 }}>
-                Cancelar
-              </button>
+          </div>
+        )
+      })()}
+
+      {/* Modal Ver Motivo Re-Inspección */}
+      {showMotivoTramite && (
+        <div className="modal-overlay" onClick={() => setShowMotivoTramite(null)}>
+          <div
+            className="modal animate-fadein"
+            onClick={e => e.stopPropagation()}
+            style={{ maxWidth: 520, borderRadius: 20, padding: 0, overflow: 'hidden', width: '100%' }}
+          >
+            {/* Header */}
+            <div style={{
+              padding: '20px 24px',
+              background: '#FFFBEB',
+              borderBottom: '1px solid #FDE68A',
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+            }}>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                  <span className="material-icons" style={{ fontSize: 22, color: '#D97706' }}>assignment_return</span>
+                  <h3 style={{ margin: 0, fontSize: 17, fontWeight: 800, color: '#92400E' }}>
+                    Motivo de Re-Inspección
+                  </h3>
+                </div>
+                <div style={{ fontSize: 12.5, color: '#B45309', fontWeight: 500 }}>
+                  {showMotivoTramite.denominacion} · Trámite N° {showMotivoTramite.nroTramite}
+                </div>
+              </div>
               <button
-                onClick={handleConfirmarAsignacion}
-                disabled={!selectedAgente}
-                className="btn btn-primary"
-                style={{ height: 38, padding: '0 22px', borderRadius: 10, background: '#0055A5', border: 'none', color: 'white', fontWeight: 700, opacity: selectedAgente ? 1 : 0.5 }}
+                onClick={() => setShowMotivoTramite(null)}
+                style={{
+                  background: 'rgba(180,83,9,0.1)', border: 'none', borderRadius: '50%',
+                  width: 32, height: 32, display: 'flex', alignItems: 'center',
+                  justifyContent: 'center', cursor: 'pointer', color: '#92400E'
+                }}
               >
-                Asignar
+                <span className="material-icons" style={{ fontSize: 18 }}>close</span>
+              </button>
+            </div>
+
+            {/* Body */}
+            <div style={{ padding: '24px', background: '#FFFFFF', display: 'flex', flexDirection: 'column', gap: 16 }}>
+              {/* Inspector info */}
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 12,
+                padding: '12px 16px', background: '#F8FAFC',
+                borderRadius: 12, border: '1px solid #E2E8F0'
+              }}>
+                <span className="material-icons" style={{ fontSize: 22, color: '#0055A5' }}>person</span>
+                <div>
+                  <div style={{ fontSize: 12, color: '#64748B', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.4 }}>
+                    Inspector solicitante
+                  </div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: '#0F172A', marginTop: 2 }}>
+                    {showMotivoTramite.inspectorAsignado}
+                  </div>
+                </div>
+                <div style={{ marginLeft: 'auto', textAlign: 'right' }}>
+                  <div style={{ fontSize: 12, color: '#64748B', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.4 }}>
+                    Estado actual
+                  </div>
+                  <span style={{
+                    display: 'inline-block', marginTop: 2,
+                    padding: '3px 10px', borderRadius: 99,
+                    fontSize: 12, fontWeight: 700,
+                    background: showMotivoTramite.estado === 'RE_INSP_SOLICITADA' ? '#FEF3C7' : '#FEF2F2',
+                    color: showMotivoTramite.estado === 'RE_INSP_SOLICITADA' ? '#D97706' : '#DC2626'
+                  }}>
+                    {showMotivoTramite.estado === 'RE_INSP_SOLICITADA' ? 'Re-Insp. Solicitada' : 'Resp. Emplazamiento'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Motivo */}
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 }}>
+                  Motivo declarado por el inspector
+                </div>
+                <div style={{
+                  background: '#FFFBEB', border: '1.5px solid #FDE68A',
+                  borderRadius: 12, padding: '16px 18px',
+                  fontSize: 14, color: '#78350F', lineHeight: 1.7,
+                  fontStyle: 'italic'
+                }}>
+                  "{showMotivoTramite.motivoReInspeccion}"
+                </div>
+              </div>
+
+              {/* CTA */}
+              <button
+                className="btn btn-primary"
+                style={{ background: '#D97706', border: 'none', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
+                onClick={() => { setShowMotivoTramite(null); handleOpenAsignar(showMotivoTramite) }}
+              >
+                <span className="material-icons" style={{ fontSize: 18 }}>assignment_ind</span>
+                Asignar Re-Inspección
               </button>
             </div>
           </div>

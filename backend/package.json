@@ -1,0 +1,12 @@
+{
+  "name": "clicsalud-backend-inspeccion",
+  "version": "1.0.0",
+  "private": true,
+  "description": "API REST Node.js para Módulo de Inspecciones de Oficio y Antecedentes Sanitarios",
+  "type": "commonjs",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "test": "node --test tests/inspecciones.test.js"
+  }
+}

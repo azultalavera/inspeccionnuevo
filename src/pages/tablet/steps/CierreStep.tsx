@@ -2,6 +2,16 @@ import React, { useState, useRef, useEffect } from 'react'
 import type { StepProps } from '../InspeccionShell'
 import { useNavigate } from 'react-router-dom'
 import { OPCIONES_EMPLAZAMIENTO } from '../../../data/mockData'
+import { useApp } from '../../../context/AppContext'
+
+const OPCIONES_EMPLAZAMIENTO_RUTINA = [
+  { id: 'E24H', label: '24 hs', horas: 24 },
+  { id: 'E48H', label: '48 hs', horas: 48 },
+  { id: 'E3D',  label: '3 días',  horas: 72 },
+  { id: 'E5D',  label: '5 días',  horas: 120 },
+  { id: 'E10D', label: '10 días', horas: 240 },
+  { id: 'E15D', label: '15 días', horas: 360 },
+]
 
 type Dictamen = 'APRUEBA' | 'APRUEBA_OBS' | 'NO_APRUEBA'
 
@@ -102,6 +112,10 @@ function SignaturePad({ label, onSign }: { label: string; onSign: (dataUrl: stri
 
 export default function CierreStep({ onPrev, tramiteId }: StepProps) {
   const navigate = useNavigate()
+  const { tramites } = useApp()
+  const tramite = tramites.find(t => t.id === tramiteId)
+  const esRutina = tramite?.tipoInspeccion === 'RUTINA'
+
   const [cuil, setCuil] = useState('')
   const [cuilValido, setCuilValido] = useState<boolean | null>(null)
   const [cargo, setCargo] = useState('')
@@ -109,16 +123,21 @@ export default function CierreStep({ onPrev, tramiteId }: StepProps) {
   const [firmas, setFirmas] = useState<FirmaState>({ responsable: null, inspector: null })
   const [notas, setNotas] = useState('')
   const [dictamen, setDictamen] = useState<Dictamen | null>(null)
+
+  // Emplazamiento modal (NO_APRUEBA)
   const [showEmplazModal, setShowEmplazModal] = useState(false)
   const [plazoSeleccionado, setPlazoSeleccionado] = useState<string | null>(null)
   const [plazoManual, setPlazoManual] = useState('')
   const [plazoUnidad, setPlazoUnidad] = useState<'Horas' | 'Días' | 'Semanas'>('Días')
-  const [step, setStep] = useState<'cuil' | 'firma_resp' | 'firma_insp' | 'dictamen'>('cuil')
+
+  // Pantallas de confirmación
+  const [showAprobacionExito, setShowAprobacionExito] = useState(false)
+  const [showEmplazExito, setShowEmplazExito] = useState(false)
+  const [fechaEmplazConfirmada, setFechaEmplazConfirmada] = useState<string | null>(null)
 
   const validarCuil = () => {
     if (cuil.replace(/-/g, '').length >= 11) {
       setCuilValido(true)
-      setStep('firma_resp')
     } else {
       setCuilValido(false)
     }
@@ -131,33 +150,209 @@ export default function CierreStep({ onPrev, tramiteId }: StepProps) {
       const val = Number(plazoManual)
       horas = plazoUnidad === 'Horas' ? val : plazoUnidad === 'Días' ? val * 24 : val * 24 * 7
     } else {
-      horas = OPCIONES_EMPLAZAMIENTO.find(o => o.id === opId)?.horas ?? 0
+      const options = esRutina ? OPCIONES_EMPLAZAMIENTO_RUTINA : OPCIONES_EMPLAZAMIENTO
+      horas = options.find(o => o.id === opId)?.horas ?? 0
     }
     const fecha = new Date()
     let diasAgregados = 0
-    const diasHorasRestantes = horas
-    let diasTotal = Math.ceil(diasHorasRestantes / 24)
+    const diasTotal = Math.ceil(horas / 24)
     while (diasAgregados < diasTotal) {
       fecha.setDate(fecha.getDate() + 1)
       const dow = fecha.getDay()
       if (dow !== 0 && dow !== 6) diasAgregados++
     }
-    return fecha.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+    return fecha.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' })
   }
 
-  const handleCerrarActa = () => {
-    if (dictamen === 'NO_APRUEBA') {
-      setShowEmplazModal(true)
-    } else {
-      navigate('/inspector/bandeja')
-    }
-  }
+
 
   const handleConfirmarEmplazamiento = () => {
+    const fecha = calcFechaVencimiento(plazoSeleccionado)
+    setFechaEmplazConfirmada(fecha)
     setShowEmplazModal(false)
-    navigate('/inspector/bandeja')
+    setShowEmplazExito(true)
   }
 
+  // ── PANTALLA DE ÉXITO: APROBACIÓN ──────────────────────────────────
+  if (showAprobacionExito) {
+    const esConObs = dictamen === 'APRUEBA_OBS'
+    return (
+      <div style={{
+        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+        minHeight: '60vh', gap: 'var(--space-5)', padding: 'var(--space-6)',
+        textAlign: 'center'
+      }}>
+        {/* Ícono de éxito */}
+        <div style={{
+          width: 80, height: 80, borderRadius: '50%',
+          background: esConObs ? 'rgba(255,149,0,0.12)' : 'rgba(52,199,89,0.12)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          animation: 'pulse 1.5s ease-in-out'
+        }}>
+          <span className="material-icons" style={{
+            fontSize: 44,
+            color: esConObs ? 'var(--ios-orange)' : 'var(--ios-green)'
+          }}>
+            {esConObs ? 'check_circle_outline' : 'check_circle'}
+          </span>
+        </div>
+
+        <div>
+          <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--color-gray-900)', marginBottom: 6 }}>
+            {esConObs ? 'Aprobado con Observaciones' : esRutina ? 'Inspección por Rutina Correcta' : 'Inspección Aprobada'}
+          </div>
+          <div style={{ fontSize: 14, color: 'var(--ios-gray)', lineHeight: 1.5 }}>
+            {esRutina 
+              ? 'El acta fue firmada y cerrada correctamente. La inspección por rutina es correcta.' 
+              : 'El acta fue firmada y cerrada correctamente.'}
+            {esConObs && ' Se registraron observaciones menores.'}
+          </div>
+        </div>
+
+        {/* Resumen */}
+        <div style={{
+          width: '100%', background: 'var(--ios-gray6)', borderRadius: 16,
+          padding: 'var(--space-4)', display: 'flex', flexDirection: 'column', gap: 10,
+          textAlign: 'left'
+        }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ios-gray)', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+            Resumen del Acta
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+            <span style={{ color: 'var(--ios-gray)' }}>Dictamen:</span>
+            <span style={{ fontWeight: 700, color: esConObs ? 'var(--ios-orange)' : 'var(--ios-green)' }}>
+              {esConObs ? 'Aprueba con Observaciones' : esRutina ? 'Aprobada (Correcta)' : 'Aprueba'}
+            </span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+            <span style={{ color: 'var(--ios-gray)' }}>Fecha y hora:</span>
+            <span style={{ fontWeight: 600 }}>
+              {new Date().toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+            </span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+            <span style={{ color: 'var(--ios-gray)' }}>Firmantes:</span>
+            <span style={{ fontWeight: 600 }}>Juan Martín García · Dra. Valeria Romero</span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+            <span style={{ color: 'var(--ios-gray)' }}>Próximo estado:</span>
+            <span style={{ fontWeight: 700, color: '#059669' }}>Aceptado Inspección</span>
+          </div>
+        </div>
+
+        {notas.trim() && (
+          <div style={{
+            width: '100%', background: 'white', borderRadius: 12,
+            border: '1px solid var(--ios-gray5)', padding: 'var(--space-3)',
+            textAlign: 'left', fontSize: 13, color: 'var(--color-gray-700)', lineHeight: 1.5
+          }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ios-gray)', textTransform: 'uppercase', marginBottom: 6 }}>
+              Notas del Inspector
+            </div>
+            {notas}
+          </div>
+        )}
+
+        <button
+          className="btn-ios btn-ios-primary"
+          onClick={() => navigate('/inspector/inspecciones')}
+          style={{ width: '100%', fontSize: 16, fontWeight: 700 }}
+        >
+          <span className="material-icons" style={{ fontSize: 20, verticalAlign: 'middle', marginRight: 6 }}>home</span>
+          Volver a Bandeja
+        </button>
+      </div>
+    )
+  }
+
+  // ── PANTALLA DE ÉXITO: EMPLAZAMIENTO CONFIRMADO ─────────────────────
+  if (showEmplazExito) {
+    return (
+      <div style={{
+        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+        minHeight: '60vh', gap: 'var(--space-5)', padding: 'var(--space-6)',
+        textAlign: 'center'
+      }}>
+        {/* Ícono */}
+        <div style={{
+          width: 80, height: 80, borderRadius: '50%',
+          background: 'rgba(255,59,48,0.1)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center'
+        }}>
+          <span className="material-icons" style={{ fontSize: 44, color: 'var(--ios-red)' }}>
+            gavel
+          </span>
+        </div>
+
+        <div>
+          <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--color-gray-900)', marginBottom: 6 }}>
+            {esRutina ? 'Inspección No Aprobada' : 'Emplazamiento Emitido'}
+          </div>
+          <div style={{ fontSize: 14, color: 'var(--ios-gray)', lineHeight: 1.5 }}>
+            {esRutina 
+              ? 'El acta fue cerrada. El efector necesita iniciar un trámite de modificación.' 
+              : 'El acta fue cerrada y el establecimiento fue emplazado.'}
+            <br />
+            {esRutina 
+              ? 'El efector recibirá la notificación para iniciar el trámite correspondiente.' 
+              : 'Recibirán la notificación para cargar la documentación requerida.'}
+          </div>
+        </div>
+
+        {/* Resumen */}
+        <div style={{
+          width: '100%', background: '#FEF2F2', borderRadius: 16,
+          border: '1px solid rgba(255,59,48,0.2)',
+          padding: 'var(--space-4)', display: 'flex', flexDirection: 'column', gap: 10,
+          textAlign: 'left'
+        }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ios-red)', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+            {esRutina ? 'Requisito de Trámite' : 'Emplazamiento'}
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+            <span style={{ color: 'var(--ios-gray)' }}>Dictamen:</span>
+            <span style={{ fontWeight: 700, color: 'var(--ios-red)' }}>
+              {esRutina ? 'No Aprobada' : 'No Aprueba'}
+            </span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+            <span style={{ color: 'var(--ios-gray)' }}>Fecha límite:</span>
+            <span style={{ fontWeight: 800, color: 'var(--ios-red)', fontSize: 15 }}>
+              {fechaEmplazConfirmada ?? '—'}
+            </span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+            <span style={{ color: 'var(--ios-gray)' }}>Próximo estado:</span>
+            <span style={{ fontWeight: 700, color: '#D97706' }}>
+              {esRutina ? 'Trámite de Modificación Requerido' : 'Pendiente Respuesta Efector'}
+            </span>
+          </div>
+        </div>
+
+        <div style={{
+          width: '100%', background: 'var(--ios-gray6)', borderRadius: 12,
+          padding: 'var(--space-3)', fontSize: 13, color: 'var(--ios-gray)', lineHeight: 1.6,
+          display: 'flex', gap: 8, alignItems: 'flex-start'
+        }}>
+          <span className="material-icons" style={{ fontSize: 18, color: 'var(--ios-gray)', flexShrink: 0, marginTop: 1 }}>info</span>
+          {esRutina
+            ? 'Una vez que el efector inicie y complete el trámite de modificación, el sistema actualizará el estado del establecimiento.'
+            : 'Una vez que el efector cargue su respuesta, recibirás una notificación en tu bandeja para revisar la documentación.'}
+        </div>
+
+        <button
+          className="btn-ios btn-ios-primary"
+          onClick={() => navigate('/inspector/inspecciones')}
+          style={{ width: '100%', fontSize: 16, fontWeight: 700 }}
+        >
+          <span className="material-icons" style={{ fontSize: 20, verticalAlign: 'middle', marginRight: 6 }}>home</span>
+          Volver a Bandeja
+        </button>
+      </div>
+    )
+  }
+
+  // ── FORMULARIO PRINCIPAL ────────────────────────────────────────────
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
 
@@ -213,14 +408,14 @@ export default function CierreStep({ onPrev, tramiteId }: StepProps) {
         <>
           <div className="ios-section-header">2. Firma del Responsable del Establecimiento</div>
           <div className="ios-card-group" style={{ padding: 'var(--space-4)' }}>
-            <SignaturePad label="Responsable: Juan Martín García" onSign={sig => { setFirmas(p => ({ ...p, responsable: sig || null })); if (sig) setStep('firma_insp') }} />
+            <SignaturePad label="Responsable: Juan Martín García" onSign={sig => { setFirmas(p => ({ ...p, responsable: sig || null })) }} />
           </div>
 
           {firmas.responsable && (
             <>
               <div className="ios-section-header">3. Firma del Inspector Interviniente</div>
               <div className="ios-card-group" style={{ padding: 'var(--space-4)' }}>
-                <SignaturePad label="Inspector: Dra. Valeria Romero" onSign={sig => { setFirmas(p => ({ ...p, inspector: sig || null })); if (sig) setStep('dictamen') }} />
+                <SignaturePad label="Inspector: Dra. Valeria Romero" onSign={sig => { setFirmas(p => ({ ...p, inspector: sig || null })) }} />
               </div>
             </>
           )}
@@ -244,14 +439,27 @@ export default function CierreStep({ onPrev, tramiteId }: StepProps) {
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
-            {[
-              { id: 'APRUEBA' as Dictamen, icon: '✅', label: 'Aprueba', desc: 'Sin irregularidades. El trámite pasa a ACEPTADO INSPECCIÓN.', color: 'var(--ios-green)', bg: 'rgba(52,199,89,0.08)', border: 'rgba(52,199,89,0.3)' },
-              { id: 'APRUEBA_OBS' as Dictamen, icon: '⚠️', label: 'Aprueba con Observaciones', desc: 'Observaciones menores no críticas. Se sugieren mejoras.', color: 'var(--ios-orange)', bg: 'rgba(255,149,0,0.08)', border: 'rgba(255,149,0,0.3)' },
-              { id: 'NO_APRUEBA' as Dictamen, icon: '❌', label: 'No Aprueba', desc: 'Faltas críticas. Se activa proceso de emplazamiento.', color: 'var(--ios-red)', bg: 'rgba(255,59,48,0.08)', border: 'rgba(255,59,48,0.3)' },
-            ].map(opt => (
+            {(esRutina
+              ? [
+                  { id: 'APRUEBA' as Dictamen, iconName: 'check_circle', label: 'Aprobar', desc: 'La inspección por rutina es correcta.', color: 'var(--ios-green)', bg: 'rgba(52,199,89,0.08)', border: 'rgba(52,199,89,0.3)' },
+                  { id: 'NO_APRUEBA' as Dictamen, iconName: 'cancel', label: 'No Aprobar', desc: 'El efector necesita iniciar un trámite de modificación.', color: 'var(--ios-red)', bg: 'rgba(255,59,48,0.08)', border: 'rgba(255,59,48,0.3)' },
+                ]
+              : [
+                  { id: 'APRUEBA' as Dictamen, iconName: 'check_circle', label: 'Aprueba', desc: 'Sin irregularidades. El trámite pasa a ACEPTADO INSPECCIÓN.', color: 'var(--ios-green)', bg: 'rgba(52,199,89,0.08)', border: 'rgba(52,199,89,0.3)' },
+                  { id: 'APRUEBA_OBS' as Dictamen, iconName: 'warning', label: 'Aprueba con Observaciones', desc: 'Observaciones menores no críticas. Se sugieren mejoras.', color: 'var(--ios-orange)', bg: 'rgba(255,149,0,0.08)', border: 'rgba(255,149,0,0.3)' },
+                  { id: 'NO_APRUEBA' as Dictamen, iconName: 'cancel', label: 'No Aprueba', desc: 'Faltas críticas. Se activa proceso de emplazamiento.', color: 'var(--ios-red)', bg: 'rgba(255,59,48,0.08)', border: 'rgba(255,59,48,0.3)' },
+                ]
+            ).map(opt => (
               <button
                 key={opt.id}
-                onClick={() => setDictamen(opt.id)}
+                onClick={() => {
+                  setDictamen(opt.id)
+                  if (opt.id === 'NO_APRUEBA') {
+                    setShowEmplazModal(true)
+                  } else {
+                    setShowAprobacionExito(true)
+                  }
+                }}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 'var(--space-4)',
                   padding: 'var(--space-4)',
@@ -263,7 +471,7 @@ export default function CierreStep({ onPrev, tramiteId }: StepProps) {
                   boxShadow: dictamen === opt.id ? `0 4px 12px ${opt.color}25` : 'none',
                 }}
               >
-                <span style={{ fontSize: 28, flexShrink: 0 }}>{opt.icon}</span>
+                <span className="material-icons" style={{ fontSize: 28, color: opt.color, flexShrink: 0 }}>{opt.iconName}</span>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 16, fontWeight: 700, color: dictamen === opt.id ? opt.color : 'var(--color-gray-800)' }}>{opt.label}</div>
                   <div style={{ fontSize: 12, color: 'var(--ios-gray)', marginTop: 2 }}>{opt.desc}</div>
@@ -272,30 +480,27 @@ export default function CierreStep({ onPrev, tramiteId }: StepProps) {
               </button>
             ))}
           </div>
-
-          <button
-            className="btn-ios btn-ios-danger"
-            disabled={!dictamen || !notas.trim()}
-            onClick={handleCerrarActa}
-            style={{ opacity: (dictamen && notas.trim()) ? 1 : 0.4, marginTop: 'var(--space-2)' }}
-          >
-            ✍️ Cerrar y Firmar Acta
-          </button>
         </>
       )}
 
-      {/* Emplazamiento Modal */}
+      {/* ── MODAL: Emplazamiento (NO_APRUEBA) ── */}
       {showEmplazModal && (
         <div className="ios-sheet-overlay" onClick={() => setShowEmplazModal(false)}>
           <div className="ios-sheet" onClick={e => e.stopPropagation()}>
             <div className="ios-sheet-handle" />
             <div className="ios-sheet-header">
-              <div className="ios-sheet-title">⚠️ Plazo de Emplazamiento</div>
-              <div style={{ fontSize: 13, color: 'var(--ios-gray)', marginTop: 4 }}>Seleccioná el plazo para subsanar las observaciones</div>
+              <div className="ios-sheet-title">
+                {esRutina ? '⚠️ Plazo para Trámite de Modificación' : '⚠️ Plazo de Emplazamiento'}
+              </div>
+              <div style={{ fontSize: 13, color: 'var(--ios-gray)', marginTop: 4 }}>
+                {esRutina
+                  ? 'Seleccioná el plazo límite para que el efector inicie el trámite de modificación'
+                  : 'Seleccioná el plazo para que el efector subsane las observaciones'}
+              </div>
             </div>
             <div className="ios-sheet-body" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
 
-              {OPCIONES_EMPLAZAMIENTO.map(opt => (
+              {(esRutina ? OPCIONES_EMPLAZAMIENTO_RUTINA : OPCIONES_EMPLAZAMIENTO).map(opt => (
                 <button
                   key={opt.id}
                   onClick={() => setPlazoSeleccionado(opt.id)}
@@ -322,7 +527,7 @@ export default function CierreStep({ onPrev, tramiteId }: StepProps) {
                   cursor: 'pointer', fontFamily: 'var(--font-family)',
                 }}
               >
-                <span style={{ fontSize: 16, fontWeight: 600, color: plazoSeleccionado === 'MANUAL' ? 'var(--ios-orange)' : 'var(--color-gray-700)' }}>+ Manual</span>
+                <span style={{ fontSize: 16, fontWeight: 600, color: plazoSeleccionado === 'MANUAL' ? 'var(--ios-orange)' : 'var(--color-gray-700)' }}>Manual</span>
                 {plazoSeleccionado === 'MANUAL' && <span style={{ color: 'var(--ios-orange)', fontSize: 20 }}>✓</span>}
               </button>
 
@@ -363,7 +568,7 @@ export default function CierreStep({ onPrev, tramiteId }: StepProps) {
                 onClick={handleConfirmarEmplazamiento}
                 style={{ marginTop: 'var(--space-2)', opacity: (plazoSeleccionado && !(plazoSeleccionado === 'MANUAL' && !plazoManual)) ? 1 : 0.4 }}
               >
-                ⚠️ Confirmar Emplazamiento
+                {esRutina ? '⚠️ Confirmar Requisito de Modificación' : '⚠️ Confirmar Emplazamiento'}
               </button>
             </div>
           </div>

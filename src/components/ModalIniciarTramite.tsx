@@ -1,10 +1,12 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { ESTABLECIMIENTOS } from '../data/mockData'
 
 interface ModalIniciarTramiteProps {
   isOpen: boolean;
   onClose: () => void;
   onConfirm: (tipo: 'ALTA_DIGITAL' | 'HABILITACION' | 'RENOVACION' | 'MODIFICACION' | 'ADECUACION', tipologia: string, establecimientoId?: string) => void;
+  defaultTipo?: 'ALTA_DIGITAL' | 'HABILITACION' | 'RENOVACION' | 'MODIFICACION' | 'ADECUACION' | '';
+  defaultEstablecimientoId?: string;
 }
 
 // 15 Standard tipologías requested by the user
@@ -156,7 +158,7 @@ const TIPO_TRAMITES = [
   { key: 'ADECUACION', label: 'ADECUACIÓN', icon: 'verified', desc: 'Plan de adecuación sanitaria y regularización normativa' },
 ] as const
 
-export default function ModalIniciarTramite({ isOpen, onClose, onConfirm }: ModalIniciarTramiteProps) {
+export default function ModalIniciarTramite({ isOpen, onClose, onConfirm, defaultTipo, defaultEstablecimientoId }: ModalIniciarTramiteProps) {
   const [step, setStep] = useState<1 | 2>(1)
   const [selectedTipo, setSelectedTipo] = useState<'ALTA_DIGITAL' | 'HABILITACION' | 'RENOVACION' | 'MODIFICACION' | 'ADECUACION' | ''>('')
   const [selectedTipologia, setSelectedTipologia] = useState('')
@@ -206,6 +208,20 @@ export default function ModalIniciarTramite({ isOpen, onClose, onConfirm }: Moda
     setSelectedEstId('')
     setSearchQuery('')
   }
+
+  useEffect(() => {
+    if (isOpen) {
+      if (defaultTipo) {
+        setSelectedTipo(defaultTipo)
+        setStep(2)
+      }
+      if (defaultEstablecimientoId) {
+        setSelectedEstId(defaultEstablecimientoId)
+      }
+    } else {
+      handleReset()
+    }
+  }, [isOpen, defaultTipo, defaultEstablecimientoId])
 
   const handleCancelar = () => {
     handleReset()

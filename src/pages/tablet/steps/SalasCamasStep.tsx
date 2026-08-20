@@ -69,8 +69,8 @@ export default function SalasCamasStep({ onNext, onPrev }: StepProps) {
                   estado === 'IRREGULARIDAD' ? 'irreg-icon-danger' :
                   estado === 'RECTIFICACION' ? 'irreg-icon-warning' :
                   estado === 'OK' ? 'irreg-icon-success' : 'irreg-icon-neutral'
-                }`} style={{ width: 24, height: 24, fontSize: 12, flexShrink: 0 }}>
-                  {estado === 'IRREGULARIDAD' ? '🔺' : estado === 'RECTIFICACION' ? '🔽' : estado === 'OK' ? '✓' : '—'}
+                }`} style={{ width: 24, height: 24, fontSize: 12, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  {estado === 'IRREGULARIDAD' ? <span className="material-icons" style={{ fontSize: 14 }}>arrow_upward</span> : estado === 'RECTIFICACION' ? <span className="material-icons" style={{ fontSize: 14 }}>arrow_downward</span> : estado === 'OK' ? <span className="material-icons" style={{ fontSize: 14 }}>check</span> : '—'}
                 </div>
                 <div>
                   <div style={{ fontSize: 14, color: 'var(--color-gray-800)' }}>{item.nombre}</div>
@@ -123,8 +123,8 @@ export default function SalasCamasStep({ onNext, onPrev }: StepProps) {
               </div>
 
               {/* Obs icon */}
-              <button style={{ width: 30, height: 30, borderRadius: 8, border: 'none', background: 'var(--ios-gray6)', cursor: 'pointer', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                💬
+              <button style={{ width: 30, height: 30, borderRadius: 8, border: 'none', background: 'var(--ios-gray6)', cursor: 'pointer', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748B' }}>
+                <span className="material-icons" style={{ fontSize: 16 }}>chat_bubble_outline</span>
               </button>
             </div>
           )
@@ -135,6 +135,57 @@ export default function SalasCamasStep({ onNext, onPrev }: StepProps) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+      {/* Linea Base Banner */}
+      <div style={{
+        background: '#F8FAFC',
+        border: '1px solid #CBD5E1',
+        padding: '12px 16px',
+        borderRadius: 8,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: 10
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span className="material-icons" style={{ fontSize: 20, color: '#0055A5' }}>inventory</span>
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#0F172A' }}>
+              Línea Base Automatizada Precargada
+            </div>
+            <div style={{ fontSize: 11.5, color: '#64748B' }}>
+              Valores aprobados en el último trámite finalizado.
+            </div>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={() => {
+            const newSalas: Record<string, RowState> = {}
+            SALAS.forEach(s => { newSalas[s.id] = { observado: s.declarado } })
+            setSalas(newSalas)
+
+            const newCamas: Record<string, RowState> = {}
+            CAMAS.forEach(c => { newCamas[c.id] = { observado: c.declarado } })
+            setCamas(newCamas)
+          }}
+          style={{
+            background: '#0055A5',
+            color: 'white',
+            border: 'none',
+            padding: '6px 12px',
+            borderRadius: 6,
+            fontWeight: 700,
+            fontSize: 12,
+            cursor: 'pointer',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 4
+          }}
+        >
+          <span className="material-icons" style={{ fontSize: 14 }}>content_copy</span> Copiar Línea Base
+        </button>
+      </div>
 
       {/* Summary */}
       {(countIrregs > 0 || countRect > 0) && (

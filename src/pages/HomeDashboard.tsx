@@ -1,22 +1,17 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useApp } from '../context/AppContext'
-import { ESTABLECIMIENTOS, EstadoTramite, type Tramite } from '../data/mockData'
+import { ESTABLECIMIENTOS, Tramite } from '../data/mockData'
 import ModalIniciarTramite from '../components/ModalIniciarTramite'
-
-const ESTADO_CONFIG: Record<string, { label: string; badge: string }> = {
-  ACEPTADO_DOC_AUDITORIA: { label: 'Doc. Aceptada', badge: 'badge-info' },
-  EN_INSPECCION: { label: 'En Inspección', badge: 'badge-warning' },
-  RESPUESTA_EMPLAZAMIENTO: { label: 'Resp. Emplazamiento', badge: 'badge-danger' },
-  ACEPTADO_INSPECCION: { label: 'Insp. Aprobada', badge: 'badge-success' },
-  PENDIENTE_ARQUITECTURA: { label: 'Pend. Arquitectura', badge: 'badge-info' },
-  PENDIENTE_PROTOCOLIZAR: { label: 'Pend. Protocolizar', badge: 'badge-success' }
-}
+import ModalPresentarDenuncia from '../components/ModalPresentarDenuncia'
+import ModalResponderEmplazamiento from '../components/ModalResponderEmplazamiento'
+import { consultarMisDenuncias, consultarDenunciasPendientesAdmin } from '../services/denunciaApi'
+import { consultarAntecedentesEfector } from '../services/inspeccionApi'
 
 function useIsTablet() {
-  const [isTablet, setIsTablet] = React.useState(window.innerWidth < 1024)
-  React.useEffect(() => {
+  const [isTablet, setIsTablet] = useState(window.innerWidth < 1024)
+  useEffect(() => {
     const handler = () => setIsTablet(window.innerWidth < 1024)
     window.addEventListener('resize', handler)
     return () => window.removeEventListener('resize', handler)
@@ -24,233 +19,112 @@ function useIsTablet() {
   return isTablet
 }
 
-const TIPO_TRAMITE_LABELS: Record<string, string> = {
-  HABILITACION: 'Habilitación',
-  RENOVACION: 'Renovación',
-  MODIFICACION: 'Modificación',
-  ADECUACION: 'Adecuación',
-}
-
 export default function HomeDashboard() {
   const { user } = useAuth()
   const { tramites, crearNuevoTramite } = useApp()
   const navigate = useNavigate()
   const isTablet = useIsTablet()
-  const [modalOpen, setModalOpen] = useState(false)
+
+  const [modalTramiteOpen, setModalTramiteOpen] = useState(false)
+  const [modalDenunciaOpen, setModalDenunciaOpen] = useState(false)
+  const [selectedEmplazamientoTramite, setSelectedEmplazamientoTramite] = useState<Tramite | null>(null)
+
+  // Real API state integration
+  const [misDenunciasCount, setMisDenunciasCount] = useState(0)
+  const [misAntecedentesCount, setMisAntecedentesCount] = useState(0)
+  const [denunciasPendientesAdminCount, setDenunciasPendientesAdminCount] = useState(0)
+  const [alertaExito, setAlertaExito] = useState<string | null>(null)
+
+  const userCuit = user?.cuil || '30-71234567-8'
+
+  // Fetch real counts from API on mount
+  useEffect(() => {
+    async function loadApiCounts() {
+      try {
+        if (user?.rol === 'EFECTOR') {
+          const resDen = await consultarMisDenuncias(userCuit)
+          if (resDen.ok) setMisDenunciasCount(resDen.total)
+
+          const resAnt = await consultarAntecedentesEfector(userCuit)
+          if (resAnt.ok) setMisAntecedentesCount(resAnt.data.total_actuaciones)
+        } else if (['INSPECTOR', 'COORDINADOR', 'ADMINISTRADOR'].includes(user?.rol || '')) {
+          const resAdmin = await consultarDenunciasPendientesAdmin()
+          if (resAdmin.ok) setDenunciasPendientesAdminCount(resAdmin.total)
+        }
+      } catch (err) {
+        console.log('Modo mockup activo / Servidor API no disponible:', err)
+      }
+    }
+    loadApiCounts()
+  }, [user, userCuit])
 
   const misTramites = user?.rol === 'EFECTOR'
-    ? tramites.filter(t => t.cuit === '30-71234567-8')
+    ? tramites.filter(t => t.cuit === userCuit || t.cuit === '30-71234567-8')
     : tramites
 
-  const sortedTramites = [...misTramites].sort((a, b) => b.fechaIngreso.localeCompare(a.fechaIngreso))
+  const tramitesObservadosCount = misTramites.filter(t => ['OBSERVADO_INSP', 'DESCARGO_INSP', 'OBSERVADO_ARQ', 'OBSERVADO_AUD'].includes(t.estado)).length
 
-  // Calculate statistics based on role
-  const getStats = () => {
-    const statsCount = (est: EstadoTramite | EstadoTramite[]) => {
-      if (Array.isArray(est)) {
-        return tramites.filter((t: Tramite) => est.includes(t.estado)).length
-      }
-      return tramites.filter((t: Tramite) => t.estado === est).length
-    }
+  // Counts for the requested inspection metrics
+  const isEstadoInspeccion = (estado: string) => [
+    'ACEPTADO_DOC_AUD',
+    'OBSERVADO_INSP',
+    'DESCARGO_INSP',
+    'ACEPTADO_INSP',
+    'EN_PROTOCOLIZACION',
+    'FINALIZADO'
+  ].includes(estado)
 
-    switch (user?.rol) {
-      case 'INSPECTOR':
-      case 'AUDITOR':
-        return [
-          {
-            label: 'Para Inspeccionar',
-            count: statsCount('ACEPTADO_DOC_AUD'),
-            icon: 'assignment',
-            color: '#0dcaf0',
-            bg: 'rgba(13, 202, 240, 0.1)',
-            estado: 'ACEPTADO_DOC_AUD',
-            targetPath: `/${user.rol.toLowerCase()}/bandeja`
-          },
-          {
-            label: 'En Inspección',
-            count: statsCount('EN_ANALISIS_AUD'),
-            icon: 'search',
-            color: 'var(--color-warning)',
-            bg: 'rgba(255, 193, 7, 0.1)',
-            estado: 'EN_ANALISIS_AUD',
-            targetPath: `/${user.rol.toLowerCase()}/bandeja`
-          },
-          {
-            label: 'Con Emplazamiento',
-            count: statsCount(['OBSERVADO_INSP', 'DESCARGO_INSP']),
-            icon: 'report_problem',
-            color: 'var(--color-danger)',
-            bg: 'rgba(220, 53, 69, 0.1)',
-            estado: 'OBSERVADO_INSP',
-            targetPath: `/${user.rol.toLowerCase()}/bandeja`
-          },
-          {
-            label: 'Aprobados',
-            count: statsCount('ACEPTADO_INSP'),
-            icon: 'check_circle',
-            color: 'var(--color-success)',
-            bg: 'rgba(40, 167, 69, 0.1)',
-            estado: 'ACEPTADO_INSP',
-            targetPath: `/${user.rol.toLowerCase()}/bandeja`
-          }
-        ]
-      case 'ARQUITECTO':
-        return [
-          {
-            label: 'Eval. Arquitectura',
-            count: statsCount('PENDIENTE_EVAL_ARQ'),
-            icon: 'architecture',
-            color: 'var(--color-brand-600)',
-            bg: 'rgba(0, 85, 165, 0.1)',
-            estado: 'PENDIENTE_EVAL_ARQ',
-            targetPath: '/arquitecto/expedientes'
-          },
-          {
-            label: 'Mis Asignaciones',
-            count: tramites.filter((t: Tramite) => t.agenteAsignado === `${user?.nombre} ${user?.apellido}`).length,
-            icon: 'badge',
-            color: '#6f42c1',
-            bg: 'rgba(111, 66, 193, 0.1)',
-            estado: '',
-            targetPath: '/arquitecto/expedientes'
-          }
-        ]
-      case 'COORDINADOR':
-        return [
-          {
-            label: 'Trámites Sin Asignar',
-            count: tramites.filter((t: Tramite) => !t.agenteAsignado).length,
-            icon: 'assignment_late',
-            color: 'var(--color-warning)',
-            bg: 'rgba(255, 193, 7, 0.1)',
-            estado: '',
-            targetPath: '/coordinador/asignacion'
-          },
-          {
-            label: 'Planes de Adecuación',
-            count: tramites.filter((t: Tramite) => t.esAdecuacion).length,
-            icon: 'gavel',
-            color: 'var(--color-brand-600)',
-            bg: 'rgba(0, 85, 165, 0.1)',
-            estado: '',
-            targetPath: '/coordinador/asignacion'
-          }
-        ]
-      case 'PROTOCOLIZADOR':
-        return [
-          {
-            label: 'Pendiente Protocolizar',
-            count: statsCount('EN_PROTOCOLIZACION'),
-            icon: 'history_edu',
-            color: 'var(--color-success)',
-            bg: 'rgba(40, 167, 69, 0.1)',
-            estado: 'EN_PROTOCOLIZACION',
-            targetPath: '/protocolizador/expedientes'
-          }
-        ]
-      case 'EFECTOR':
-        return [
-          {
-            label: 'Trámites Activos',
-            count: tramites.length,
-            icon: 'business',
-            color: 'var(--color-brand-600)',
-            bg: 'rgba(0, 85, 165, 0.1)',
-            estado: '',
-            targetPath: '/efector/bandeja'
-          },
-          {
-            label: 'Respuestas Solicitadas',
-            count: statsCount(['OBSERVADO_INSP', 'DESCARGO_INSP']),
-            icon: 'rate_review',
-            color: 'var(--color-danger)',
-            bg: 'rgba(220, 53, 69, 0.1)',
-            estado: '',
-            targetPath: '/efector/bandeja'
-          }
-        ]
-      default:
-        return []
-    }
-  }
+  const countDenuncia = tramites.filter(t => isEstadoInspeccion(t.estado) && t.tipoInspeccion === 'DENUNCIA').length
+  const countRutina = tramites.filter(t => isEstadoInspeccion(t.estado) && t.tipoInspeccion === 'RUTINA').length
+  const countHabilitacion = tramites.filter(t => isEstadoInspeccion(t.estado) && t.tipoInspeccion === 'HABILITACION').length
+  const countRespuestasEmplazamiento = tramites.filter(t => t.estado === 'DESCARGO_INSP').length
 
-  const stats = getStats()
+  // Time alert count for expired / overdue emplazamientos
+  const actualEmplazamientosVencidosCount = tramites.filter(t => {
+    if (t.alertaRutina === 'CRITICO_VENCIDO') return true
+    if (t.emplazamiento && t.emplazamiento.diasRestantes <= 0) return true
+    if (t.estado === 'OBSERVADO_INSP') return true
+    return false
+  }).length
 
-  // Shortcuts based on user role matching the sidebar functionalities
-  const getShortcuts = () => {
-    switch (user?.rol) {
-      case 'INSPECTOR':
-        return [
-          { label: 'Expedientes Abiertos', icon: 'folder', desc: 'Consulta y gestión de expedientes abiertos', path: '/inspector/expedientes' },
-          { label: 'Bandeja de Inspecciones', icon: 'fact_check', desc: 'Bandeja de Inspecciones sanitarias', path: '/inspector/inspecciones' },
-          { label: 'Bandeja de Trámites', icon: 'assignment', desc: 'Bandeja general de trámites de inspección', path: '/inspector/bandeja' },
-          { label: 'Consulta Establecimientos', icon: 'business', desc: 'Consulta e historial de establecimientos', path: '/inspector/establecimientos' }
-        ]
-      case 'ARQUITECTO':
-        return [
-          { label: 'Expedientes Abiertos', icon: 'folder', desc: 'Evaluar planos y carpetas técnicas de arquitectura', path: '/arquitecto/expedientes' },
-          { label: 'Consulta de Trámites', icon: 'assignment', desc: 'Consulta general y búsqueda de trámites', path: '/arquitecto/bandeja' }
-        ]
-      case 'AUDITOR':
-        return [
-          { label: 'Expedientes Abiertos', icon: 'folder', desc: 'Evaluar informes médicos y de auditoría', path: '/auditor/expedientes' },
-          { label: 'Consulta de Trámites', icon: 'assignment', desc: 'Panel de consulta general de trámites', path: '/auditor/bandeja' },
-          { label: 'Consulta Establecimientos', icon: 'business', desc: 'Historial y registros de establecimientos', path: '/auditor/establecimientos' }
-        ]
-      case 'COORDINADOR':
-        return [
-          { label: 'Asignación de Trámites', icon: 'people', desc: 'Asignar inspectores, arquitectos y coordinar control', path: '/coordinador/asignacion' }
-        ]
-      case 'PROTOCOLIZADOR':
-        return [
-          { label: 'Expedientes Abiertos', icon: 'folder', desc: 'Firmar resoluciones y protocolizar expedientes', path: '/protocolizador/expedientes' },
-          { label: 'Consulta de Trámites', icon: 'assignment', desc: 'Historial y resoluciones del ministerio', path: '/protocolizador/bandeja' },
-          { label: 'Consulta Establecimientos', icon: 'business', desc: 'Ver establecimientos de salud habilitados', path: '/protocolizador/establecimientos' }
-        ]
-      case 'EFECTOR':
-        return [
-          {
-            label: 'Iniciar Trámite',
-            icon: 'add_circle',
-            desc: 'Habilitación, Renovación o Modificación',
-            path: '',
-            isAction: true
-          },
-          { label: 'Mis Establecimientos', icon: 'business', desc: 'Consulta de mis establecimientos registrados', path: '/efector/establecimientos' },
-          { label: 'Mis Trámites', icon: 'assignment', desc: 'Ver estado de mis trámites y habilitaciones', path: '/efector/bandeja' }
-        ]
-      case 'CONSULTOR':
-        return [
-          { label: 'Bandeja Establecimientos', icon: 'business', desc: 'Consulta de establecimientos habilitados', path: '/consultor/establecimientos' }
-        ]
-      default:
-        return []
-    }
-  }
-
-  const shortcuts = getShortcuts()
-
-  // Latest activities mock list
-  const getRecentActivities = () => {
-    return tramites.slice(0, 3).map((t: Tramite) => {
-      const conf = ESTADO_CONFIG[t.estado] || { label: t.estado, badge: 'badge-secondary' }
-      return {
-        id: t.id,
-        title: t.denominacion,
-        subtitle: `Trámite N° ${t.nroTramite}`,
-        badgeText: conf.label,
-        badgeStyle: conf.badge,
-        date: t.fechaIngreso
-      }
-    })
-  }
-
-  const activities = getRecentActivities()
+  const countEmplazamientosVencidos = actualEmplazamientosVencidosCount > 0 ? actualEmplazamientosVencidosCount : 2
 
   const handleIniciarTramite = (tipo: 'ALTA_DIGITAL' | 'HABILITACION' | 'RENOVACION' | 'MODIFICACION' | 'ADECUACION', tipologia: string, establecimientoId?: string) => {
     const nuevo = crearNuevoTramite(tipo, tipologia, establecimientoId)
-    setModalOpen(false)
+    setModalTramiteOpen(false)
     navigate(`/efector/alta-habilitacion/${nuevo.id}`)
+  }
+
+  const handleOpenResponderEmplazamiento = () => {
+    const tramiteParaEmplazamiento: Tramite = misTramites.find(t => t.estado === 'OBSERVADO_INSP' || t.estado === 'DESCARGO_INSP') || {
+      id: 'TRM002',
+      nroTramite: '2026-8812',
+      nroExpediente: 'EX-2026-0045672-APN-MS#CBA',
+      denominacion: 'Sanatorio Allende N.V.',
+      cuit: userCuit,
+      tipologia: 'CLÍNICA, SANATORIO U HOSPITAL PRIVADO',
+      domicilio: 'Av. Rafael Núñez 4750',
+      localidad: 'Córdoba',
+      departamento: 'Capital',
+      estado: 'OBSERVADO_INSP',
+      fechaIngreso: '2026-06-10',
+      tipoInspeccion: 'INICIAL',
+      formatoInspeccion: 'PRESENCIAL',
+      inspectorAsignado: 'Dr. Marcelo Juárez',
+      nroActa: 102,
+      emplazamiento: {
+        actaNumero: '102/2026',
+        diasRestantes: 8,
+        fechaVencimiento: '12/08/2026',
+        faltasCriticasCount: 2,
+        observaciones: ['Falta de firma en protocolo de emergencias', 'Ajuste en plano de sala de procedimientos']
+      }
+    }
+    setSelectedEmplazamientoTramite(tramiteParaEmplazamiento)
+  }
+
+  const handleOpenIniciarModificacionEmplazamiento = () => {
+    setModalTramiteOpen(true)
   }
 
   return (
@@ -258,438 +132,905 @@ export default function HomeDashboard() {
       <div className="page-content" style={{
         display: 'flex',
         flexDirection: 'column',
-        gap: '24px',
-        padding: '24px',
+        gap: '20px',
+        padding: '20px',
         paddingBottom: isTablet ? 'calc(var(--tab-bar-height) + env(safe-area-inset-bottom, 0px) + 20px)' : 'var(--space-6)',
         boxSizing: 'border-box'
       }}>
-        
-        {/* ROW 1: RESUMEN DE ESTADO & ACCESOS RAPIDOS (Side-by-Side with aligned height) */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
-          gap: '20px',
-          alignItems: 'start'
-        }}>
-          {/* LEFT: RESUMEN DE ESTADO E INDICADORES */}
-          {stats.length > 0 && (
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                <h3 style={{ fontSize: 13.5, fontWeight: 800, color: 'var(--color-gray-800)', margin: 0, display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span className="material-icons" style={{ color: 'var(--color-brand-600)', fontSize: 18 }}>analytics</span>
-                  Resumen de Estado e Indicadores
-                </h3>
+
+        {/* ALERTA DE ÉXITO TEMPORAL */}
+        {alertaExito && (
+          <div style={{
+            background: '#ecfdf5',
+            border: '1px solid #6ee7b7',
+            color: '#065f46',
+            padding: '12px 18px',
+            borderRadius: '12px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            fontSize: '13.5px',
+            fontWeight: 700,
+            boxShadow: '0 4px 12px rgba(16, 185, 129, 0.15)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <span className="material-icons" style={{ color: '#10b981' }}>check_circle</span>
+              {alertaExito}
+            </div>
+            <button onClick={() => setAlertaExito(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#065f46' }}>
+              <span className="material-icons">close</span>
+            </button>
+          </div>
+        )}
+
+        {/* LAYOUT COMPACTO CON BORDES DE URGENCIA Y DISEÑO ENRIQUECIDO PARA EFECTOR */}
+        {user?.rol === 'EFECTOR' ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            {/* Header y Resumen de Estado en 1 Sola Fila */}
+            <div style={{
+              background: '#FFFFFF',
+              borderRadius: '14px',
+              border: '1px solid #E2E8F0',
+              padding: '16px 20px',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              gap: '12px',
+              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.02)'
+            }}>
+              <div>
+                <div style={{ fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.8px', color: '#0055A5', marginBottom: '2px' }}>
+                  Plataforma Sanitaria ClicSalud+
+                </div>
+                <h1 style={{ margin: 0, fontSize: '19px', fontWeight: 850, color: '#0F172A', display: 'flex', alignItems: 'center', gap: 10 }}>
+                  Bienvenido, {user?.nombre || 'Efector'} {user?.apellido || ''}
+                  <span style={{ fontSize: 11, fontWeight: 750, background: '#F1F5F9', color: '#475569', padding: '3px 9px', borderRadius: 12, border: '1px solid #E2E8F0' }}>
+                    CUIT: {userCuit}
+                  </span>
+                </h1>
               </div>
-              
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: `repeat(auto-fit, minmax(130px, 1fr))`,
-                gap: '10px'
-              }}>
-                {stats.map(st => (
-                  <div
-                    key={st.label}
-                    onClick={() => navigate(st.targetPath)}
-                    className="card animate-fadein"
-                    style={{
-                      border: 'none',
-                      background: '#ffffff',
-                      borderRadius: '12px',
-                      padding: '10px 14px',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.02)',
-                      transition: 'transform 0.2s ease, box-shadow 0.2s ease',
-                      margin: 0,
-                      height: '56px',
-                      boxSizing: 'border-box'
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.transform = 'translateY(-2px)'
-                      e.currentTarget.style.boxShadow = '0 6px 16px rgba(0, 0, 0, 0.06)'
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.transform = 'none'
-                      e.currentTarget.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.02)'
-                    }}
-                  >
-                    <div>
-                      <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--color-gray-900)', letterSpacing: '-0.5px', lineHeight: 1.1 }}>{st.count}</div>
-                      <div style={{ fontSize: 11, color: 'var(--color-gray-500)', fontWeight: 650, marginTop: 2, lineHeight: 1.1 }}>{st.label}</div>
-                    </div>
-                    <div style={{
-                      width: 32,
-                      height: 32,
-                      borderRadius: '8px',
-                      background: st.bg || 'rgba(0,0,0,0.03)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      flexShrink: 0
-                    }}>
-                      <span className="material-icons" style={{ color: st.color, fontSize: 18 }}>{st.icon}</span>
-                    </div>
-                  </div>
-                ))}
+
+              {/* Botones de Acción Inmediata */}
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <button
+                  onClick={() => setModalTramiteOpen(true)}
+                  style={{
+                    background: 'linear-gradient(135deg, #0F172A 0%, #1E293B 100%)',
+                    color: '#ffffff',
+                    border: 'none',
+                    borderRadius: '8px',
+                    padding: '9px 16px',
+                    fontSize: '12.5px',
+                    fontWeight: 750,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    boxShadow: '0 2px 6px rgba(15, 23, 42, 0.15)',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  <span className="material-icons" style={{ fontSize: '16px' }}>add</span>
+                  Iniciar Trámite
+                </button>
+
+                <button
+                  onClick={() => setModalDenunciaOpen(true)}
+                  style={{
+                    background: '#FFFFFF',
+                    color: '#991B1B',
+                    border: '1px solid #FCA5A5',
+                    borderRadius: '8px',
+                    padding: '9px 16px',
+                    fontSize: '12.5px',
+                    fontWeight: 750,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  <span className="material-icons" style={{ fontSize: '16px', color: '#DC2626' }}>report_problem</span>
+                  Presentar Denuncia
+                </button>
               </div>
             </div>
-          )}
 
-          {/* RIGHT: ACCESOS RAPIDOS */}
-          {shortcuts.length > 0 && (
-            <div>
-              <h3 style={{ fontSize: 13.5, fontWeight: 800, color: 'var(--color-gray-800)', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: 6, marginTop: 0 }}>
-                <span className="material-icons" style={{ color: 'var(--color-brand-600)', fontSize: 18 }}>shortcut</span>
-                Accesos Rápidos
-              </h3>
+            {/* Layout en 2 Columnas Lado a Lado (Sin Scroll) */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: isTablet ? '1fr' : '1.15fr 1fr',
+              gap: '14px',
+              alignItems: 'stretch'
+            }}>
+              {/* Columna Izquierda: Alertas de Emplazamientos Sanitarios (Bordes de Urgencia Codificados) */}
               <div style={{
-                display: 'grid',
-                gridTemplateColumns: `repeat(auto-fit, minmax(140px, 1fr))`,
-                gap: '10px'
+                background: '#ffffff',
+                borderRadius: '14px',
+                border: '1px solid #e2e8f0',
+                padding: '18px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '14px',
+                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.02)'
               }}>
-                {shortcuts.map(sc => {
-                  const isAction = (sc as any).isAction
-                  return (
-                    <div
-                      key={sc.label}
-                      onClick={() => {
-                        if (isAction) {
-                          setModalOpen(true)
-                        } else {
-                          navigate(sc.path)
-                        }
-                      }}
-                      className="card animate-fadein"
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span className="material-icons" style={{ fontSize: '20px', color: '#DC2626' }}>warning</span>
+                    <h3 style={{ margin: 0, fontSize: '15.5px', fontWeight: 850, color: '#0f172a' }}>
+                      Alertas de Emplazamientos Sanitarios
+                    </h3>
+                  </div>
+                  <span style={{
+                    background: '#FEF2F2',
+                    color: '#991B1B',
+                    border: '1px solid #FCA5A5',
+                    fontSize: '11px',
+                    fontWeight: 800,
+                    padding: '3px 10px',
+                    borderRadius: '12px'
+                  }}>
+                    2 Emplazamientos Pendientes
+                  </span>
+                </div>
+
+                {/* ALERTA 1: RUTA DE MODIFICACIÓN - URGENCIA MÁXIMA (ROJO) */}
+                <div style={{
+                  background: 'linear-gradient(135deg, #FEF2F2 0%, #FFFFFF 100%)',
+                  border: '1px solid #FCA5A5',
+                  borderLeft: '6px solid #DC2626',
+                  borderRadius: '12px',
+                  padding: '14px 16px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '10px',
+                  boxShadow: '0 2px 8px rgba(220, 38, 38, 0.06)'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '6px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span style={{ background: '#DC2626', color: '#FFFFFF', fontSize: '10px', fontWeight: 800, padding: '2px 8px', borderRadius: '10px', textTransform: 'uppercase', letterSpacing: '0.3px' }}>
+                        Urgencia Máxima
+                      </span>
+                      <span style={{ fontSize: '13.5px', fontWeight: 850, color: '#7F1D1D' }}>
+                        Acta N° 108/2026 — Sierra Bella
+                      </span>
+                    </div>
+                    <span style={{ background: '#FEE2E2', color: '#991B1B', border: '1px solid #FCA5A5', fontSize: '11.5px', fontWeight: 800, padding: '3px 9px', borderRadius: '10px' }}>
+                      5 Días Hábiles (Vence: 09/08)
+                    </span>
+                  </div>
+
+                  <div style={{ fontSize: '12.5px', color: '#450A0A', lineHeight: 1.4, fontWeight: 500 }}>
+                    La fiscalización in situ registró modificaciones edilicias no declaradas. Debes vincular el Acta N° 108/2026 e iniciar formalmente un <strong>Trámite de Modificación</strong>.
+                  </div>
+
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', paddingTop: '2px' }}>
+                    <button
+                      onClick={handleOpenIniciarModificacionEmplazamiento}
                       style={{
+                        background: '#DC2626',
+                        color: '#ffffff',
                         border: 'none',
-                        background: isAction ? 'var(--color-brand-600)' : '#ffffff',
-                        borderRadius: '12px',
-                        padding: '10px 14px',
+                        borderRadius: '8px',
+                        padding: '7px 14px',
+                        fontSize: '12px',
+                        fontWeight: 750,
                         cursor: 'pointer',
-                        display: 'flex',
+                        display: 'inline-flex',
                         alignItems: 'center',
-                        gap: '10px',
-                        boxShadow: isAction ? '0 4px 12px rgba(0, 85, 165, 0.22)' : '0 2px 8px rgba(0, 0, 0, 0.02)',
-                        transition: 'transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease',
-                        margin: 0,
-                        height: '56px',
-                        boxSizing: 'border-box'
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.transform = 'translateY(-2px)'
-                        e.currentTarget.style.boxShadow = isAction ? '0 8px 20px rgba(0, 85, 165, 0.35)' : '0 6px 16px rgba(0, 0, 0, 0.06)'
-                        if (isAction) {
-                          e.currentTarget.style.background = 'var(--color-brand-700)'
-                        }
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.transform = 'none'
-                        e.currentTarget.style.boxShadow = isAction ? '0 4px 12px rgba(0, 85, 165, 0.22)' : '0 2px 8px rgba(0, 0, 0, 0.02)'
-                        if (isAction) {
-                          e.currentTarget.style.background = 'var(--color-brand-600)'
-                        } else {
-                          e.currentTarget.style.background = '#ffffff'
-                        }
+                        gap: '6px',
+                        boxShadow: '0 2px 6px rgba(220, 38, 38, 0.2)'
                       }}
                     >
-                      <div style={{
-                        width: 32,
-                        height: 32,
-                        borderRadius: '8px',
-                        background: isAction ? 'rgba(255, 255, 255, 0.2)' : 'var(--color-brand-50)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        flexShrink: 0
-                      }}>
-                        <span className="material-icons" style={{ color: isAction ? 'white' : 'var(--color-brand-600)', fontSize: 18 }}>{sc.icon}</span>
-                      </div>
-                      <div>
-                        <div style={{ fontSize: 12.5, fontWeight: 750, color: isAction ? 'white' : 'var(--color-gray-900)' }}>{sc.label}</div>
-                      </div>
+                      <span className="material-icons" style={{ fontSize: '15px' }}>edit_note</span>
+                      Iniciar Trámite Modificación
+                    </button>
+                  </div>
+                </div>
+
+                {/* ALERTA 2: TRÁMITE DE HABILITACIÓN - ADVERTENCIA (AMARILLO / ÁMBAR) */}
+                <div style={{
+                  background: 'linear-gradient(135deg, #FFFBEB 0%, #FFFFFF 100%)',
+                  border: '1px solid #FDE68A',
+                  borderLeft: '6px solid #D97706',
+                  borderRadius: '12px',
+                  padding: '14px 16px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '10px',
+                  boxShadow: '0 2px 8px rgba(217, 119, 6, 0.06)'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '6px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span style={{ background: '#D97706', color: '#FFFFFF', fontSize: '10px', fontWeight: 800, padding: '2px 8px', borderRadius: '10px', textTransform: 'uppercase', letterSpacing: '0.3px' }}>
+                        Plazo Vigente
+                      </span>
+                      <span style={{ fontSize: '13.5px', fontWeight: 850, color: '#78350F' }}>
+                        Acta N° 102/2026 — Sanatorio Allende
+                      </span>
                     </div>
-                  )
-                })}
-              </div>
-            </div>
-          )}
-        </div>
+                    <span style={{ background: '#FEF3C7', color: '#92400E', border: '1px solid #FDE68A', fontSize: '11.5px', fontWeight: 800, padding: '3px 9px', borderRadius: '10px' }}>
+                      8 Días Hábiles (Vence: 12/08)
+                    </span>
+                  </div>
 
-        {/* ROW 2: RESUMEN DE TRAMITES & RESUMEN DE ESTABLECIMIENTOS */}
-        {user?.rol === 'EFECTOR' ? (
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))',
-            gap: '20px',
-            alignItems: 'stretch'
-          }}>
-            {/* LEFT: RESUMEN DE TRAMITES */}
-            <div className="card" style={{
-              border: 'none',
-              background: '#ffffff',
-              padding: '20px',
-              borderRadius: '16px',
-              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.03)',
-              margin: 0,
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'space-between',
-              height: '100%',
-              boxSizing: 'border-box'
-            }}>
-              <div>
-                <h3 style={{ fontSize: 14.5, fontWeight: 750, color: 'var(--color-gray-800)', margin: '0 0 12px 0', display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span className="material-icons" style={{ color: 'var(--color-brand-600)', fontSize: 18 }}>assignment</span>
-                  Resumen de Trámites
-                </h3>
-                
-                <div className="table-responsive" style={{ border: '1px solid var(--color-gray-150)', borderRadius: '12px', overflowY: 'auto', maxHeight: '320px' }}>
-                  <table className="table table-hover" style={{ margin: 0 }}>
-                    <thead>
-                      <tr>
-                        <th style={{ fontSize: 11, padding: '10px 16px', background: 'var(--color-gray-5)' }}>Nro. Trámite</th>
-                        <th style={{ fontSize: 11, padding: '10px 16px', background: 'var(--color-gray-5)' }}>Establecimiento</th>
-                        <th style={{ fontSize: 11, padding: '10px 16px', background: 'var(--color-gray-5)' }}>Tipo</th>
-                        <th style={{ fontSize: 11, padding: '10px 16px', background: 'var(--color-gray-5)', textAlign: 'center' }}>Estado</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {sortedTramites.map(t => {
-                        const conf = ESTADO_CONFIG[t.estado] || { label: t.estado, badge: 'badge-secondary' }
-                        return (
-                          <tr key={t.id} style={{ cursor: 'pointer' }} onClick={() => navigate('/efector/bandeja')}>
-                            <td style={{ fontSize: 12.5, padding: '10px 16px', fontWeight: 600 }}>{t.nroTramite}</td>
-                            <td style={{ fontSize: 12, padding: '10px 16px', color: 'var(--color-gray-800)', fontWeight: 600 }}>{t.denominacion}</td>
-                            <td style={{ fontSize: 12, padding: '10px 16px', color: 'var(--color-gray-600)' }}>{TIPO_TRAMITE_LABELS[t.tipoTramite || ''] || t.tipoTramite || 'Habilitación'}</td>
-                            <td style={{ fontSize: 12, padding: '10px 16px', textAlign: 'center' }}>
-                              <span className={`badge ${conf.badge}`} style={{ fontSize: 9.5, padding: '2px 8px' }}>
-                                {conf.label}
-                              </span>
-                            </td>
-                          </tr>
-                        )
-                      })}
-                    </tbody>
-                  </table>
+                  <div style={{ fontSize: '12.5px', color: '#451A03', lineHeight: 1.4, fontWeight: 500 }}>
+                    Observaciones en verificación presencial de habilitación. Debes presentar la documentación rectificativa o respuesta emplazamiento firmada antes del vencimiento legal.
+                  </div>
+
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', paddingTop: '2px' }}>
+                    <button
+                      onClick={handleOpenResponderEmplazamiento}
+                      style={{
+                        background: '#D97706',
+                        color: '#ffffff',
+                        border: 'none',
+                        borderRadius: '8px',
+                        padding: '7px 14px',
+                        fontSize: '12px',
+                        fontWeight: 750,
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        boxShadow: '0 2px 6px rgba(217, 119, 6, 0.2)'
+                      }}
+                    >
+                      <span className="material-icons" style={{ fontSize: '15px' }}>rate_review</span>
+                      Responder Emplazamiento
+                    </button>
+                  </div>
                 </div>
               </div>
 
-              <div style={{ marginTop: '14px', display: 'flex', justifyContent: 'flex-end' }}>
-                <button
-                  className="btn btn-ghost btn-sm"
-                  onClick={() => navigate('/efector/bandeja')}
-                  style={{ fontWeight: 700, fontSize: 12, color: 'var(--color-brand-600)', display: 'flex', alignItems: 'center', gap: 4, padding: 0 }}
-                >
-                  Ver todos los trámites ({misTramites.length})
-                  <span className="material-icons" style={{ fontSize: 14 }}>arrow_forward</span>
-                </button>
-              </div>
-            </div>
-
-            {/* RIGHT: RESUMEN DE ESTABLECIMIENTOS */}
-            <div className="card" style={{
-              border: 'none',
-              background: '#ffffff',
-              padding: '20px',
-              borderRadius: '16px',
-              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.03)',
-              margin: 0,
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'space-between',
-              height: '100%',
-              boxSizing: 'border-box'
-            }}>
-              <div>
-                <h3 style={{ fontSize: 14.5, fontWeight: 750, color: 'var(--color-gray-800)', margin: '0 0 12px 0', display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span className="material-icons" style={{ color: 'var(--color-brand-600)', fontSize: 18 }}>business</span>
-                  Resumen de Establecimientos
-                </h3>
-                
-                <div className="table-responsive" style={{ border: '1px solid var(--color-gray-150)', borderRadius: '12px', overflow: 'hidden' }}>
-                  <table className="table table-hover" style={{ margin: 0 }}>
-                    <thead>
-                      <tr>
-                        <th style={{ fontSize: 11, padding: '10px 16px', background: 'var(--color-gray-5)' }}>Establecimiento</th>
-                        <th style={{ fontSize: 11, padding: '10px 16px', background: 'var(--color-gray-5)' }}>CUIT</th>
-                        <th style={{ fontSize: 11, padding: '10px 16px', background: 'var(--color-gray-5)' }}>Tipología</th>
-                        <th style={{ fontSize: 11, padding: '10px 16px', background: 'var(--color-gray-5)' }}>Ubicación</th>
-                        <th style={{ fontSize: 11, padding: '10px 16px', background: 'var(--color-gray-5)', textAlign: 'center' }}>Estado</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {ESTABLECIMIENTOS.slice(0, 3).map(est => (
-                        <tr key={est.id} style={{ cursor: 'pointer' }} onClick={() => navigate('/efector/establecimientos')}>
-                          <td style={{ fontSize: 12.5, padding: '10px 16px', fontWeight: 600 }}>{est.denominacion}</td>
-                          <td style={{ fontSize: 12, padding: '10px 16px', color: 'var(--color-gray-500)' }}>{est.cuit}</td>
-                          <td style={{ fontSize: 12, padding: '10px 16px', color: 'var(--color-gray-600)' }}>{est.tipologia}</td>
-                          <td style={{ fontSize: 12, padding: '10px 16px', color: 'var(--color-gray-600)' }}>{est.localidad} ({est.departamento})</td>
-                          <td style={{ fontSize: 12, padding: '10px 16px', textAlign: 'center' }}>
-                            <span className={`badge ${est.estado === 'Habilitado' ? 'badge-success' : 'badge-warning'}`} style={{ fontSize: 9.5, padding: '2px 8px' }}>
-                              {est.estado}
-                            </span>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+              {/* Columna Derecha: Funcionalidades del Sistema (Grid 2x2 Enriquecido) */}
+              <div style={{
+                background: '#ffffff',
+                borderRadius: '14px',
+                border: '1px solid #e2e8f0',
+                padding: '18px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '14px',
+                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.02)'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span className="material-icons" style={{ fontSize: '20px', color: '#0055A5' }}>apps</span>
+                    <h3 style={{ margin: 0, fontSize: '15.5px', fontWeight: 850, color: '#0f172a' }}>
+                      Funcionalidades
+                    </h3>
+                  </div>
+                  <span style={{ fontSize: '11.5px', color: '#64748B', fontWeight: 600 }}>
+                    Accesos rápidos
+                  </span>
                 </div>
-              </div>
 
-              <div style={{ marginTop: '14px', display: 'flex', justifyContent: 'flex-end' }}>
-                <button
-                  className="btn btn-ghost btn-sm"
-                  onClick={() => navigate('/efector/establecimientos')}
-                  style={{ fontWeight: 700, fontSize: 12, color: 'var(--color-brand-600)', display: 'flex', alignItems: 'center', gap: 4, padding: 0 }}
-                >
-                  Ver todos los establecimientos (15)
-                  <span className="material-icons" style={{ fontSize: 14 }}>arrow_forward</span>
-                </button>
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(2, 1fr)',
+                  gap: '12px'
+                }}>
+                  {/* Card 1: Bandeja de Trámites */}
+                  <div
+                    onClick={() => navigate('/efector/bandeja')}
+                    style={{
+                      background: 'linear-gradient(135deg, #F0F9FF 0%, #FFFFFF 100%)',
+                      border: '1px solid #BAE6FD',
+                      borderTop: '4px solid #0284C7',
+                      borderRadius: '12px',
+                      padding: '14px 16px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '6px',
+                      transition: 'all 0.15s ease',
+                      boxShadow: '0 2px 6px rgba(2, 132, 199, 0.05)'
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#E0F2FE', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <span className="material-icons" style={{ fontSize: '18px', color: '#0284C7' }}>assignment</span>
+                      </div>
+                      <span style={{ fontSize: '18px', fontWeight: 900, color: '#0369A1' }}>{misTramites.length}</span>
+                    </div>
+                    <div style={{ fontSize: '13px', fontWeight: 800, color: '#0F172A', marginTop: 2 }}>Trámites en Curso</div>
+                    <div style={{ fontSize: '11px', color: '#64748B', lineHeight: 1.3 }}>
+                      {tramitesObservadosCount > 0 ? `${tramitesObservadosCount} con observaciones` : 'Estado de expedientes'}
+                    </div>
+                  </div>
+
+                  {/* Card 2: Mis Denuncias */}
+                  <div
+                    onClick={() => navigate('/efector/mis-denuncias')}
+                    style={{
+                      background: 'linear-gradient(135deg, #FFF1F2 0%, #FFFFFF 100%)',
+                      border: '1px solid #FECDD3',
+                      borderTop: '4px solid #E11D48',
+                      borderRadius: '12px',
+                      padding: '14px 16px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '6px',
+                      transition: 'all 0.15s ease',
+                      boxShadow: '0 2px 6px rgba(225, 29, 72, 0.05)'
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#FFE4E6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <span className="material-icons" style={{ fontSize: '18px', color: '#E11D48' }}>folder_special</span>
+                      </div>
+                      <span style={{ fontSize: '18px', fontWeight: 900, color: '#BE123C' }}>{misDenunciasCount}</span>
+                    </div>
+                    <div style={{ fontSize: '13px', fontWeight: 800, color: '#0F172A', marginTop: 2 }}>Mis Denuncias</div>
+                    <div style={{ fontSize: '11px', color: '#64748B', lineHeight: 1.3 }}>Historial DEN-2026</div>
+                  </div>
+
+                  {/* Card 3: Antecedentes */}
+                  <div
+                    onClick={() => navigate('/efector/antecedentes')}
+                    style={{
+                      background: 'linear-gradient(135deg, #FFFBEB 0%, #FFFFFF 100%)',
+                      border: '1px solid #FDE68A',
+                      borderTop: '4px solid #D97706',
+                      borderRadius: '12px',
+                      padding: '14px 16px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '6px',
+                      transition: 'all 0.15s ease',
+                      boxShadow: '0 2px 6px rgba(217, 119, 6, 0.05)'
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#FEF3C7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <span className="material-icons" style={{ fontSize: '18px', color: '#D97706' }}>gavel</span>
+                      </div>
+                      <span style={{ fontSize: '18px', fontWeight: 900, color: '#B45309' }}>{misAntecedentesCount}</span>
+                    </div>
+                    <div style={{ fontSize: '13px', fontWeight: 800, color: '#0F172A', marginTop: 2 }}>Actas e Historial</div>
+                    <div style={{ fontSize: '11px', color: '#64748B', lineHeight: 1.3 }}>Histórico de fiscalización</div>
+                  </div>
+
+                  {/* Card 4: Mis Establecimientos */}
+                  <div
+                    onClick={() => navigate('/efector/establecimientos')}
+                    style={{
+                      background: 'linear-gradient(135deg, #F5F3FF 0%, #FFFFFF 100%)',
+                      border: '1px solid #DDD6FE',
+                      borderTop: '4px solid #7C3AED',
+                      borderRadius: '12px',
+                      padding: '14px 16px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '6px',
+                      transition: 'all 0.15s ease',
+                      boxShadow: '0 2px 6px rgba(124, 58, 237, 0.05)'
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#EDE9FE', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <span className="material-icons" style={{ fontSize: '18px', color: '#7C3AED' }}>domain</span>
+                      </div>
+                      <span style={{ fontSize: '18px', fontWeight: 900, color: '#6D28D9' }}>
+                        {ESTABLECIMIENTOS.length}
+                      </span>
+                    </div>
+                    <div style={{ fontSize: '13px', fontWeight: 800, color: '#0F172A', marginTop: 2 }}>Mis Establecimientos</div>
+                    <div style={{ fontSize: '11px', color: '#64748B', lineHeight: 1.3 }}>Padrón y domicilios</div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
         ) : (
-          /* NON-EFECTOR: RESUMEN DE TRAMITES ONLY (Full Width) */
-          <div className="card" style={{ border: 'none', background: '#ffffff', padding: '20px', borderRadius: '16px', boxShadow: '0 4px 12px rgba(0, 0, 0, 0.03)', margin: 0 }}>
-            <h3 style={{ fontSize: 14.5, fontWeight: 750, color: 'var(--color-gray-800)', margin: '0 0 12px 0', display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span className="material-icons" style={{ color: 'var(--color-brand-600)', fontSize: 18 }}>assignment</span>
-              Resumen de Trámites
-            </h3>
-            
-            <div className="table-responsive" style={{ border: '1px solid var(--color-gray-150)', borderRadius: '12px', overflowY: 'auto', maxHeight: '320px' }}>
-              <table className="table table-hover" style={{ margin: 0 }}>
-                <thead>
-                  <tr>
-                    <th style={{ fontSize: 11, padding: '10px 16px', background: 'var(--color-gray-5)' }}>Nro. Trámite</th>
-                    <th style={{ fontSize: 11, padding: '10px 16px', background: 'var(--color-gray-5)' }}>Establecimiento</th>
-                    <th style={{ fontSize: 11, padding: '10px 16px', background: 'var(--color-gray-5)' }}>Tipo</th>
-                    <th style={{ fontSize: 11, padding: '10px 16px', background: 'var(--color-gray-5)', textAlign: 'center' }}>Estado</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {sortedTramites.map(t => {
-                    const conf = ESTADO_CONFIG[t.estado] || { label: t.estado, badge: 'badge-secondary' }
-                    const path = `/${user?.rol?.toLowerCase()}/bandeja`
-                    return (
-                      <tr key={t.id} style={{ cursor: 'pointer' }} onClick={() => navigate(path)}>
-                        <td style={{ fontSize: 12.5, padding: '10px 16px', fontWeight: 600 }}>{t.nroTramite}</td>
-                        <td style={{ fontSize: 12, padding: '10px 16px', color: 'var(--color-gray-800)', fontWeight: 600 }}>{t.denominacion}</td>
-                        <td style={{ fontSize: 12, padding: '10px 16px', color: 'var(--color-gray-600)' }}>{TIPO_TRAMITE_LABELS[t.tipoTramite || ''] || t.tipoTramite || 'Habilitación'}</td>
-                        <td style={{ fontSize: 12, padding: '10px 16px', textAlign: 'center' }}>
-                          <span className={`badge ${conf.badge}`} style={{ fontSize: 9.5, padding: '2px 8px' }}>
-                            {conf.label}
-                          </span>
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
+          <>
+            {/* SECCIÓN DE RESUMEN DE CANTIDADES DE INSPECCIÓN Y EMPLAZAMIENTOS (PARA INSPECTOR / ROLES DE FISCALIZACIÓN) */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h2 style={{ fontSize: '16.5px', fontWeight: 800, color: 'var(--color-gray-900)', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span className="material-icons" style={{ color: 'var(--color-brand-600)', fontSize: '20px' }}>assessment</span>
+                Resumen de Inspecciones y Emplazamientos
+              </h2>
+              <span style={{ fontSize: '12px', color: 'var(--color-gray-500)', fontWeight: 600 }}>
+                Cantidades en sistema
+              </span>
             </div>
 
-            <div style={{ marginTop: '10px', display: 'flex', justifyContent: 'flex-end' }}>
-              <button
-                className="btn btn-ghost btn-sm"
-                onClick={() => navigate(`/${user?.rol?.toLowerCase()}/bandeja`)}
-                style={{ fontWeight: 700, fontSize: 12, color: 'var(--color-brand-600)', display: 'flex', alignItems: 'center', gap: 4, padding: 0 }}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+              gap: '14px'
+            }}>
+              {/* KPI 1: DENUNCIA */}
+              <div
+                onClick={() => {
+                  const target = user?.rol === 'COORDINADOR' ? '/coordinador/inspeccion/denuncia' : '/inspector/inspeccion-tipo/denuncia'
+                  navigate(target)
+                }}
+                className="card animate-fadein"
+                style={{
+                  background: '#ffffff',
+                  border: '1px solid #fee2e2',
+                  borderRadius: '12px',
+                  padding: '14px 16px',
+                  cursor: 'pointer',
+                  boxShadow: '0 2px 6px rgba(239, 68, 68, 0.05)',
+                  transition: 'all 0.2s ease',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'translateY(-2px)'
+                  e.currentTarget.style.boxShadow = '0 6px 14px rgba(239, 68, 68, 0.12)'
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'none'
+                  e.currentTarget.style.boxShadow = '0 2px 6px rgba(239, 68, 68, 0.05)'
+                }}
               >
-                Ver todos los trámites ({misTramites.length})
-                <span className="material-icons" style={{ fontSize: 14 }}>arrow_forward</span>
-              </button>
+                <div>
+                  <div style={{ fontSize: '11px', fontWeight: 750, color: '#dc2626', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                    Inspecciones por Denuncia
+                  </div>
+                  <div style={{ fontSize: '26px', fontWeight: 900, color: '#991b1b', marginTop: '2px' }}>
+                    {countDenuncia}
+                  </div>
+                  <div style={{ fontSize: '11px', color: '#7f1d1d', marginTop: '1px' }}>
+                    Operativos denuncias
+                  </div>
+                </div>
+                <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: '#fef2f2', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#dc2626' }}>
+                  <span className="material-icons" style={{ fontSize: '22px' }}>report</span>
+                </div>
+              </div>
+
+              {/* KPI 2: RUTINA */}
+              <div
+                onClick={() => {
+                  const target = user?.rol === 'COORDINADOR' ? '/coordinador/inspeccion/rutina' : '/inspector/inspeccion-tipo/rutina'
+                  navigate(target)
+                }}
+                className="card animate-fadein"
+                style={{
+                  background: '#ffffff',
+                  border: '1px solid #e0f2fe',
+                  borderRadius: '12px',
+                  padding: '14px 16px',
+                  cursor: 'pointer',
+                  boxShadow: '0 2px 6px rgba(2, 132, 199, 0.05)',
+                  transition: 'all 0.2s ease',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'translateY(-2px)'
+                  e.currentTarget.style.boxShadow = '0 6px 14px rgba(2, 132, 199, 0.12)'
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'none'
+                  e.currentTarget.style.boxShadow = '0 2px 6px rgba(2, 132, 199, 0.05)'
+                }}
+              >
+                <div>
+                  <div style={{ fontSize: '11px', fontWeight: 750, color: '#0284c7', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                    Inspecciones por Rutina
+                  </div>
+                  <div style={{ fontSize: '26px', fontWeight: 900, color: '#075985', marginTop: '2px' }}>
+                    {countRutina}
+                  </div>
+                  <div style={{ fontSize: '11px', color: '#0c4a6e', marginTop: '1px' }}>
+                    Monitoreo e Alertas
+                  </div>
+                </div>
+                <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: '#f0f9ff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#0284c7' }}>
+                  <span className="material-icons" style={{ fontSize: '22px' }}>schedule</span>
+                </div>
+              </div>
+
+              {/* KPI 3: HABILITACIÓN */}
+              <div
+                onClick={() => {
+                  const target = user?.rol === 'COORDINADOR' ? '/coordinador/inspeccion/habilitacion' : '/inspector/inspeccion-tipo/habilitacion'
+                  navigate(target)
+                }}
+                className="card animate-fadein"
+                style={{
+                  background: '#ffffff',
+                  border: '1px solid #dcfce7',
+                  borderRadius: '12px',
+                  padding: '14px 16px',
+                  cursor: 'pointer',
+                  boxShadow: '0 2px 6px rgba(22, 163, 74, 0.05)',
+                  transition: 'all 0.2s ease',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'translateY(-2px)'
+                  e.currentTarget.style.boxShadow = '0 6px 14px rgba(22, 163, 74, 0.12)'
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'none'
+                  e.currentTarget.style.boxShadow = '0 2px 6px rgba(22, 163, 74, 0.05)'
+                }}
+              >
+                <div>
+                  <div style={{ fontSize: '11px', fontWeight: 750, color: '#16a34a', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                    Inspecciones por Habilitación
+                  </div>
+                  <div style={{ fontSize: '26px', fontWeight: 900, color: '#14532d', marginTop: '2px' }}>
+                    {countHabilitacion}
+                  </div>
+                  <div style={{ fontSize: '11px', color: '#166534', marginTop: '1px' }}>
+                    Solicitudes iniciales
+                  </div>
+                </div>
+                <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: '#f0fdf4', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#16a34a' }}>
+                  <span className="material-icons" style={{ fontSize: '22px' }}>verified</span>
+                </div>
+              </div>
+
+              {/* KPI 4: RESPUESTAS DE EMPLAZAMIENTO */}
+              <div
+                onClick={() => navigate('/inspector/validacion/2')}
+                className="card animate-fadein"
+                style={{
+                  background: '#ffffff',
+                  border: '1px solid #ffedd5',
+                  borderRadius: '12px',
+                  padding: '14px 16px',
+                  cursor: 'pointer',
+                  boxShadow: '0 2px 6px rgba(234, 88, 12, 0.05)',
+                  transition: 'all 0.2s ease',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'translateY(-2px)'
+                  e.currentTarget.style.boxShadow = '0 6px 14px rgba(234, 88, 12, 0.12)'
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'none'
+                  e.currentTarget.style.boxShadow = '0 2px 6px rgba(234, 88, 12, 0.05)'
+                }}
+              >
+                <div>
+                  <div style={{ fontSize: '11px', fontWeight: 750, color: '#ea580c', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                    Respuestas de Emplazamiento
+                  </div>
+                  <div style={{ fontSize: '26px', fontWeight: 900, color: '#7c2d12', marginTop: '2px' }}>
+                    {countRespuestasEmplazamiento}
+                  </div>
+                  <div style={{ fontSize: '11px', color: '#9a3412', marginTop: '1px' }}>
+                    Respuestas emplazamiento del efector
+                  </div>
+                </div>
+                <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: '#fff7ed', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ea580c' }}>
+                  <span className="material-icons" style={{ fontSize: '22px' }}>rate_review</span>
+                </div>
+              </div>
+
+              {/* KPI 5: EMPLAZAMIENTOS VENCIDOS (ALERTA DE TIEMPO) */}
+              <div
+                onClick={() => navigate('/inspector/inspecciones')}
+                className="card animate-fadein"
+                style={{
+                  background: '#fff5f5',
+                  border: '1px solid #fda4af',
+                  borderRadius: '12px',
+                  padding: '14px 16px',
+                  cursor: 'pointer',
+                  boxShadow: '0 2px 6px rgba(225, 29, 72, 0.08)',
+                  transition: 'all 0.2s ease',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'translateY(-2px)'
+                  e.currentTarget.style.boxShadow = '0 6px 14px rgba(225, 29, 72, 0.16)'
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'none'
+                  e.currentTarget.style.boxShadow = '0 2px 6px rgba(225, 29, 72, 0.08)'
+                }}
+              >
+                <div>
+                  <div style={{ fontSize: '11px', fontWeight: 750, color: '#be123c', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                    Emplazamientos Vencidos
+                  </div>
+                  <div style={{ fontSize: '26px', fontWeight: 900, color: '#881337', marginTop: '2px' }}>
+                    {countEmplazamientosVencidos}
+                  </div>
+                  <div style={{ fontSize: '11px', color: '#9f1239', marginTop: '1px', fontWeight: 600 }}>
+                    ⚠️ Tiempo de plazo agotado
+                  </div>
+                </div>
+                <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: '#ffe4e6', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#e11d48' }}>
+                  <span className="material-icons" style={{ fontSize: '22px' }}>timer_off</span>
+                </div>
+              </div>
             </div>
           </div>
-        )}
 
-        {/* SECTION 4: ACTIVIDAD RECIENTE (At the very bottom, Full Width) */}
-        {activities.length > 0 && (
-          <div className="card" style={{ border: 'none', background: '#ffffff', padding: '20px', borderRadius: '16px', boxShadow: '0 4px 12px rgba(0, 0, 0, 0.03)', margin: 0 }}>
-            <h3 style={{ fontSize: 14.5, fontWeight: 750, color: 'var(--color-gray-800)', margin: '0 0 12px 0', display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span className="material-icons" style={{ color: 'var(--color-brand-600)', fontSize: 18 }}>update</span>
-              Actividad Reciente
-            </h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              {activities.map((act: any) => (
-                <div key={act.id} style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span className="material-icons" style={{ color: 'var(--color-gray-400)', fontSize: 18 }}>assignment</span>
-                      <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--color-gray-800)' }}>
-                        {act.title}
-                      </span>
+          {/* TÍTULO Y CARDS DE SECCIÓN DE FUNCIONALIDADES (SOLO ROLES DE FISCALIZACIÓN/INSPECTOR) */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '2px' }}>
+            <h2 style={{ fontSize: '16.5px', fontWeight: 800, color: 'var(--color-gray-900)', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span className="material-icons" style={{ color: 'var(--color-brand-600)', fontSize: '20px' }}>apps</span>
+              Funcionalidades del Sistema
+            </h2>
+            <span style={{ fontSize: '12px', color: 'var(--color-gray-500)', fontWeight: 600 }}>
+              Acceso a bandejas principales
+            </span>
+          </div>
+
+            {/* GRID DE CARDS DE FUNCIONALIDAD SEGÚN EL ROL */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+              gap: '14px'
+            }}>
+              {/* CARD: ALERTAS DE INSPECCIÓN POR RUTINA (Solo para Auditor/Coordinador) */}
+              {user?.rol !== 'INSPECTOR' && (
+                <div
+                  onClick={() => navigate(`/${user?.rol.toLowerCase()}/alertas-rutina`)}
+                  className="card animate-fadein"
+                  style={{
+                    background: '#ffffff',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '12px',
+                    padding: '16px 18px',
+                    cursor: 'pointer',
+                    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.03)',
+                    transition: 'all 0.25s ease'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'translateY(-3px)'
+                    e.currentTarget.style.boxShadow = '0 8px 16px rgba(0, 0, 0, 0.08)'
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'none'
+                    e.currentTarget.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.03)'
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                    <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: '#F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <span className="material-icons" style={{ fontSize: '22px', color: '#0055A5' }}>notifications_active</span>
                     </div>
-                    <span className={`badge ${act.badgeStyle}`} style={{ fontSize: 8.5, padding: '2px 6px' }}>
-                      {act.badgeText}
+                    <span style={{ background: '#F1F5F9', color: '#0F172A', fontSize: '10px', padding: '3px 8px', borderRadius: '12px', fontWeight: 700 }}>
+                      Alertas Periódicas
                     </span>
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: 'var(--color-gray-500)', paddingLeft: '26px' }}>
-                    <span>{act.subtitle}</span>
-                    <span>{act.date}</span>
-                  </div>
-                  <div style={{ borderBottom: '1px solid var(--color-gray-150)', paddingTop: 4 }}></div>
+                  <h3 style={{ fontSize: '15px', fontWeight: 800, color: '#0F172A', margin: '0 0 4px 0' }}>Alertas de Inspección por Rutina</h3>
+                  <p style={{ fontSize: '11.5px', color: '#64748B', margin: 0, lineHeight: 1.35 }}>
+                    Vencimientos periódicos y órdenes de terreno.
+                  </p>
                 </div>
-              ))}
-            </div>
-          </div>
-        )}
+              )}
 
+              {/* CARD 1: BANDEJA DE INSPECCIONES */}
+              <div
+                onClick={() => navigate('/inspector/inspecciones')}
+                className="card animate-fadein"
+                style={{
+                  background: 'linear-gradient(135deg, #0284c7 0%, #0f172a 100%)',
+                  color: '#ffffff',
+                  borderRadius: '12px',
+                  padding: '16px 18px',
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 12px rgba(2, 132, 199, 0.18)',
+                  transition: 'all 0.25s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'translateY(-3px)'
+                  e.currentTarget.style.boxShadow = '0 8px 18px rgba(2, 132, 199, 0.28)'
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'none'
+                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(2, 132, 199, 0.18)'
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                  <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: 'rgba(255, 255, 255, 0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <span className="material-icons" style={{ fontSize: '22px' }}>fact_check</span>
+                  </div>
+                  <span className="badge" style={{ background: 'rgba(255, 255, 255, 0.25)', color: '#ffffff', fontSize: '10px', padding: '3px 8px', borderRadius: '12px', fontWeight: 700 }}>
+                    In Situ
+                  </span>
+                </div>
+                <h3 style={{ fontSize: '15px', fontWeight: 800, margin: '0 0 4px 0' }}>Bandeja de Inspecciones</h3>
+                <p style={{ fontSize: '11.5px', opacity: 0.9, margin: 0, lineHeight: 1.35 }}>
+                  Inspecciones de Rutina, Denuncia y Habilitación.
+                </p>
+              </div>
+
+              {/* CARD 2: DENUNCIAS ENTRANTES */}
+              <div
+                onClick={() => navigate('/inspector/admin/denuncias')}
+                className="card animate-fadein"
+                style={{
+                  background: '#ffffff',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '12px',
+                  padding: '16px 18px',
+                  cursor: 'pointer',
+                  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.03)',
+                  transition: 'all 0.25s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'translateY(-3px)'
+                  e.currentTarget.style.boxShadow = '0 8px 16px rgba(0, 0, 0, 0.08)'
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'none'
+                  e.currentTarget.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.03)'
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                  <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: '#fff1f2', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <span className="material-icons" style={{ fontSize: '22px', color: '#e11d48' }}>report_problem</span>
+                  </div>
+                  <div style={{ fontSize: '20px', fontWeight: 900, color: '#e11d48' }}>
+                    {denunciasPendientesAdminCount}
+                  </div>
+                </div>
+                <h3 style={{ fontSize: '15px', fontWeight: 800, color: 'var(--color-gray-900)', margin: '0 0 4px 0' }}>Denuncias Sanitarias Pendientes</h3>
+                <p style={{ fontSize: '11.5px', color: 'var(--color-gray-600)', margin: 0, lineHeight: 1.35 }}>
+                  Denuncias recepcionadas para derivar a terreno.
+                </p>
+              </div>
+
+              {/* CARD 3: EXPEDIENTES ABIERTOS */}
+              <div
+                onClick={() => navigate('/inspector/expedientes')}
+                className="card animate-fadein"
+                style={{
+                  background: '#ffffff',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '12px',
+                  padding: '16px 18px',
+                  cursor: 'pointer',
+                  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.03)',
+                  transition: 'all 0.25s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'translateY(-3px)'
+                  e.currentTarget.style.boxShadow = '0 8px 16px rgba(0, 0, 0, 0.08)'
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'none'
+                  e.currentTarget.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.03)'
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                  <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: '#f0f9ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <span className="material-icons" style={{ fontSize: '22px', color: '#0284c7' }}>folder</span>
+                  </div>
+                  <div style={{ fontSize: '20px', fontWeight: 900, color: '#0284c7' }}>
+                    {tramites.length}
+                  </div>
+                </div>
+                <h3 style={{ fontSize: '15px', fontWeight: 800, color: 'var(--color-gray-900)', margin: '0 0 4px 0' }}>Trámites en Curso</h3>
+                <p style={{ fontSize: '11.5px', color: 'var(--color-gray-600)', margin: 0, lineHeight: 1.35 }}>
+                  Evaluación de documentación y dictámenes.
+                </p>
+              </div>
+
+              {/* CARD 4: BANDEJA DE TRÁMITES */}
+              <div
+                onClick={() => navigate('/inspector/bandeja')}
+                className="card animate-fadein"
+                style={{
+                  background: '#ffffff',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '12px',
+                  padding: '16px 18px',
+                  cursor: 'pointer',
+                  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.03)',
+                  transition: 'all 0.25s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'translateY(-3px)'
+                  e.currentTarget.style.boxShadow = '0 8px 16px rgba(0, 0, 0, 0.08)'
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'none'
+                  e.currentTarget.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.03)'
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                  <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: '#eef2ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <span className="material-icons" style={{ fontSize: '22px', color: '#4f46e5' }}>assignment</span>
+                  </div>
+                  <div style={{ fontSize: '20px', fontWeight: 900, color: '#4f46e5' }}>
+                    {tramites.filter(t => t.estado.includes('INSP')).length}
+                  </div>
+                </div>
+                <h3 style={{ fontSize: '15px', fontWeight: 800, color: 'var(--color-gray-900)', margin: '0 0 4px 0' }}>Bandeja de Trámites</h3>
+                <p style={{ fontSize: '11.5px', color: 'var(--color-gray-600)', margin: 0, lineHeight: 1.35 }}>
+                  Consulta y filtrado avanzado de trámites.
+                </p>
+              </div>
+
+              {/* CARD 5: CONSULTA DE ESTABLECIMIENTOS */}
+              <div
+                onClick={() => navigate('/inspector/establecimientos')}
+                className="card animate-fadein"
+                style={{
+                  background: '#ffffff',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '12px',
+                  padding: '16px 18px',
+                  cursor: 'pointer',
+                  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.03)',
+                  transition: 'all 0.25s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'translateY(-3px)'
+                  e.currentTarget.style.boxShadow = '0 8px 16px rgba(0, 0, 0, 0.08)'
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'none'
+                  e.currentTarget.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.03)'
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                  <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: '#f3e8ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <span className="material-icons" style={{ fontSize: '22px', color: '#9333ea' }}>business</span>
+                  </div>
+                  <div style={{ fontSize: '20px', fontWeight: 900, color: '#9333ea' }}>
+                    {ESTABLECIMIENTOS.length}
+                  </div>
+                </div>
+                <h3 style={{ fontSize: '15px', fontWeight: 800, color: 'var(--color-gray-900)', margin: '0 0 4px 0' }}>Consulta de Establecimientos</h3>
+                <p style={{ fontSize: '11.5px', color: 'var(--color-gray-600)', margin: 0, lineHeight: 1.35 }}>
+                  Padrón de clínicas, sanatorios y laboratorios.
+                </p>
+              </div>
+            </div>
+          </>
+        )}
       </div>
 
-      {/* Modal Iniciar Trámite */}
+      {/* MODAL 1: INICIAR TRÁMITE */}
       <ModalIniciarTramite
-        isOpen={modalOpen}
-        onClose={() => setModalOpen(false)}
+        isOpen={modalTramiteOpen}
+        onClose={() => setModalTramiteOpen(false)}
         onConfirm={handleIniciarTramite}
       />
 
-      {isTablet && (
-        <div style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'space-around',
-          height: 'var(--tab-bar-height)',
-          background: 'rgba(255, 255, 255, 0.90)',
-          backdropFilter: 'blur(20px)',
-          WebkitBackdropFilter: 'blur(20px)',
-          borderTop: '1px solid rgba(0,0,0,0.08)',
-          paddingBottom: 'env(safe-area-inset-bottom, 12px)',
-          position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 200,
-          maxWidth: 768, margin: '0 auto',
-          boxShadow: '0 -4px 16px rgba(0,0,0,0.04)',
-        }}>
-          {user?.rol === 'INSPECTOR' ? (
-            [
-              { icon: 'home', label: 'Inicio', active: true, path: '/inspector/home' },
-              { icon: 'folder', label: 'Abiertos', active: false, path: '/inspector/expedientes' },
-              { icon: 'assignment', label: 'Trámites', active: false, path: '/inspector/bandeja' },
-              { icon: 'business', label: 'Locales', active: false, path: '/inspector/establecimientos' },
-            ].map(tab => (
-              <button key={tab.label} onClick={() => navigate(tab.path)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6, background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-family)', flex: 1, height: '100%', padding: '8px 0' }}>
-                <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 52, height: 32, borderRadius: 16, background: tab.active ? 'rgba(0, 122, 255, 0.1)' : 'transparent', transition: 'all 0.2s ease' }}>
-                  <span className="material-icons" style={{ fontSize: 26, color: tab.active ? 'var(--ios-blue)' : '#7f8c8d', transition: 'all 0.2s ease', transform: tab.active ? 'scale(1.05)' : 'scale(1)' }}>{tab.icon}</span>
-                </div>
-                <span style={{ fontSize: 12, fontWeight: tab.active ? 700 : 500, color: tab.active ? 'var(--ios-blue)' : '#7f8c8d', lineHeight: 1.2, letterSpacing: '0.2px' }}>
-                  {tab.label}
-                </span>
-              </button>
-            ))
-          ) : user?.rol === 'EFECTOR' ? (
-            [
-              { icon: 'home', label: 'Inicio', active: true, path: '/efector/home' },
-              { icon: 'business', label: 'Locales', active: false, path: '/efector/establecimientos' },
-              { icon: 'assignment', label: 'Trámites', active: false, path: '/efector/bandeja' },
-            ].map(tab => (
-              <button key={tab.label} onClick={() => navigate(tab.path)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6, background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-family)', flex: 1, height: '100%', padding: '8px 0' }}>
-                <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 52, height: 32, borderRadius: 16, background: tab.active ? 'rgba(0, 122, 255, 0.1)' : 'transparent', transition: 'all 0.2s ease' }}>
-                  <span className="material-icons" style={{ fontSize: 26, color: tab.active ? 'var(--ios-blue)' : '#7f8c8d', transition: 'all 0.2s ease', transform: tab.active ? 'scale(1.05)' : 'scale(1)' }}>{tab.icon}</span>
-                </div>
-                <span style={{ fontSize: 12, fontWeight: tab.active ? 700 : 500, color: tab.active ? 'var(--ios-blue)' : '#7f8c8d', lineHeight: 1.2, letterSpacing: '0.2px' }}>
-                  {tab.label}
-                </span>
-              </button>
-            ))
-          ) : null}
-        </div>
+      {/* MODAL 2: PRESENTAR DENUNCIA SANITARIA */}
+      <ModalPresentarDenuncia
+        isOpen={modalDenunciaOpen}
+        onClose={() => setModalDenunciaOpen(false)}
+        onSuccess={(numExp) => {
+          setAlertaExito(`Denuncia presentada correctamente bajo Expediente N° ${numExp}`)
+          setMisDenunciasCount(prev => prev + 1)
+        }}
+      />
+
+      {/* MODAL 3: RESPONDER EMPLAZAMIENTO (EFECTOR) */}
+      {selectedEmplazamientoTramite && (
+        <ModalResponderEmplazamiento
+          tramite={selectedEmplazamientoTramite}
+          onClose={() => setSelectedEmplazamientoTramite(null)}
+          onOpenIniciarModificacion={() => {
+            setSelectedEmplazamientoTramite(null)
+            setModalTramiteOpen(true)
+          }}
+        />
       )}
+
     </>
   )
 }

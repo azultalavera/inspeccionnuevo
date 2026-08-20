@@ -138,6 +138,8 @@ function TramiteEfectorCard({ t, onAction }: { t: Tramite; onAction: () => void 
   )
 }
 
+import ModalResponderEmplazamiento from '../components/ModalResponderEmplazamiento'
+
 export default function BandejaTramitesEfector() {
   const { tramites } = useApp()
   const { user } = useAuth()
@@ -146,10 +148,11 @@ export default function BandejaTramitesEfector() {
 
   // States for starting a new trámite
   const [modalOpen, setModalOpen] = useState(false)
+  const [selectedEmplazamientoTramite, setSelectedEmplazamientoTramite] = useState<Tramite | null>(null)
   const { crearNuevoTramite } = useApp()
 
-  const handleIniciarTramite = (tipo: 'ALTA_DIGITAL' | 'HABILITACION' | 'RENOVACION' | 'MODIFICACION' | 'ADECUACION', tipologia: string, establecimientoId?: string) => {
-    const nuevo = crearNuevoTramite(tipo, tipologia, establecimientoId)
+  const handleIniciarTramite = (tipo: 'ALTA_DIGITAL' | 'HABILITACION' | 'RENOVACION' | 'MODIFICACION' | 'ADECUACION', tipologia: string, establecimientoId?: string, actaPadreId?: string) => {
+    const nuevo = crearNuevoTramite(tipo, tipologia, establecimientoId, actaPadreId)
     setModalOpen(false)
     navigate(`/efector/alta-habilitacion/${nuevo.id}`)
   }
@@ -206,7 +209,9 @@ export default function BandejaTramitesEfector() {
   })
 
   const handleResponder = (id: string) => {
-    navigate(`/efector/responder/${id}`)
+    const tr = tramites.find(t => t.id === id)
+    if (tr) setSelectedEmplazamientoTramite(tr)
+    else navigate(`/efector/responder/${id}`)
   }
 
   const STATS = [
@@ -479,7 +484,7 @@ export default function BandejaTramitesEfector() {
         { value: 'RECTIFICADO_AUD', label: 'Rectificado Auditoría' },
         { value: 'ACEPTADO_DOC_AUD', label: 'Aceptado Doc. Auditoría' },
         { value: 'OBSERVADO_INSP', label: 'Observado Inspección' },
-        { value: 'DESCARGO_INSP', label: 'Descargo Inspección' },
+        { value: 'DESCARGO_INSP', label: 'Respuesta Emplazamiento' },
         { value: 'ACEPTADO_INSP', label: 'Aceptado Inspección' },
         { value: 'EN_PROTOCOLIZACION', label: 'En Protocolización' },
         { value: 'FINALIZADO', label: 'Finalizado' }
@@ -605,6 +610,17 @@ export default function BandejaTramitesEfector() {
         onClose={() => setModalOpen(false)}
         onConfirm={handleIniciarTramite}
       />
+
+      {/* Modal Responder Emplazamiento */}
+      {selectedEmplazamientoTramite && (
+        <ModalResponderEmplazamiento
+          tramite={selectedEmplazamientoTramite}
+          onClose={() => setSelectedEmplazamientoTramite(null)}
+          onOpenIniciarModificacion={(actaPadreId) => {
+            handleIniciarTramite('MODIFICACION', selectedEmplazamientoTramite.tipologia, undefined, actaPadreId)
+          }}
+        />
+      )}
     </>
   )
 }

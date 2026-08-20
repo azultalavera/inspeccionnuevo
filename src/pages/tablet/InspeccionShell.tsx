@@ -1,7 +1,6 @@
 import React, { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useApp } from '../../context/AppContext'
-import { TRAMITES } from '../../data/mockData'
 
 // Steps
 import SyncStep from './steps/SyncStep'
@@ -33,26 +32,26 @@ export interface StepProps {
 }
 
 const STEPS: Step[] = [
-  { id: 'sync',        icon: '📡', label: 'Sincronización',        shortLabel: 'Sync',       component: SyncStep },
-  { id: 'datos',       icon: '📋', label: 'Datos Generales',       shortLabel: 'Datos',      component: DatosGeneralesStep },
-  { id: 'arquitectura',icon: '🏗️', label: 'Arquitectura',          shortLabel: 'Arq.',       component: ArquitecturaStep },
-  { id: 'servicios',   icon: '🏥', label: 'Servicios',             shortLabel: 'Servicios',  component: ServiciosStep },
-  { id: 'salas',       icon: '🛏️', label: 'Salas y Camas',         shortLabel: 'Salas',      component: SalasCamasStep },
-  { id: 'plantel',     icon: '👥', label: 'Plantel',               shortLabel: 'Plantel',    component: PlantelStep },
-  { id: 'director',    icon: '👨‍⚕️', label: 'Director Técnico',     shortLabel: 'Director',   component: DirectorTecnicoStep },
-  { id: 'equipamiento',icon: '🩺', label: 'Equipamiento',          shortLabel: 'Equip.',     component: EquipamientoStep },
-  { id: 'documentos',  icon: '📄', label: 'Documentos',            shortLabel: 'Docs',       component: DocumentosStep },
-  { id: 'evidencia',   icon: '📸', label: 'Evidencia',             shortLabel: 'Fotos',      component: EvidenciaStep },
-  { id: 'cierre',      icon: '✍️', label: 'Cierre y Firma',        shortLabel: 'Cierre',     component: CierreStep },
+  { id: 'sync',        icon: 'sync',               label: 'Sincronización',        shortLabel: 'Sync',       component: SyncStep },
+  { id: 'datos',       icon: 'assignment',         label: 'Datos Generales',       shortLabel: 'Datos',      component: DatosGeneralesStep },
+  { id: 'arquitectura',icon: 'domain',             label: 'Arquitectura',          shortLabel: 'Arq.',       component: ArquitecturaStep },
+  { id: 'servicios',   icon: 'local_hospital',     label: 'Servicios',             shortLabel: 'Servicios',  component: ServiciosStep },
+  { id: 'salas',       icon: 'king_bed',           label: 'Salas y Camas',         shortLabel: 'Salas',      component: SalasCamasStep },
+  { id: 'plantel',     icon: 'groups',             label: 'Plantel',               shortLabel: 'Plantel',    component: PlantelStep },
+  { id: 'director',    icon: 'medical_services',   label: 'Director Técnico',     shortLabel: 'Director',   component: DirectorTecnicoStep },
+  { id: 'equipamiento',icon: 'biotech',            label: 'Equipamiento',          shortLabel: 'Equip.',     component: EquipamientoStep },
+  { id: 'documentos',  icon: 'description',        label: 'Documentos',            shortLabel: 'Docs',       component: DocumentosStep },
+  { id: 'evidencia',   icon: 'photo_camera',       label: 'Evidencia',             shortLabel: 'Fotos',      component: EvidenciaStep },
+  { id: 'cierre',      icon: 'draw',               label: 'Cierre y Firma',        shortLabel: 'Cierre',     component: CierreStep },
 ]
 
 export default function InspeccionShell() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const { actualizarInspeccion } = useApp()
+  const { tramites, actualizarInspeccion } = useApp()
   const [currentStep, setCurrentStep] = useState(0)
 
-  const tramite = TRAMITES.find(t => t.id === id)
+  const tramite = tramites.find(t => t.id === id)
   if (!tramite) return <div>Trámite no encontrado</div>
 
   const step = STEPS[currentStep]
@@ -96,8 +95,8 @@ export default function InspeccionShell() {
           ← Salir
         </button>
         <div style={{ flex: 1, textAlign: 'center' }}>
-          <div className="tablet-topbar-title" style={{ fontSize: 17 }}>
-            {step.icon} {step.label}
+          <div className="tablet-topbar-title" style={{ fontSize: 17, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+            <span className="material-icons">{step.icon}</span> {step.label}
           </div>
           <div style={{ fontSize: 11, color: 'var(--ios-gray)', textAlign: 'center', marginTop: 1 }}>
             {tramite.denominacion}
@@ -142,7 +141,7 @@ export default function InspeccionShell() {
               display: 'flex',
               alignItems: 'center',
               gap: 5,
-              padding: '6px 12px',
+              padding: '6px 8px',
               borderRadius: 'var(--radius-full)',
               border: 'none',
               background: idx === currentStep
@@ -164,7 +163,10 @@ export default function InspeccionShell() {
               flexShrink: 0,
             }}
           >
-            {idx < currentStep ? '✓' : s.icon} {s.shortLabel}
+            {idx < currentStep
+              ? <span className="material-icons" style={{ fontSize: 14 }}>check</span>
+              : <span className="material-icons" style={{ fontSize: 14 }}>{s.icon}</span>}
+
           </button>
         ))}
       </div>
@@ -181,56 +183,58 @@ export default function InspeccionShell() {
       </div>
 
       {/* iOS Tab Bar (Navigation) */}
-      <div className="ios-tab-bar">
+      <div className="ios-tab-bar" style={{ gap: 4, padding: '4px 8px' }}>
         <button
           className="ios-tab-item"
           onClick={handlePrev}
           disabled={currentStep === 0}
-          style={{ opacity: currentStep === 0 ? 0.3 : 1 }}
+          style={{ opacity: currentStep === 0 ? 0.3 : 1, minWidth: 0, padding: '4px 2px' }}
         >
-          <div className="ios-tab-icon">◀</div>
-          <div className="ios-tab-label">Anterior</div>
+          <div className="ios-tab-icon"><span className="material-icons" style={{ fontSize: 20 }}>arrow_back</span></div>
+          <div className="ios-tab-label" style={{ fontSize: 9 }}>Anterior</div>
         </button>
 
-        <button className="ios-tab-item" onClick={() => setCurrentStep(0)}>
-          <div className="ios-tab-icon">🏠</div>
-          <div className="ios-tab-label">Inicio</div>
+        <button className="ios-tab-item" onClick={() => setCurrentStep(0)} style={{ minWidth: 0, padding: '4px 2px' }}>
+          <div className="ios-tab-icon"><span className="material-icons" style={{ fontSize: 20 }}>home</span></div>
+          <div className="ios-tab-label" style={{ fontSize: 9 }}>Inicio</div>
         </button>
 
         <button
           className="ios-tab-item"
-          style={{ flex: 2 }}
+          style={{ flex: 1.4, minWidth: 0, padding: '2px 0' }}
           onClick={handleNext}
           disabled={currentStep === STEPS.length - 1}
         >
           <div style={{
-            background: currentStep === STEPS.length - 1 ? 'var(--ios-gray4)' : 'var(--ios-blue)',
+            background: currentStep === STEPS.length - 1 ? 'var(--ios-gray4)' : '#0055A5',
             color: 'white',
-            borderRadius: 'var(--radius-xl)',
-            padding: '10px 24px',
+            borderRadius: 8,
+            padding: '6px 8px',
             fontFamily: 'var(--font-family)',
-            fontSize: 15,
+            fontSize: 12,
             fontWeight: 700,
             display: 'flex',
             alignItems: 'center',
-            gap: 6,
+            justifyContent: 'center',
+            gap: 3,
             transition: 'all 0.15s ease',
+            whiteSpace: 'nowrap'
           }}>
-            {currentStep === STEPS.length - 2 ? '✍️ Ir a Cierre' : 'Continuar ▶'}
+            {currentStep === STEPS.length - 2 ? 'Ir a Cierre' : 'Continuar'} <span className="material-icons" style={{ fontSize: 14 }}>arrow_forward</span>
           </div>
         </button>
 
-        <button className="ios-tab-item">
+        <button className="ios-tab-item" style={{ minWidth: 0, padding: '4px 2px' }}>
           <div className="ios-tab-icon">
-            ⚠️
+            <span className="material-icons" style={{ fontSize: 20 }}>warning</span>
             <span className="ios-tab-badge" style={{ display: 'none' }}>0</span>
           </div>
-          <div className="ios-tab-label">Hallazgos</div>
+          <div className="ios-tab-label" style={{ fontSize: 9 }}>Hallazgos</div>
         </button>
 
-        <button className="ios-tab-item" onClick={handleGuardar}>
-          <div className="ios-tab-icon">💾</div>
-          <div className="ios-tab-label">Guardar</div>
+        <button className="ios-tab-item" onClick={handleGuardar} style={{ minWidth: 0, padding: '4px 2px' }}>
+          <div className="ios-tab-icon"><span className="material-icons" style={{ fontSize: 20 }}>save</span></div>
+          <div className="ios-tab-label" style={{ fontSize: 9 }}>Guardar</div>
         </button>
       </div>
     </div>

@@ -60,14 +60,14 @@ export default function EvidenciaStep({ onNext, onPrev }: StepProps) {
             display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
             gap: 'var(--space-2)',
             padding: 'var(--space-5)',
-            background: 'rgba(0,122,255,0.08)',
-            border: '2px dashed rgba(0,122,255,0.3)',
+            background: '#F8FAFC',
+            border: '1.5px dashed #CBD5E1',
             borderRadius: 'var(--radius-xl)',
             cursor: 'pointer',
             fontFamily: 'var(--font-family)',
           }}
         >
-          <span style={{ fontSize: 36 }}>📷</span>
+          <span className="material-icons" style={{ fontSize: 32, color: '#0055A5' }}>photo_camera</span>
           <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--ios-blue)' }}>Tomar Foto</span>
           <span style={{ fontSize: 12, color: 'var(--ios-gray)', textAlign: 'center' }}>Cámara nativa del dispositivo</span>
         </button>
@@ -78,15 +78,15 @@ export default function EvidenciaStep({ onNext, onPrev }: StepProps) {
             display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
             gap: 'var(--space-2)',
             padding: 'var(--space-5)',
-            background: 'rgba(52,199,89,0.08)',
-            border: '2px dashed rgba(52,199,89,0.3)',
+            background: '#F8FAFC',
+            border: '1.5px dashed #CBD5E1',
             borderRadius: 'var(--radius-xl)',
             cursor: 'pointer',
             fontFamily: 'var(--font-family)',
           }}
         >
-          <span style={{ fontSize: 36 }}>🖼️</span>
-          <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--ios-green)' }}>Desde Galería</span>
+          <span className="material-icons" style={{ fontSize: 32, color: '#475569' }}>collections</span>
+          <span style={{ fontSize: 14, fontWeight: 600, color: '#475569' }}>Desde Galería</span>
           <span style={{ fontSize: 12, color: 'var(--ios-gray)', textAlign: 'center' }}>Seleccionar imagen existente</span>
         </button>
       </div>
@@ -99,6 +99,41 @@ export default function EvidenciaStep({ onNext, onPrev }: StepProps) {
         onChange={handleFoto}
       />
 
+      {/* Quick Chips para observaciones in situ */}
+      <div className="ios-section-header">Observaciones Frecuentes (Quick Chips)</div>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
+        {[
+          'Matafuegos Vencidos',
+          'Falta Libro de Actas',
+          'DT Ausente en Horario',
+          'Camas Exceden Habilitación',
+          'Falta Cert. Residuos Patógenos',
+          'Alteración Edilicia Sin Declarar',
+          'Salida de Emergencia Obstruida',
+        ].map(chip => (
+          <button
+            key={chip}
+            type="button"
+            onClick={() => setObsGeneral(prev => prev ? `${prev}. ${chip}` : chip)}
+            style={{
+              background: '#F1F5F9',
+              color: '#334155',
+              border: '1px solid #CBD5E1',
+              borderRadius: 6,
+              padding: '5px 10px',
+              fontSize: 12,
+              fontWeight: 600,
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 4
+            }}
+          >
+            <span className="material-icons" style={{ fontSize: 14 }}>add</span> {chip}
+          </button>
+        ))}
+      </div>
+
       {/* Observación general */}
       <div className="ios-section-header">Observación General del Acta</div>
       <div className="ios-card-group" style={{ padding: 'var(--space-4)' }}>
@@ -106,7 +141,7 @@ export default function EvidenciaStep({ onNext, onPrev }: StepProps) {
           rows={4}
           value={obsGeneral}
           onChange={e => setObsGeneral(e.target.value)}
-          placeholder="Agregá una observación general sobre la inspección..."
+          placeholder="Agregá una observación general sobre la inspección o seleccioná Quick Chips..."
           style={{
             width: '100%', padding: 'var(--space-3)', borderRadius: 12,
             border: '1.5px solid var(--ios-gray5)', fontFamily: 'var(--font-family)', fontSize: 15,
