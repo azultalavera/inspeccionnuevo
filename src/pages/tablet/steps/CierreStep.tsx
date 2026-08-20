@@ -124,16 +124,13 @@ export default function CierreStep({ onPrev, tramiteId }: StepProps) {
   const [notas, setNotas] = useState('')
   const [dictamen, setDictamen] = useState<Dictamen | null>(null)
 
-  // Emplazamiento modal (NO_APRUEBA)
-  const [showEmplazModal, setShowEmplazModal] = useState(false)
-  const [plazoSeleccionado, setPlazoSeleccionado] = useState<string | null>(null)
-  const [plazoManual, setPlazoManual] = useState('')
-  const [plazoUnidad, setPlazoUnidad] = useState<'Horas' | 'Días' | 'Semanas'>('Días')
+  // No Aprobación Modal
+  const [showNoAprobacionModal, setShowNoAprobacionModal] = useState(false)
+  const [noAprobacionAccion, setNoAprobacionAccion] = useState<'COORDINADOR' | 'EFECTOR' | null>(null)
+  const [showNoAprobacionExito, setShowNoAprobacionExito] = useState(false)
 
   // Pantallas de confirmación
   const [showAprobacionExito, setShowAprobacionExito] = useState(false)
-  const [showEmplazExito, setShowEmplazExito] = useState(false)
-  const [fechaEmplazConfirmada, setFechaEmplazConfirmada] = useState<string | null>(null)
 
   const validarCuil = () => {
     if (cuil.replace(/-/g, '').length >= 11) {
@@ -143,35 +140,7 @@ export default function CierreStep({ onPrev, tramiteId }: StepProps) {
     }
   }
 
-  const calcFechaVencimiento = (opId: string | null) => {
-    if (!opId) return null
-    let horas = 0
-    if (opId === 'MANUAL') {
-      const val = Number(plazoManual)
-      horas = plazoUnidad === 'Horas' ? val : plazoUnidad === 'Días' ? val * 24 : val * 24 * 7
-    } else {
-      const options = esRutina ? OPCIONES_EMPLAZAMIENTO_RUTINA : OPCIONES_EMPLAZAMIENTO
-      horas = options.find(o => o.id === opId)?.horas ?? 0
-    }
-    const fecha = new Date()
-    let diasAgregados = 0
-    const diasTotal = Math.ceil(horas / 24)
-    while (diasAgregados < diasTotal) {
-      fecha.setDate(fecha.getDate() + 1)
-      const dow = fecha.getDay()
-      if (dow !== 0 && dow !== 6) diasAgregados++
-    }
-    return fecha.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' })
-  }
 
-
-
-  const handleConfirmarEmplazamiento = () => {
-    const fecha = calcFechaVencimiento(plazoSeleccionado)
-    setFechaEmplazConfirmada(fecha)
-    setShowEmplazModal(false)
-    setShowEmplazExito(true)
-  }
 
   // ── PANTALLA DE ÉXITO: APROBACIÓN ──────────────────────────────────
   if (showAprobacionExito) {
@@ -265,8 +234,8 @@ export default function CierreStep({ onPrev, tramiteId }: StepProps) {
     )
   }
 
-  // ── PANTALLA DE ÉXITO: EMPLAZAMIENTO CONFIRMADO ─────────────────────
-  if (showEmplazExito) {
+  // ── PANTALLA DE ÉXITO: NO APROBACIÓN CONFIRMADA ─────────────────────
+  if (showNoAprobacionExito) {
     return (
       <div style={{
         display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
@@ -280,22 +249,20 @@ export default function CierreStep({ onPrev, tramiteId }: StepProps) {
           display: 'flex', alignItems: 'center', justifyContent: 'center'
         }}>
           <span className="material-icons" style={{ fontSize: 44, color: 'var(--ios-red)' }}>
-            gavel
+            {noAprobacionAccion === 'COORDINADOR' ? 'gavel' : 'autorenew'}
           </span>
         </div>
 
         <div>
           <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--color-gray-900)', marginBottom: 6 }}>
-            {esRutina ? 'Inspección No Aprobada' : 'Emplazamiento Emitido'}
+            Inspección No Aprobada
           </div>
           <div style={{ fontSize: 14, color: 'var(--ios-gray)', lineHeight: 1.5 }}>
-            {esRutina 
-              ? 'El acta fue cerrada. El efector necesita iniciar un trámite de modificación.' 
-              : 'El acta fue cerrada y el establecimiento fue emplazado.'}
+            El acta fue cerrada correctamente.
             <br />
-            {esRutina 
-              ? 'El efector recibirá la notificación para iniciar el trámite correspondiente.' 
-              : 'Recibirán la notificación para cargar la documentación requerida.'}
+            {noAprobacionAccion === 'COORDINADOR' 
+              ? 'Se ha derivado el caso al Coordinador para iniciar la baja del establecimiento.' 
+              : 'Se ha notificado al efector para que inicie un trámite de Renovación / Modificación.'}
           </div>
         </div>
 
@@ -307,37 +274,28 @@ export default function CierreStep({ onPrev, tramiteId }: StepProps) {
           textAlign: 'left'
         }}>
           <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ios-red)', textTransform: 'uppercase', letterSpacing: 0.5 }}>
-            {esRutina ? 'Requisito de Trámite' : 'Emplazamiento'}
+            Detalle de Derivación
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
             <span style={{ color: 'var(--ios-gray)' }}>Dictamen:</span>
             <span style={{ fontWeight: 700, color: 'var(--ios-red)' }}>
-              {esRutina ? 'No Aprobada' : 'No Aprueba'}
+              No Aprobada
             </span>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
-            <span style={{ color: 'var(--ios-gray)' }}>Fecha límite:</span>
-            <span style={{ fontWeight: 800, color: 'var(--ios-red)', fontSize: 15 }}>
-              {fechaEmplazConfirmada ?? '—'}
+            <span style={{ color: 'var(--ios-gray)' }}>Derivado a:</span>
+            <span style={{ fontWeight: 700, color: 'var(--color-gray-800)' }}>
+              {noAprobacionAccion === 'COORDINADOR' ? 'Coordinador' : 'Efector'}
             </span>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
-            <span style={{ color: 'var(--ios-gray)' }}>Próximo estado:</span>
-            <span style={{ fontWeight: 700, color: '#D97706' }}>
-              {esRutina ? 'Trámite de Modificación Requerido' : 'Pendiente Respuesta Efector'}
+            <span style={{ color: 'var(--ios-gray)' }}>Acción requerida:</span>
+            <span style={{ fontWeight: 700, color: 'var(--ios-red)' }}>
+              {noAprobacionAccion === 'COORDINADOR' 
+                ? 'Dar de baja el establecimiento' 
+                : 'Iniciar trámite de Renovación / Modificación'}
             </span>
           </div>
-        </div>
-
-        <div style={{
-          width: '100%', background: 'var(--ios-gray6)', borderRadius: 12,
-          padding: 'var(--space-3)', fontSize: 13, color: 'var(--ios-gray)', lineHeight: 1.6,
-          display: 'flex', gap: 8, alignItems: 'flex-start'
-        }}>
-          <span className="material-icons" style={{ fontSize: 18, color: 'var(--ios-gray)', flexShrink: 0, marginTop: 1 }}>info</span>
-          {esRutina
-            ? 'Una vez que el efector inicie y complete el trámite de modificación, el sistema actualizará el estado del establecimiento.'
-            : 'Una vez que el efector cargue su respuesta, recibirás una notificación en tu bandeja para revisar la documentación.'}
         </div>
 
         <button
@@ -439,23 +397,16 @@ export default function CierreStep({ onPrev, tramiteId }: StepProps) {
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
-            {(esRutina
-              ? [
-                  { id: 'APRUEBA' as Dictamen, iconName: 'check_circle', label: 'Aprobar', desc: 'La inspección por rutina es correcta.', color: 'var(--ios-green)', bg: 'rgba(52,199,89,0.08)', border: 'rgba(52,199,89,0.3)' },
-                  { id: 'NO_APRUEBA' as Dictamen, iconName: 'cancel', label: 'No Aprobar', desc: 'El efector necesita iniciar un trámite de modificación.', color: 'var(--ios-red)', bg: 'rgba(255,59,48,0.08)', border: 'rgba(255,59,48,0.3)' },
-                ]
-              : [
-                  { id: 'APRUEBA' as Dictamen, iconName: 'check_circle', label: 'Aprueba', desc: 'Sin irregularidades. El trámite pasa a ACEPTADO INSPECCIÓN.', color: 'var(--ios-green)', bg: 'rgba(52,199,89,0.08)', border: 'rgba(52,199,89,0.3)' },
-                  { id: 'APRUEBA_OBS' as Dictamen, iconName: 'warning', label: 'Aprueba con Observaciones', desc: 'Observaciones menores no críticas. Se sugieren mejoras.', color: 'var(--ios-orange)', bg: 'rgba(255,149,0,0.08)', border: 'rgba(255,149,0,0.3)' },
-                  { id: 'NO_APRUEBA' as Dictamen, iconName: 'cancel', label: 'No Aprueba', desc: 'Faltas críticas. Se activa proceso de emplazamiento.', color: 'var(--ios-red)', bg: 'rgba(255,59,48,0.08)', border: 'rgba(255,59,48,0.3)' },
-                ]
-            ).map(opt => (
+            {[
+              { id: 'APRUEBA' as Dictamen, iconName: 'check_circle', label: 'Aprobar', desc: esRutina ? 'La inspección por rutina es correcta.' : 'Sin irregularidades. El trámite pasa a ACEPTADO INSPECCIÓN.', color: 'var(--ios-green)', bg: 'rgba(52,199,89,0.08)', border: 'rgba(52,199,89,0.3)' },
+              { id: 'NO_APRUEBA' as Dictamen, iconName: 'cancel', label: 'No Aprobar', desc: 'El acta se cierra sin aprobación y requiere derivación.', color: 'var(--ios-red)', bg: 'rgba(255,59,48,0.08)', border: 'rgba(255,59,48,0.3)' },
+            ].map(opt => (
               <button
                 key={opt.id}
                 onClick={() => {
                   setDictamen(opt.id)
                   if (opt.id === 'NO_APRUEBA') {
-                    setShowEmplazModal(true)
+                    setShowNoAprobacionModal(true)
                   } else {
                     setShowAprobacionExito(true)
                   }
@@ -483,92 +434,77 @@ export default function CierreStep({ onPrev, tramiteId }: StepProps) {
         </>
       )}
 
-      {/* ── MODAL: Emplazamiento (NO_APRUEBA) ── */}
-      {showEmplazModal && (
-        <div className="ios-sheet-overlay" onClick={() => setShowEmplazModal(false)}>
+      {/* ── MODAL: Opciones de No Aprobación ── */}
+      {showNoAprobacionModal && (
+        <div className="ios-sheet-overlay" onClick={() => setShowNoAprobacionModal(false)}>
           <div className="ios-sheet" onClick={e => e.stopPropagation()}>
             <div className="ios-sheet-handle" />
             <div className="ios-sheet-header">
-              <div className="ios-sheet-title">
-                {esRutina ? '⚠️ Plazo para Trámite de Modificación' : '⚠️ Plazo de Emplazamiento'}
+              <div className="ios-sheet-title" style={{ color: 'var(--ios-red)' }}>
+                ⚠️ Acta No Aprobada
               </div>
               <div style={{ fontSize: 13, color: 'var(--ios-gray)', marginTop: 4 }}>
-                {esRutina
-                  ? 'Seleccioná el plazo límite para que el efector inicie el trámite de modificación'
-                  : 'Seleccioná el plazo para que el efector subsane las observaciones'}
+                Seleccioná el destino y la acción administrativa para continuar:
               </div>
             </div>
             <div className="ios-sheet-body" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
 
-              {(esRutina ? OPCIONES_EMPLAZAMIENTO_RUTINA : OPCIONES_EMPLAZAMIENTO).map(opt => (
-                <button
-                  key={opt.id}
-                  onClick={() => setPlazoSeleccionado(opt.id)}
-                  style={{
-                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                    padding: 'var(--space-4)', borderRadius: 'var(--radius-xl)',
-                    border: `2px solid ${plazoSeleccionado === opt.id ? 'var(--ios-red)' : 'var(--ios-gray5)'}`,
-                    background: plazoSeleccionado === opt.id ? 'rgba(255,59,48,0.06)' : 'white',
-                    cursor: 'pointer', fontFamily: 'var(--font-family)',
-                  }}
-                >
-                  <span style={{ fontSize: 16, fontWeight: 600, color: plazoSeleccionado === opt.id ? 'var(--ios-red)' : 'var(--color-gray-800)' }}>{opt.label}</span>
-                  {plazoSeleccionado === opt.id && <span style={{ color: 'var(--ios-red)', fontSize: 20 }}>✓</span>}
-                </button>
-              ))}
-
               <button
-                onClick={() => setPlazoSeleccionado('MANUAL')}
+                onClick={() => setNoAprobacionAccion('COORDINADOR')}
                 style={{
-                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  display: 'flex', flexDirection: 'column',
                   padding: 'var(--space-4)', borderRadius: 'var(--radius-xl)',
-                  border: `2px solid ${plazoSeleccionado === 'MANUAL' ? 'var(--ios-orange)' : 'var(--ios-gray5)'}`,
-                  background: plazoSeleccionado === 'MANUAL' ? 'rgba(255,149,0,0.06)' : 'white',
-                  cursor: 'pointer', fontFamily: 'var(--font-family)',
+                  border: `2px solid ${noAprobacionAccion === 'COORDINADOR' ? 'var(--ios-red)' : 'var(--ios-gray5)'}`,
+                  background: noAprobacionAccion === 'COORDINADOR' ? 'rgba(255,59,48,0.06)' : 'white',
+                  cursor: 'pointer', fontFamily: 'var(--font-family)', textAlign: 'left',
+                  transition: 'all 0.15s ease'
                 }}
               >
-                <span style={{ fontSize: 16, fontWeight: 600, color: plazoSeleccionado === 'MANUAL' ? 'var(--ios-orange)' : 'var(--color-gray-700)' }}>Manual</span>
-                {plazoSeleccionado === 'MANUAL' && <span style={{ color: 'var(--ios-orange)', fontSize: 20 }}>✓</span>}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <span className="material-icons" style={{ color: 'var(--ios-red)', fontSize: 22 }}>gavel</span>
+                    <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--color-gray-800)' }}>Mandar a Coordinador</span>
+                  </div>
+                  {noAprobacionAccion === 'COORDINADOR' && <span style={{ color: 'var(--ios-red)', fontSize: 20 }}>✓</span>}
+                </div>
+                <div style={{ fontSize: 12, color: 'var(--ios-gray)', marginTop: 4, marginLeft: 32 }}>
+                  Para dar de baja el establecimiento.
+                </div>
               </button>
 
-              {plazoSeleccionado === 'MANUAL' && (
-                <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center' }}>
-                  <input
-                    type="number" min={1}
-                    value={plazoManual}
-                    onChange={e => setPlazoManual(e.target.value)}
-                    placeholder="Cantidad"
-                    style={{ flex: 1, padding: '12px 14px', borderRadius: 12, border: '1.5px solid var(--ios-gray4)', fontFamily: 'var(--font-family)', fontSize: 17, outline: 'none' }}
-                  />
-                  <select
-                    value={plazoUnidad}
-                    onChange={e => setPlazoUnidad(e.target.value as typeof plazoUnidad)}
-                    style={{ flex: 1, padding: '12px 14px', borderRadius: 12, border: '1.5px solid var(--ios-gray4)', fontFamily: 'var(--font-family)', fontSize: 15, outline: 'none', background: 'white' }}
-                  >
-                    <option>Horas</option>
-                    <option>Días</option>
-                    <option>Semanas</option>
-                  </select>
-                </div>
-              )}
-
-              {plazoSeleccionado && (
-                <div style={{ background: 'rgba(255,59,48,0.06)', border: '1px solid rgba(255,59,48,0.2)', borderRadius: 'var(--radius-xl)', padding: 'var(--space-4)', textAlign: 'center' }}>
-                  <div style={{ fontSize: 12, color: 'var(--ios-gray)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Fecha límite de vencimiento</div>
-                  <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--ios-red)' }}>
-                    {calcFechaVencimiento(plazoSeleccionado) ?? '—'}
+              <button
+                onClick={() => setNoAprobacionAccion('EFECTOR')}
+                style={{
+                  display: 'flex', flexDirection: 'column',
+                  padding: 'var(--space-4)', borderRadius: 'var(--radius-xl)',
+                  border: `2px solid ${noAprobacionAccion === 'EFECTOR' ? 'var(--ios-red)' : 'var(--ios-gray5)'}`,
+                  background: noAprobacionAccion === 'EFECTOR' ? 'rgba(255,59,48,0.06)' : 'white',
+                  cursor: 'pointer', fontFamily: 'var(--font-family)', textAlign: 'left',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <span className="material-icons" style={{ color: 'var(--ios-red)', fontSize: 22 }}>autorenew</span>
+                    <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--color-gray-800)' }}>Enviar a efector (Modificacion/Renovacion)</span>
                   </div>
-                  <div style={{ fontSize: 11, color: 'var(--ios-gray)', marginTop: 4 }}>No incluye sábados, domingos ni feriados</div>
+                  {noAprobacionAccion === 'EFECTOR' && <span style={{ color: 'var(--ios-red)', fontSize: 20 }}>✓</span>}
                 </div>
-              )}
+                <div style={{ fontSize: 12, color: 'var(--ios-gray)', marginTop: 4, marginLeft: 32 }}>
+                  Para que inicie un trámite de renovación o modificación del establecimiento.
+                </div>
+              </button>
 
               <button
                 className="btn-ios btn-ios-danger"
-                disabled={!plazoSeleccionado || (plazoSeleccionado === 'MANUAL' && !plazoManual)}
-                onClick={handleConfirmarEmplazamiento}
-                style={{ marginTop: 'var(--space-2)', opacity: (plazoSeleccionado && !(plazoSeleccionado === 'MANUAL' && !plazoManual)) ? 1 : 0.4 }}
+                disabled={!noAprobacionAccion}
+                onClick={() => {
+                  setShowNoAprobacionModal(false)
+                  setShowNoAprobacionExito(true)
+                }}
+                style={{ marginTop: 'var(--space-2)', opacity: noAprobacionAccion ? 1 : 0.4 }}
               >
-                {esRutina ? '⚠️ Confirmar Requisito de Modificación' : '⚠️ Confirmar Emplazamiento'}
+                Confirmar Acción
               </button>
             </div>
           </div>

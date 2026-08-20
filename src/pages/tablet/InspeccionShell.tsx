@@ -140,8 +140,8 @@ export default function InspeccionShell() {
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: 5,
-              padding: '6px 8px',
+              gap: 6,
+              padding: '6px 12px',
               borderRadius: 'var(--radius-full)',
               border: 'none',
               background: idx === currentStep
@@ -166,7 +166,7 @@ export default function InspeccionShell() {
             {idx < currentStep
               ? <span className="material-icons" style={{ fontSize: 14 }}>check</span>
               : <span className="material-icons" style={{ fontSize: 14 }}>{s.icon}</span>}
-
+            <span>{s.shortLabel}</span>
           </button>
         ))}
       </div>

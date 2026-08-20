@@ -27,6 +27,7 @@ export default function InspeccionHabilitacionPage() {
   const filtrados = localTramites.filter(t => {
     const esEstadoInspeccion = [
       'ACEPTADO_DOC_AUD',
+      'EN_ANALISIS_AUD',
       'OBSERVADO_INSP',
       'DESCARGO_INSP',
       'ACEPTADO_INSP',
@@ -123,8 +124,8 @@ export default function InspeccionHabilitacionPage() {
                     <td>
                       <TableActionsMenu
                         options={[
-                          ...(t.estado === 'ACEPTADO_DOC_AUD' || t.estado === 'RE_INSP_SOLICITADA' ? [{
-                            label: t.estado === 'ACEPTADO_DOC_AUD' ? 'Iniciar Inspección' : 'Continuar Inspección',
+                          ...(t.estado === 'ACEPTADO_DOC_AUD' || t.estado === 'EN_ANALISIS_AUD' || t.estado === 'RE_INSP_SOLICITADA' ? [{
+                            label: t.estado === 'ACEPTADO_DOC_AUD' ? 'Iniciar Acta' : 'Continuar Acta',
                             icon: 'search',
                             onClick: () => handleAbrirInspeccion(t.id, t.estado)
                           }] : []),

@@ -56,6 +56,7 @@ export default function InspeccionDenunciaPage() {
   const filtrados = localTramites.filter(t => {
     const esEstadoInspeccion = [
       'ACEPTADO_DOC_AUD',
+      'EN_ANALISIS_AUD',
       'OBSERVADO_INSP',
       'DESCARGO_INSP',
       'ACEPTADO_INSP',
@@ -247,8 +248,8 @@ export default function InspeccionDenunciaPage() {
                     <div style={{ borderTop: '1px solid #F1F5F9', paddingTop: 10, display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
                       <TableActionsMenu
                         options={[
-                          ...(t.estado === 'ACEPTADO_DOC_AUD' || t.estado === 'RE_INSP_SOLICITADA' ? [{
-                            label: t.estado === 'ACEPTADO_DOC_AUD' ? 'Iniciar Inspección' : 'Continuar Inspección',
+                          ...(t.estado === 'ACEPTADO_DOC_AUD' || t.estado === 'EN_ANALISIS_AUD' || t.estado === 'RE_INSP_SOLICITADA' ? [{
+                            label: t.estado === 'ACEPTADO_DOC_AUD' ? 'Iniciar Acta' : 'Continuar Acta',
                             icon: 'search',
                             onClick: () => handleAbrirInspeccion(t.id, t.estado)
                           }] : []),
@@ -386,8 +387,8 @@ export default function InspeccionDenunciaPage() {
                         <td>
                           <TableActionsMenu
                             options={[
-                              ...(t.estado === 'ACEPTADO_DOC_AUD' || t.estado === 'RE_INSP_SOLICITADA' ? [{
-                                label: t.estado === 'ACEPTADO_DOC_AUD' ? 'Iniciar Inspección' : 'Continuar Inspección',
+                              ...(t.estado === 'ACEPTADO_DOC_AUD' || t.estado === 'EN_ANALISIS_AUD' || t.estado === 'RE_INSP_SOLICITADA' ? [{
+                                label: t.estado === 'ACEPTADO_DOC_AUD' ? 'Iniciar Acta' : 'Continuar Acta',
                                 icon: 'search',
                                 onClick: () => handleAbrirInspeccion(t.id, t.estado)
                               }] : []),

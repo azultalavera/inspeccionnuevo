@@ -161,8 +161,8 @@ export default function BandejaTodasInspeccionesPage() {
                     <td>
                       <TableActionsMenu
                         options={[
-                          ...(t.estado === 'ACEPTADO_DOC_AUD' || t.estado === 'RE_INSP_SOLICITADA' ? [{
-                            label: t.estado === 'ACEPTADO_DOC_AUD' ? 'Iniciar Inspección' : 'Continuar Inspección',
+                          ...(t.estado === 'ACEPTADO_DOC_AUD' || t.estado === 'EN_ANALISIS_AUD' || t.estado === 'RE_INSP_SOLICITADA' ? [{
+                            label: t.estado === 'ACEPTADO_DOC_AUD' ? 'Iniciar Acta' : 'Continuar Acta',
                             icon: 'search',
                             onClick: () => handleAbrirInspeccion(t.id, t.estado)
                           }] : []),

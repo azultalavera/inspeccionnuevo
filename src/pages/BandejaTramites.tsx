@@ -28,7 +28,7 @@ function useIsTablet() {
 // ── Tablet: Card de trámite ──────────────────────────────────────
 function TramiteCard({ t, onAction, onCertificado }: { t: Tramite; onAction: () => void; onCertificado: (t: Tramite) => void }) {
   const conf = ESTADO_CONFIG[t.estado]
-  const canInspect = t.estado === 'ACEPTADO_DOC_AUD'
+  const canInspect = t.estado === 'ACEPTADO_DOC_AUD' || t.estado === 'EN_ANALISIS_AUD' || t.estado === 'RE_INSP_SOLICITADA'
   const needsReview = t.estado === 'DESCARGO_INSP'
   const closed = t.estado === 'ACEPTADO_INSP'
 
@@ -717,8 +717,8 @@ export default function BandejaTramites() {
                     <td>
                       <TableActionsMenu
                         options={[
-                          ...(t.estado === 'ACEPTADO_DOC_AUD' || t.estado === 'RE_INSP_SOLICITADA' ? [{
-                            label: t.estado === 'ACEPTADO_DOC_AUD' ? 'Iniciar Inspección' : 'Continuar Inspección',
+                          ...(t.estado === 'ACEPTADO_DOC_AUD' || t.estado === 'EN_ANALISIS_AUD' || t.estado === 'RE_INSP_SOLICITADA' ? [{
+                            label: t.estado === 'ACEPTADO_DOC_AUD' ? 'Iniciar Acta' : 'Continuar Acta',
                             icon: 'search',
                             onClick: () => handleAbrirInspeccion(t.id, t.estado)
                           }] : []),

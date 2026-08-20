@@ -23,7 +23,7 @@ export default function InspeccionRutinaPage() {
   const isTablet = useIsTablet()
 
   const isInspector = user?.rol === 'INSPECTOR'
-  const [subTab, setSubTab] = useState<'MENU' | 'ALERTAS' | 'ORDENADAS'>('MENU')
+  const [subTab, setSubTab] = useState<'MENU' | 'ALERTAS' | 'ORDENADAS'>(isInspector ? 'ORDENADAS' : 'MENU')
   const [localTramites, setLocalTramites] = useState<Tramite[]>(TRAMITES)
 
   useEffect(() => {
@@ -42,6 +42,9 @@ export default function InspeccionRutinaPage() {
   // Filtrado base de trámites de rutina en estados de inspección específicos (ordenadas)
   const rutinasOrdenadas = localTramites.filter(t => {
     const esEstadoOrdenado = [
+      'ACEPTADO_DOC_AUD',
+      'EN_ANALISIS_AUD',
+      'RE_INSP_SOLICITADA',
       'ACEPTADO_INSP',
       'RECHAZADO_INSP',
       'OBSERVADO_INSP',
@@ -97,7 +100,7 @@ export default function InspeccionRutinaPage() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <button
             onClick={() => {
-              if (subTab === 'MENU') {
+              if (isInspector || subTab === 'MENU') {
                 navigate(backPath)
               } else {
                 setSubTab('MENU')
@@ -123,7 +126,7 @@ export default function InspeccionRutinaPage() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <span className="material-icons" style={{ fontSize: 24, color: '#2980B9' }}>schedule</span>
             <div className="topbar-title">
-              {subTab === 'MENU' ? 'Inspección por Rutina' : subTab === 'ALERTAS' ? 'Bandeja de Alertas' : 'Inspecciones Ordenadas'}
+              {isInspector ? 'Inspecciones por Rutina' : (subTab === 'MENU' ? 'Inspección por Rutina' : subTab === 'ALERTAS' ? 'Bandeja de Alertas' : 'Inspecciones Ordenadas')}
             </div>
           </div>
         </div>
@@ -418,31 +421,111 @@ export default function InspeccionRutinaPage() {
                       </div>
                     </div>
 
-                    <div style={{ borderTop: '1px solid #F1F5F9', paddingTop: 10, display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
-                      <TableActionsMenu
-                        options={[
-                          ...(t.estado === 'ACEPTADO_DOC_AUD' || t.estado === 'EN_ANALISIS_AUD' || t.estado === 'RE_INSP_SOLICITADA' ? [{
-                            label: t.estado === 'ACEPTADO_DOC_AUD' ? 'Iniciar Inspección' : 'Continuar Inspección',
-                            icon: 'search',
-                            onClick: () => handleAbrirInspeccion(t.id, t.estado)
-                          }] : []),
-                          ...(t.estado === 'DESCARGO_INSP' ? [{
-                            label: 'Revisar Respuestas',
-                            icon: 'rate_review',
-                            onClick: () => handleVerValidacion(t.id)
-                          }] : []),
-                          {
-                            label: 'Ver Historial',
-                            icon: 'history',
-                            onClick: () => alert(`Historial de Inspección N° ${t.nroTramite}`)
-                          },
-                          {
-                            label: 'Descargar Acta',
-                            icon: 'download',
-                            onClick: () => alert(`Descargando Acta de Inspección del Trámite ${t.nroTramite}...`)
-                          }
-                        ]}
-                      />
+                    <div style={{ borderTop: '1px solid #F1F5F9', paddingTop: 10, display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 8 }}>
+                      {(t.estado === 'ACEPTADO_DOC_AUD' || t.estado === 'EN_ANALISIS_AUD' || t.estado === 'RE_INSP_SOLICITADA') && (
+                        <button
+                          onClick={() => handleAbrirInspeccion(t.id, t.estado)}
+                          style={{
+                            background: '#2980B9',
+                            color: '#FFFFFF',
+                            border: 'none',
+                            borderRadius: 6,
+                            padding: '6px 12px',
+                            fontSize: 12,
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 6,
+                            boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
+                            transition: 'all 0.15s ease'
+                          }}
+                          onMouseEnter={e => e.currentTarget.style.background = '#1F618D'}
+                          onMouseLeave={e => e.currentTarget.style.background = '#2980B9'}
+                        >
+                          <span className="material-icons" style={{ fontSize: 16 }}>play_arrow</span>
+                          {t.estado === 'ACEPTADO_DOC_AUD' ? 'Iniciar Acta' : 'Continuar Acta'}
+                        </button>
+                      )}
+                      {t.estado === 'DESCARGO_INSP' && (
+                        <button
+                          onClick={() => handleVerValidacion(t.id)}
+                          style={{
+                            background: '#10B981',
+                            color: '#FFFFFF',
+                            border: 'none',
+                            borderRadius: 6,
+                            padding: '6px 12px',
+                            fontSize: 12,
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 6,
+                            boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
+                            transition: 'all 0.15s ease'
+                          }}
+                          onMouseEnter={e => e.currentTarget.style.background = '#059669'}
+                          onMouseLeave={e => e.currentTarget.style.background = '#10B981'}
+                        >
+                          <span className="material-icons" style={{ fontSize: 16 }}>rate_review</span>
+                          Revisar Respuestas
+                        </button>
+                      )}
+                      <button
+                        onClick={() => alert(`Historial de Inspección N° ${t.nroTramite}`)}
+                        title="Ver Historial"
+                        style={{
+                          background: '#F1F5F9',
+                          color: '#475569',
+                          border: 'none',
+                          borderRadius: 6,
+                          width: 32,
+                          height: 32,
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          transition: 'all 0.15s ease'
+                        }}
+                        onMouseEnter={e => {
+                          e.currentTarget.style.background = '#E2E8F0'
+                          e.currentTarget.style.color = '#1E293B'
+                        }}
+                        onMouseLeave={e => {
+                          e.currentTarget.style.background = '#F1F5F9'
+                          e.currentTarget.style.color = '#475569'
+                        }}
+                      >
+                        <span className="material-icons" style={{ fontSize: 18 }}>history</span>
+                      </button>
+                      <button
+                        onClick={() => alert(`Descargando Acta de Inspección del Trámite ${t.nroTramite}...`)}
+                        title="Descargar Acta"
+                        style={{
+                          background: '#F1F5F9',
+                          color: '#475569',
+                          border: 'none',
+                          borderRadius: 6,
+                          width: 32,
+                          height: 32,
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          transition: 'all 0.15s ease'
+                        }}
+                        onMouseEnter={e => {
+                          e.currentTarget.style.background = '#E2E8F0'
+                          e.currentTarget.style.color = '#1E293B'
+                        }}
+                        onMouseLeave={e => {
+                          e.currentTarget.style.background = '#F1F5F9'
+                          e.currentTarget.style.color = '#475569'
+                        }}
+                      >
+                        <span className="material-icons" style={{ fontSize: 18 }}>download</span>
+                      </button>
                     </div>
                   </div>
                 )
@@ -509,31 +592,113 @@ export default function InspeccionRutinaPage() {
                         </span>
                       </td>
                       <td>
-                        <TableActionsMenu
-                          options={[
-                            ...(t.estado === 'ACEPTADO_DOC_AUD' || t.estado === 'EN_ANALISIS_AUD' || t.estado === 'RE_INSP_SOLICITADA' ? [{
-                              label: t.estado === 'ACEPTADO_DOC_AUD' ? 'Iniciar Inspección' : 'Continuar Inspección',
-                              icon: 'search',
-                              onClick: () => handleAbrirInspeccion(t.id, t.estado)
-                            }] : []),
-                            ...(t.estado === 'DESCARGO_INSP' ? [{
-                              label: 'Revisar Respuestas',
-                              icon: 'rate_review',
-                              onClick: () => handleVerValidacion(t.id)
-                            }] : []),
-                            {
-                              label: 'Ver Historial',
-                              icon: 'history',
-                              onClick: () => alert(`Historial de Inspección N° ${t.nroTramite}`)
-                            },
-                            {
-                              label: 'Descargar Acta',
-                              icon: 'download',
-                              onClick: () => alert(`Descargando Acta de Inspección del Trámite ${t.nroTramite}...`)
-                            }
-                          ]}
-                        />
-                      </td>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          {(t.estado === 'ACEPTADO_DOC_AUD' || t.estado === 'EN_ANALISIS_AUD' || t.estado === 'RE_INSP_SOLICITADA') && (
+                            <button
+                              onClick={() => handleAbrirInspeccion(t.id, t.estado)}
+                              style={{
+                                background: '#2980B9',
+                                color: '#FFFFFF',
+                                border: 'none',
+                                borderRadius: 6,
+                                padding: '6px 12px',
+                                fontSize: 12,
+                                fontWeight: 700,
+                                cursor: 'pointer',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 6,
+                                boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
+                                transition: 'all 0.15s ease'
+                              }}
+                              onMouseEnter={e => e.currentTarget.style.background = '#1F618D'}
+                              onMouseLeave={e => e.currentTarget.style.background = '#2980B9'}
+                            >
+                              <span className="material-icons" style={{ fontSize: 16 }}>play_arrow</span>
+                              {t.estado === 'ACEPTADO_DOC_AUD' ? 'Iniciar Acta' : 'Continuar Acta'}
+                            </button>
+                          )}
+                          {t.estado === 'DESCARGO_INSP' && (
+                            <button
+                              onClick={() => handleVerValidacion(t.id)}
+                              style={{
+                                background: '#10B981',
+                                color: '#FFFFFF',
+                                border: 'none',
+                                borderRadius: 6,
+                                padding: '6px 12px',
+                                fontSize: 12,
+                                fontWeight: 700,
+                                cursor: 'pointer',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 6,
+                                boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
+                                transition: 'all 0.15s ease'
+                              }}
+                              onMouseEnter={e => e.currentTarget.style.background = '#059669'}
+                              onMouseLeave={e => e.currentTarget.style.background = '#10B981'}
+                            >
+                              <span className="material-icons" style={{ fontSize: 16 }}>rate_review</span>
+                              Revisar Respuestas
+                            </button>
+                          )}
+                          <button
+                            onClick={() => alert(`Historial de Inspección N° ${t.nroTramite}`)}
+                            title="Ver Historial"
+                            style={{
+                              background: '#F1F5F9',
+                              color: '#475569',
+                              border: 'none',
+                              borderRadius: 6,
+                              width: 32,
+                              height: 32,
+                              cursor: 'pointer',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              transition: 'all 0.15s ease'
+                            }}
+                            onMouseEnter={e => {
+                              e.currentTarget.style.background = '#E2E8F0'
+                              e.currentTarget.style.color = '#1E293B'
+                            }}
+                            onMouseLeave={e => {
+                              e.currentTarget.style.background = '#F1F5F9'
+                              e.currentTarget.style.color = '#475569'
+                            }}
+                          >
+                            <span className="material-icons" style={{ fontSize: 18 }}>history</span>
+                          </button>
+                          <button
+                            onClick={() => alert(`Descargando Acta de Inspección del Trámite ${t.nroTramite}...`)}
+                            title="Descargar Acta"
+                            style={{
+                              background: '#F1F5F9',
+                              color: '#475569',
+                              border: 'none',
+                              borderRadius: 6,
+                              width: 32,
+                              height: 32,
+                              cursor: 'pointer',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              transition: 'all 0.15s ease'
+                            }}
+                            onMouseEnter={e => {
+                              e.currentTarget.style.background = '#E2E8F0'
+                              e.currentTarget.style.color = '#1E293B'
+                            }}
+                            onMouseLeave={e => {
+                              e.currentTarget.style.background = '#F1F5F9'
+                              e.currentTarget.style.color = '#475569'
+                        }}
+                      >
+                        <span className="material-icons" style={{ fontSize: 18 }}>download</span>
+                      </button>
+                    </div>
+                  </td>
                     </tr>
                   )
                 })}
