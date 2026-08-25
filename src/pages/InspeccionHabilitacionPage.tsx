@@ -4,13 +4,16 @@ import { TRAMITES, type Tramite, type EstadoTramite, ESTADO_CONFIG } from '../da
 import { useAuth } from '../context/AuthContext'
 import { useApp } from '../context/AppContext'
 import TableActionsMenu from '../components/TableActionsMenu'
+import ModalEmitirOrdenRutina from '../components/ModalEmitirOrdenRutina'
 
 export default function InspeccionHabilitacionPage() {
   const { user } = useAuth()
   const { tramites, iniciarInspeccion } = useApp()
   const navigate = useNavigate()
 
+  const isCoordinador = user?.rol === 'COORDINADOR'
   const [localTramites, setLocalTramites] = useState<Tramite[]>(TRAMITES)
+  const [tramiteEmitirOrden, setTramiteEmitirOrden] = useState<Tramite | null>(null)
 
   useEffect(() => {
     setLocalTramites(tramites)
@@ -122,30 +125,96 @@ export default function InspeccionHabilitacionPage() {
                       </span>
                     </td>
                     <td>
-                      <TableActionsMenu
-                        options={[
-                          ...(t.estado === 'ACEPTADO_DOC_AUD' || t.estado === 'EN_ANALISIS_AUD' || t.estado === 'RE_INSP_SOLICITADA' ? [{
-                            label: t.estado === 'ACEPTADO_DOC_AUD' ? 'Iniciar Acta' : 'Continuar Acta',
-                            icon: 'search',
-                            onClick: () => handleAbrirInspeccion(t.id, t.estado)
-                          }] : []),
-                          ...(t.estado === 'DESCARGO_INSP' ? [{
-                            label: 'Revisar Respuestas',
-                            icon: 'rate_review',
-                            onClick: () => handleVerValidacion(t.id)
-                          }] : []),
-                          {
-                            label: 'Ver Historial',
-                            icon: 'history',
-                            onClick: () => alert(`Historial de Inspección N° ${t.nroTramite}`)
-                          },
-                          {
-                            label: 'Descargar Acta',
-                            icon: 'download',
-                            onClick: () => alert(`Descargando Acta del Trámite ${t.nroTramite}...`)
-                          }
-                        ]}
-                      />
+                      {isCoordinador ? (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <button
+                            onClick={() => {}}
+                            title="Ver Acta de Inspección"
+                            style={{
+                              background: '#EFF6FF',
+                              color: '#0055A5',
+                              border: '1.5px solid #BAE6FD',
+                              borderRadius: 6,
+                              padding: '5px 10px',
+                              fontSize: 12,
+                              fontWeight: 750,
+                              cursor: 'pointer',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 4
+                            }}
+                          >
+                            <span className="material-icons" style={{ fontSize: 14 }}>article</span>
+                            Ver Acta
+                          </button>
+
+                          <button
+                            onClick={() => setTramiteEmitirOrden(t)}
+                            title="Emitir Orden de Rutina"
+                            style={{
+                              background: '#10B981',
+                              color: '#FFFFFF',
+                              border: 'none',
+                              borderRadius: 6,
+                              padding: '5px 10px',
+                              fontSize: 12,
+                              fontWeight: 750,
+                              cursor: 'pointer',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 4
+                            }}
+                          >
+                            <span className="material-icons" style={{ fontSize: 14 }}>schedule_send</span>
+                            Emitir Orden
+                          </button>
+
+                          <TableActionsMenu
+                            options={[
+                              {
+                                label: 'Ver Acta Completa',
+                                icon: 'article',
+                                onClick: () => {}
+                              },
+                              {
+                                label: 'Emitir Orden de Rutina',
+                                icon: 'schedule_send',
+                                onClick: () => setTramiteEmitirOrden(t)
+                              },
+                              {
+                                label: 'Descargar Acta (PDF)',
+                                icon: 'download',
+                                onClick: () => alert(`Descargando Acta del Trámite ${t.nroTramite}...`)
+                              }
+                            ]}
+                          />
+                        </div>
+                      ) : (
+                        <TableActionsMenu
+                          options={[
+                            ...(t.estado === 'ACEPTADO_DOC_AUD' || t.estado === 'EN_ANALISIS_AUD' || t.estado === 'RE_INSP_SOLICITADA' ? [{
+                              label: t.estado === 'ACEPTADO_DOC_AUD' ? 'Iniciar Acta' : 'Continuar Acta',
+                              icon: 'search',
+                              onClick: () => handleAbrirInspeccion(t.id, t.estado)
+                            }] : []),
+                            ...(t.estado === 'DESCARGO_INSP' ? [{
+                              label: 'Revisar Respuestas',
+                              icon: 'rate_review',
+                              onClick: () => handleVerValidacion(t.id)
+                            }] : []),
+                            {
+                              label: 'Ver Historial',
+                              icon: 'history',
+                              onClick: () => alert(`Historial de Inspección N° ${t.nroTramite}`)
+                            },
+                            {
+                              label: 'Descargar Acta',
+                              icon: 'download',
+                              onClick: () => alert(`Descargando Acta del Trámite ${t.nroTramite}...`)
+                            }
+                          ]}
+                        />
+                      )}
                     </td>
                   </tr>
                 )
@@ -154,6 +223,17 @@ export default function InspeccionHabilitacionPage() {
           </table>
         </div>
       </div>
+
+      {/* Modal Emitir Orden Rutina */}
+      {tramiteEmitirOrden && (
+        <ModalEmitirOrdenRutina
+          tramite={tramiteEmitirOrden}
+          onClose={() => setTramiteEmitirOrden(null)}
+          onSuccess={(nuevo) => {
+            setLocalTramites(prev => [nuevo, ...prev])
+          }}
+        />
+      )}
     </>
   )
 }

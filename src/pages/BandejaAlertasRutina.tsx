@@ -292,7 +292,7 @@ export default function BandejaAlertasRutina({ hideTopbar = false }: { hideTopba
                 {alertas.filter(a => a.tipologia.toLowerCase().includes('geriátrico') || a.frecuenciaAnual === 3).length}
               </div>
             </div>
-            <span className="material-icons" style={{ fontSize: 28, color: '#FDE68A' }}>home_emergency</span>
+            <span className="material-icons" style={{ fontSize: 28, color: '#FDE68A' }}>local_hospital</span>
           </div>
         </div>
 

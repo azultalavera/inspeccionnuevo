@@ -131,6 +131,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       departamento: est ? est.departamento : 'Capital',
       estado: 'PENDIENTE_EVAL_AUD',
       fechaIngreso: new Date().toISOString().split('T')[0],
+      fechaUltimaInspeccion: est?.ultimaInspeccionFecha || '15/07/2025',
       inspectorAsignado: inspectorId,
       agenteAsignado: inspectorId,
       tipoInspeccion: 'RUTINA',
@@ -178,6 +179,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     let localidad = 'Córdoba';
     let departamento = 'Capital';
     let resolvedTipologia = tipologia;
+    let fechaUltima = '10/06/2025';
 
     if (establecimientoId) {
       const est = ESTABLECIMIENTOS.find(e => e.id === establecimientoId);
@@ -188,6 +190,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         domicilio = 'Av. Colón 1250';
         localidad = est.localidad;
         departamento = est.departamento || 'Capital';
+        if (est.ultimaInspeccionFecha) fechaUltima = est.ultimaInspeccionFecha;
       }
     }
 
@@ -204,6 +207,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       departamento,
       estado: 'PENDIENTE_EVAL_ARQ',
       fechaIngreso: new Date().toLocaleDateString('es-AR'),
+      fechaUltimaInspeccion: fechaUltima,
       inspectorAsignado: 'Sin Asignar',
       tipoInspeccion: 'INICIAL',
       formatoInspeccion: 'PRESENCIAL',

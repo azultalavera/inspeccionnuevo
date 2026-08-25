@@ -1,10 +1,11 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useApp } from '../context/AppContext'
 import { Tramite, ESTABLECIMIENTOS } from '../data/mockData'
 import ModalResponderEmplazamiento from '../components/ModalResponderEmplazamiento'
 import ModalIniciarTramite from '../components/ModalIniciarTramite'
+import MiPagination from '../components/MiPagination'
 
 export interface AlertaEfectorItem {
   id: string
@@ -115,6 +116,14 @@ export default function BandejaAlertasEfector() {
   const [filtroTipoOrigen, setFiltroTipoOrigen] = useState<string>('TODOS')
   const [filtroEstadoVentana, setFiltroEstadoVentana] = useState<string>('TODAS')
 
+  // Pagination state
+  const [paginaSeleccionada, setPaginaSeleccionada] = useState(1)
+  const [cantidadFilasPorPagina, setCantidadFilasPorPagina] = useState(5)
+
+  useEffect(() => {
+    setPaginaSeleccionada(1)
+  }, [busqueda, filtroTipoOrigen, filtroEstadoVentana])
+
   // Modals state
   const [selectedEmplazamientoTramite, setSelectedEmplazamientoTramite] = useState<Tramite | null>(null)
   const [modalTramiteOpen, setModalTramiteOpen] = useState(false)
@@ -137,10 +146,27 @@ export default function BandejaAlertasEfector() {
     return matchBusqueda && matchOrigen && matchVentana
   }).sort((a, b) => a.diasRestantes - b.diasRestantes)
 
+  // Pagination slicing
+  const cantidadPaginas = Math.max(1, Math.ceil(filtradas.length / cantidadFilasPorPagina))
+  const alertasPaginadas = filtradas.slice(
+    (paginaSeleccionada - 1) * cantidadFilasPorPagina,
+    paginaSeleccionada * cantidadFilasPorPagina
+  )
+
   // Metric counts
   const countHabilitacion = alertas.filter(a => a.tipoOrigen === 'HABILITACION').length
   const countRutina = alertas.filter(a => a.tipoOrigen === 'RUTINA').length
   const countUrgentes = alertas.filter(a => a.estadoVentana === 'URGENTE').length
+  const countProximos = alertas.filter(a => a.estadoVentana === 'PROXIMO').length
+
+  const hasActiveFilters = busqueda.trim() !== '' || filtroTipoOrigen !== 'TODOS' || filtroEstadoVentana !== 'TODAS'
+
+  const handleLimpiarFiltros = () => {
+    setBusqueda('')
+    setFiltroTipoOrigen('TODOS')
+    setFiltroEstadoVentana('TODAS')
+    setPaginaSeleccionada(1)
+  }
 
   const handleOpenResponderEmplazamiento = (alerta: AlertaEfectorItem) => {
     const tramiteObj: Tramite = tramites.find(t => t.cuit === alerta.cuit) || {
@@ -194,140 +220,315 @@ export default function BandejaAlertasEfector() {
         <div>
           <div className="topbar-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <span className="material-icons" style={{ fontSize: 24, color: '#ea580c' }}>notifications_active</span>
-            Bandeja de Alertas
+            Bandeja de Alertas Sanitarias
           </div>
           <div style={{ fontSize: 13, color: '#64748B', marginTop: 2 }}>
-            Control de plazos legales para respuesta a observaciones de habilitación e inicio de trámites de modificación por rutina
+            Control de plazos legales para respuesta a emplazamientos e inicio de trámites por inspección
           </div>
         </div>
       </div>
 
       <div className="page-content" style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
 
-        {/* Metric Cards Grid */}
+        {/* Two Filter Groups with 2 Cards Each */}
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-          gap: 14
+          gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))',
+          gap: 16
         }}>
-          {/* KPI 1: TODAS */}
-          <div
-            onClick={() => { setFiltroTipoOrigen('TODOS'); setFiltroEstadoVentana('TODAS'); }}
-            style={{
-              background: '#FFFFFF',
-              border: `1.5px solid ${filtroTipoOrigen === 'TODOS' && filtroEstadoVentana === 'TODAS' ? '#0284c7' : '#E2E8F0'}`,
-              borderRadius: 12,
-              padding: '14px 16px',
-              cursor: 'pointer',
-              transition: 'all 0.2s ease',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between'
-            }}
-          >
-            <div>
-              <div style={{ fontSize: 11, fontWeight: 750, color: '#64748B', textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                Emplazamientos Totales
+          {/* GRUPO 1: ORIGEN DEL REQUERIMIENTO */}
+          <div style={{
+            background: '#FFFFFF',
+            border: '1px solid #E2E8F0',
+            borderRadius: 14,
+            padding: '16px 18px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 12,
+            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.03)'
+          }}>
+            {/* Header Grupo 1 */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span className="material-icons" style={{ fontSize: 18, color: '#0284C7' }}>category</span>
+                <span style={{ fontSize: 12, fontWeight: 800, color: '#0F172A', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                  Origen del Requerimiento
+                </span>
               </div>
-              <div style={{ fontSize: 24, fontWeight: 900, color: '#075985', marginTop: 2 }}>
-                {alertas.length}
+              {filtroTipoOrigen !== 'TODOS' && (
+                <button
+                  onClick={() => setFiltroTipoOrigen('TODOS')}
+                  style={{
+                    background: '#F1F5F9',
+                    border: 'none',
+                    color: '#0284C7',
+                    padding: '3px 8px',
+                    borderRadius: 6,
+                    fontSize: 11,
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 3
+                  }}
+                  title="Ver todos los orígenes"
+                >
+                  <span className="material-icons" style={{ fontSize: 13 }}>clear</span>
+                  Ver todos
+                </button>
+              )}
+            </div>
+
+            {/* 2 Botones Grupo 1 */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              {/* Botón 1.1: HABILITACIÓN */}
+              <div
+                onClick={() => setFiltroTipoOrigen(prev => prev === 'HABILITACION' ? 'TODOS' : 'HABILITACION')}
+                style={{
+                  background: filtroTipoOrigen === 'HABILITACION' ? '#FFF7ED' : '#FFFFFF',
+                  border: `2px solid ${filtroTipoOrigen === 'HABILITACION' ? '#EA580C' : '#E2E8F0'}`,
+                  borderRadius: 12,
+                  padding: '12px 14px',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 6,
+                  position: 'relative',
+                  boxShadow: filtroTipoOrigen === 'HABILITACION' ? '0 4px 14px rgba(234, 88, 12, 0.16)' : '0 1px 2px rgba(0,0,0,0.02)'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span style={{
+                    fontSize: 11,
+                    fontWeight: 800,
+                    color: filtroTipoOrigen === 'HABILITACION' ? '#C2410C' : '#64748B',
+                    textTransform: 'uppercase',
+                    letterSpacing: 0.4
+                  }}>
+                    Habilitación
+                  </span>
+                  <div style={{
+                    width: 30,
+                    height: 30,
+                    borderRadius: 8,
+                    background: filtroTipoOrigen === 'HABILITACION' ? '#FED7AA' : '#FFF7ED',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}>
+                    <span className="material-icons" style={{ fontSize: 18, color: '#EA580C' }}>rate_review</span>
+                  </div>
+                </div>
+                <div style={{ fontSize: 26, fontWeight: 900, color: '#EA580C', lineHeight: 1 }}>
+                  {countHabilitacion}
+                </div>
+                <div style={{ fontSize: 11, color: '#64748B', fontWeight: 550 }}>
+                  Respuesta Emplazamiento
+                </div>
+              </div>
+
+              {/* Botón 1.2: RUTINA */}
+              <div
+                onClick={() => setFiltroTipoOrigen(prev => prev === 'RUTINA' ? 'TODOS' : 'RUTINA')}
+                style={{
+                  background: filtroTipoOrigen === 'RUTINA' ? '#FEF2F2' : '#FFFFFF',
+                  border: `2px solid ${filtroTipoOrigen === 'RUTINA' ? '#DC2626' : '#E2E8F0'}`,
+                  borderRadius: 12,
+                  padding: '12px 14px',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 6,
+                  position: 'relative',
+                  boxShadow: filtroTipoOrigen === 'RUTINA' ? '0 4px 14px rgba(220, 38, 38, 0.16)' : '0 1px 2px rgba(0,0,0,0.02)'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span style={{
+                    fontSize: 11,
+                    fontWeight: 800,
+                    color: filtroTipoOrigen === 'RUTINA' ? '#991B1B' : '#64748B',
+                    textTransform: 'uppercase',
+                    letterSpacing: 0.4
+                  }}>
+                    Rutina
+                  </span>
+                  <div style={{
+                    width: 30,
+                    height: 30,
+                    borderRadius: 8,
+                    background: filtroTipoOrigen === 'RUTINA' ? '#FECACA' : '#FEF2F2',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}>
+                    <span className="material-icons" style={{ fontSize: 18, color: '#DC2626' }}>edit_note</span>
+                  </div>
+                </div>
+                <div style={{ fontSize: 26, fontWeight: 900, color: '#DC2626', lineHeight: 1 }}>
+                  {countRutina}
+                </div>
+                <div style={{ fontSize: 11, color: '#64748B', fontWeight: 550 }}>
+                  Trámite Modificación
+                </div>
               </div>
             </div>
-            <span className="material-icons" style={{ fontSize: 28, color: '#0284c7' }}>notifications</span>
           </div>
 
-          {/* KPI 2: HABILITACIÓN */}
-          <div
-            onClick={() => setFiltroTipoOrigen(filtroTipoOrigen === 'HABILITACION' ? 'TODOS' : 'HABILITACION')}
-            style={{
-              background: '#FFFFFF',
-              border: `1.5px solid ${filtroTipoOrigen === 'HABILITACION' ? '#ea580c' : '#E2E8F0'}`,
-              borderRadius: 12,
-              padding: '14px 16px',
-              cursor: 'pointer',
-              transition: 'all 0.2s ease',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between'
-            }}
-          >
-            <div>
-              <div style={{ fontSize: 11, fontWeight: 750, color: '#64748B', textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                Habilitación / Respuesta Emplazamiento
+          {/* GRUPO 2: PLAZO DE VENCIMIENTO */}
+          <div style={{
+            background: '#FFFFFF',
+            border: '1px solid #E2E8F0',
+            borderRadius: 14,
+            padding: '16px 18px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 12,
+            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.03)'
+          }}>
+            {/* Header Grupo 2 */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span className="material-icons" style={{ fontSize: 18, color: '#BE123C' }}>alarm</span>
+                <span style={{ fontSize: 12, fontWeight: 800, color: '#0F172A', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                  Plazo de Vencimiento
+                </span>
               </div>
-              <div style={{ fontSize: 24, fontWeight: 900, color: '#ea580c', marginTop: 2 }}>
-                {countHabilitacion}
-              </div>
+              {filtroEstadoVentana !== 'TODAS' && (
+                <button
+                  onClick={() => setFiltroEstadoVentana('TODAS')}
+                  style={{
+                    background: '#F1F5F9',
+                    border: 'none',
+                    color: '#BE123C',
+                    padding: '3px 8px',
+                    borderRadius: 6,
+                    fontSize: 11,
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 3
+                  }}
+                  title="Ver todos los plazos"
+                >
+                  <span className="material-icons" style={{ fontSize: 13 }}>clear</span>
+                  Ver todos
+                </button>
+              )}
             </div>
-            <span className="material-icons" style={{ fontSize: 28, color: '#fdba74' }}>rate_review</span>
-          </div>
 
-          {/* KPI 3: RUTINA (MODIFICACIÓN) */}
-          <div
-            onClick={() => setFiltroTipoOrigen(filtroTipoOrigen === 'RUTINA' ? 'TODOS' : 'RUTINA')}
-            style={{
-              background: '#FFFFFF',
-              border: `1.5px solid ${filtroTipoOrigen === 'RUTINA' ? '#dc2626' : '#E2E8F0'}`,
-              borderRadius: 12,
-              padding: '14px 16px',
-              cursor: 'pointer',
-              transition: 'all 0.2s ease',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between'
-            }}
-          >
-            <div>
-              <div style={{ fontSize: 11, fontWeight: 750, color: '#64748B', textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                Rutina / Trámite Modificación
+            {/* 2 Botones Grupo 2 */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              {/* Botón 2.1: URGENTES */}
+              <div
+                onClick={() => setFiltroEstadoVentana(prev => prev === 'URGENTE' ? 'TODAS' : 'URGENTE')}
+                style={{
+                  background: filtroEstadoVentana === 'URGENTE' ? '#FFF1F2' : '#FFFFFF',
+                  border: `2px solid ${filtroEstadoVentana === 'URGENTE' ? '#BE123C' : '#E2E8F0'}`,
+                  borderRadius: 12,
+                  padding: '12px 14px',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 6,
+                  position: 'relative',
+                  boxShadow: filtroEstadoVentana === 'URGENTE' ? '0 4px 14px rgba(190, 18, 60, 0.16)' : '0 1px 2px rgba(0,0,0,0.02)'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span style={{
+                    fontSize: 11,
+                    fontWeight: 800,
+                    color: filtroEstadoVentana === 'URGENTE' ? '#9F1239' : '#64748B',
+                    textTransform: 'uppercase',
+                    letterSpacing: 0.4
+                  }}>
+                    Urgentes
+                  </span>
+                  <div style={{
+                    width: 30,
+                    height: 30,
+                    borderRadius: 8,
+                    background: filtroEstadoVentana === 'URGENTE' ? '#FECDD3' : '#FFF1F2',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}>
+                    <span className="material-icons" style={{ fontSize: 18, color: '#BE123C' }}>timer_off</span>
+                  </div>
+                </div>
+                <div style={{ fontSize: 26, fontWeight: 900, color: '#BE123C', lineHeight: 1 }}>
+                  {countUrgentes}
+                </div>
+                <div style={{ fontSize: 11, color: '#64748B', fontWeight: 550 }}>
+                  Menos de 5 días
+                </div>
               </div>
-              <div style={{ fontSize: 24, fontWeight: 900, color: '#dc2626', marginTop: 2 }}>
-                {countRutina}
-              </div>
-            </div>
-            <span className="material-icons" style={{ fontSize: 28, color: '#fca5a5' }}>edit_note</span>
-          </div>
 
-          {/* KPI 4: URGENTES */}
-          <div
-            onClick={() => setFiltroEstadoVentana(filtroEstadoVentana === 'URGENTE' ? 'TODAS' : 'URGENTE')}
-            style={{
-              background: '#FFFFFF',
-              border: `1.5px solid ${filtroEstadoVentana === 'URGENTE' ? '#be123c' : '#E2E8F0'}`,
-              borderRadius: 12,
-              padding: '14px 16px',
-              cursor: 'pointer',
-              transition: 'all 0.2s ease',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between'
-            }}
-          >
-            <div>
-              <div style={{ fontSize: 11, fontWeight: 750, color: '#64748B', textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                Urgentes (&lt; 5 días)
-              </div>
-              <div style={{ fontSize: 24, fontWeight: 900, color: '#be123c', marginTop: 2 }}>
-                {countUrgentes}
+              {/* Botón 2.2: PRÓXIMOS */}
+              <div
+                onClick={() => setFiltroEstadoVentana(prev => prev === 'PROXIMO' ? 'TODAS' : 'PROXIMO')}
+                style={{
+                  background: filtroEstadoVentana === 'PROXIMO' ? '#FEF3C7' : '#FFFFFF',
+                  border: `2px solid ${filtroEstadoVentana === 'PROXIMO' ? '#D97706' : '#E2E8F0'}`,
+                  borderRadius: 12,
+                  padding: '12px 14px',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 6,
+                  position: 'relative',
+                  boxShadow: filtroEstadoVentana === 'PROXIMO' ? '0 4px 14px rgba(217, 119, 6, 0.16)' : '0 1px 2px rgba(0,0,0,0.02)'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span style={{
+                    fontSize: 11,
+                    fontWeight: 800,
+                    color: filtroEstadoVentana === 'PROXIMO' ? '#92400E' : '#64748B',
+                    textTransform: 'uppercase',
+                    letterSpacing: 0.4
+                  }}>
+                    Próximos
+                  </span>
+                  <div style={{
+                    width: 30,
+                    height: 30,
+                    borderRadius: 8,
+                    background: filtroEstadoVentana === 'PROXIMO' ? '#FDE68A' : '#FEF3C7',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}>
+                    <span className="material-icons" style={{ fontSize: 18, color: '#D97706' }}>timer</span>
+                  </div>
+                </div>
+                <div style={{ fontSize: 26, fontWeight: 900, color: '#D97706', lineHeight: 1 }}>
+                  {countProximos}
+                </div>
+                <div style={{ fontSize: 11, color: '#64748B', fontWeight: 550 }}>
+                  Entre 5 y 10 días
+                </div>
               </div>
             </div>
-            <span className="material-icons" style={{ fontSize: 28, color: '#fda4af' }}>timer_off</span>
           </div>
         </div>
 
-        {/* Search & Filters */}
+        {/* Search Bar */}
         <div style={{
           background: '#FFFFFF',
           border: '1px solid #E2E8F0',
-          borderRadius: 12,
-          padding: '14px 18px',
-          display: 'flex',
-          gap: 12,
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.02)'
+          borderRadius: 14,
+          padding: '12px 16px',
+          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.03)'
         }}>
-          <div style={{ flex: 1, minWidth: 260, position: 'relative' }}>
+          {/* Input Search */}
+          <div style={{ position: 'relative' }}>
             <span className="material-icons" style={{ position: 'absolute', left: 12, top: 10, color: '#94A3B8', fontSize: 18 }}>search</span>
             <input
               type="text"
@@ -336,39 +537,37 @@ export default function BandejaAlertasEfector() {
               onChange={e => setBusqueda(e.target.value)}
               style={{
                 width: '100%',
-                padding: '9px 12px 9px 38px',
+                padding: '9px 36px 9px 38px',
                 borderRadius: 8,
                 border: '1px solid #CBD5E1',
                 fontSize: 13,
-                outline: 'none'
+                outline: 'none',
+                background: '#F8FAFC',
+                transition: 'all 0.2s ease'
               }}
+              onFocus={e => { e.currentTarget.style.borderColor = '#0284c7'; e.currentTarget.style.background = '#FFFFFF'; }}
+              onBlur={e => { e.currentTarget.style.borderColor = '#CBD5E1'; e.currentTarget.style.background = '#F8FAFC'; }}
             />
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontSize: 12, fontWeight: 700, color: '#475569' }}>Origen:</span>
-            <select
-              value={filtroTipoOrigen}
-              onChange={e => setFiltroTipoOrigen(e.target.value)}
-              style={{ padding: '8px 12px', borderRadius: 8, border: '1px solid #CBD5E1', fontSize: 13, background: 'white' }}
-            >
-              <option value="TODOS">Todos los Orígenes</option>
-              <option value="HABILITACION">Trámite de Habilitación</option>
-              <option value="RUTINA">Inspección de Rutina (Modificación)</option>
-            </select>
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontSize: 12, fontWeight: 700, color: '#475569' }}>Plazo:</span>
-            <select
-              value={filtroEstadoVentana}
-              onChange={e => setFiltroEstadoVentana(e.target.value)}
-              style={{ padding: '8px 12px', borderRadius: 8, border: '1px solid #CBD5E1', fontSize: 13, background: 'white' }}
-            >
-              <option value="TODAS">Todos los Plazos</option>
-              <option value="URGENTE">Urgentes (&lt; 5 días)</option>
-              <option value="PROXIMO">Próximos (&lt; 10 días)</option>
-            </select>
+            {busqueda && (
+              <button
+                onClick={() => setBusqueda('')}
+                style={{
+                  position: 'absolute',
+                  right: 8,
+                  top: 8,
+                  background: 'transparent',
+                  border: 'none',
+                  color: '#94A3B8',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  padding: 2
+                }}
+                title="Borrar búsqueda"
+              >
+                <span className="material-icons" style={{ fontSize: 18 }}>cancel</span>
+              </button>
+            )}
           </div>
         </div>
 
@@ -394,13 +593,41 @@ export default function BandejaAlertasEfector() {
               {filtradas.length === 0 ? (
                 <tr>
                   <td colSpan={5} style={{ textAlign: 'center', padding: 48, color: '#64748B' }}>
-                    <span className="material-icons" style={{ fontSize: 40, color: '#CBD5E1', marginBottom: 8, display: 'block' }}>notifications_off</span>
-                    <div style={{ fontWeight: 700, fontSize: 15, color: '#0F172A' }}>Sin alertas de emplazamiento pendientes</div>
-                    <div style={{ fontSize: 12.5, color: '#94A3B8', marginTop: 2 }}>Tus establecimientos se encuentran al día.</div>
+                    <span className="material-icons" style={{ fontSize: 40, color: '#CBD5E1', marginBottom: 8, display: 'block' }}>
+                      {hasActiveFilters ? 'filter_list_off' : 'notifications_off'}
+                    </span>
+                    <div style={{ fontWeight: 700, fontSize: 15, color: '#0F172A' }}>
+                      {hasActiveFilters ? 'No se encontraron alertas con los filtros aplicados' : 'Sin alertas de emplazamiento pendientes'}
+                    </div>
+                    <div style={{ fontSize: 12.5, color: '#94A3B8', marginTop: 4, marginBottom: hasActiveFilters ? 14 : 0 }}>
+                      {hasActiveFilters ? 'Probá modificando el término de búsqueda o seleccionando otro filtro.' : 'Tus establecimientos se encuentran al día.'}
+                    </div>
+                    {hasActiveFilters && (
+                      <button
+                        onClick={handleLimpiarFiltros}
+                        style={{
+                          background: '#0284c7',
+                          border: 'none',
+                          color: 'white',
+                          padding: '7px 16px',
+                          borderRadius: 8,
+                          fontSize: 12.5,
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 6,
+                          boxShadow: '0 2px 6px rgba(2, 132, 199, 0.25)'
+                        }}
+                      >
+                        <span className="material-icons" style={{ fontSize: 16 }}>restart_alt</span>
+                        Restablecer todos los filtros
+                      </button>
+                    )}
                   </td>
                 </tr>
               ) : (
-                filtradas.map(alerta => (
+                alertasPaginadas.map(alerta => (
                   <tr key={alerta.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
                     {/* Plazo */}
                     <td style={{ padding: '14px 18px', verticalAlign: 'top' }}>
@@ -538,6 +765,41 @@ export default function BandejaAlertasEfector() {
               )}
             </tbody>
           </table>
+
+          {/* Pagination Footer */}
+          {filtradas.length > 0 && (
+            <div style={{
+              padding: '14px 20px',
+              borderTop: '1px solid #E2E8F0',
+              background: '#FFFFFF',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: 16
+            }}>
+              <div style={{
+                fontSize: 13,
+                fontWeight: 500,
+                color: '#64748B',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 5
+              }}>
+                Mostrando <strong style={{ color: '#0F172A', fontWeight: 700 }}>{alertasPaginadas.length}</strong> de <strong style={{ color: '#0F172A', fontWeight: 700 }}>{filtradas.length}</strong> {filtradas.length === 1 ? 'alerta' : 'alertas'}
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                <MiPagination
+                  cantidadFilasPorPagina={cantidadFilasPorPagina}
+                  cantidadPaginas={cantidadPaginas}
+                  paginaSeleccionada={paginaSeleccionada}
+                  setCantidadFilasPorPagina={setCantidadFilasPorPagina}
+                  setPaginaSeleccionada={setPaginaSeleccionada}
+                />
+              </div>
+            </div>
+          )}
         </div>
 
       </div>
