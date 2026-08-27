@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useApp } from '../context/AppContext'
@@ -40,7 +40,9 @@ export default function InspeccionRutinaPage() {
   }, [location.state])
 
   useEffect(() => {
-    setLocalTramites(tramites)
+    if (tramites && tramites.length > 0) {
+      setLocalTramites(tramites)
+    }
   }, [tramites])
 
   const handleAbrirInspeccion = (id: string, estado: EstadoTramite) => {
@@ -80,6 +82,31 @@ export default function InspeccionRutinaPage() {
   const [filtroVentana, setFiltroVentana] = useState<string>('TODAS')
   const [filtroGeriatricos, setFiltroGeriatricos] = useState(false)
 
+  // Estados para filtros divididos
+  const [filtroNombre, setFiltroNombre] = useState<string>('')
+  const [filtroCuit, setFiltroCuit] = useState<string>('')
+  const [filtroExpediente, setFiltroExpediente] = useState<string>('')
+  const [filtroDepartamento, setFiltroDepartamento] = useState<string>('')
+  const [filtroLocalidad, setFiltroLocalidad] = useState<string>('')
+
+  // Departamentos y Localidades disponibles
+  const departamentosDisponibles = useMemo(() => {
+    const set = new Set<string>()
+    rutinasOrdenadas.forEach(t => {
+      if (t.departamento) set.add(t.departamento)
+    })
+    return Array.from(set).sort()
+  }, [rutinasOrdenadas])
+
+  const localidadesDisponibles = useMemo(() => {
+    const set = new Set<string>()
+    rutinasOrdenadas.forEach(t => {
+      if (filtroDepartamento && t.departamento !== filtroDepartamento) return
+      if (t.localidad) set.add(t.localidad)
+    })
+    return Array.from(set).sort()
+  }, [rutinasOrdenadas, filtroDepartamento])
+
   // Conteos para las tarjetas de métricas basados en todas las asignadas
   const countVencidos = rutinasOrdenadas.filter(t => t.alertaRutina === 'CRITICO_VENCIDO').length
   const countProximos = rutinasOrdenadas.filter(t => t.alertaRutina === 'ALERTA_T15').length
@@ -87,7 +114,14 @@ export default function InspeccionRutinaPage() {
   const countMayor30 = rutinasOrdenadas.filter(t => t.alertaRutina === 'AL_DIA' || (!t.alertaRutina && t.tipoInspeccion === 'RUTINA')).length
   const countGeriatricos = rutinasOrdenadas.filter(t => t.tipologia.toLowerCase().includes('geriátrico') || t.tipologia.toLowerCase().includes('geriátricos')).length
 
-  // Aplicar filtros de las tarjetas
+  const hasInputFilters =
+    filtroNombre.trim() !== '' ||
+    filtroCuit.trim() !== '' ||
+    filtroExpediente.trim() !== '' ||
+    filtroDepartamento !== '' ||
+    filtroLocalidad !== ''
+
+  // Aplicar filtros de las tarjetas y filtros divididos
   const filteredRutinas = rutinasOrdenadas.filter(t => {
     let matchVentana = filtroVentana === 'TODAS'
     if (filtroVentana === 'AL_DIA') {
@@ -96,7 +130,29 @@ export default function InspeccionRutinaPage() {
       matchVentana = t.alertaRutina === filtroVentana
     }
     const matchGeri = !filtroGeriatricos || (t.tipologia.toLowerCase().includes('geriátrico') || t.tipologia.toLowerCase().includes('geriátricos'))
-    return matchVentana && matchGeri
+
+    if (!matchVentana || !matchGeri) return false
+
+    if (filtroNombre.trim() !== '') {
+      if (!(t.denominacion || '').toLowerCase().includes(filtroNombre.toLowerCase())) return false
+    }
+    if (filtroCuit.trim() !== '') {
+      if (!(t.cuit || '').toLowerCase().includes(filtroCuit.toLowerCase())) return false
+    }
+    if (filtroExpediente.trim() !== '') {
+      const q = filtroExpediente.toLowerCase()
+      const matchExp = (t.nroExpediente || '').toLowerCase().includes(q)
+      const matchTram = (t.nroTramite || '').toLowerCase().includes(q)
+      if (!matchExp && !matchTram) return false
+    }
+    if (filtroDepartamento !== '') {
+      if ((t.departamento || '') !== filtroDepartamento) return false
+    }
+    if (filtroLocalidad !== '') {
+      if ((t.localidad || '') !== filtroLocalidad) return false
+    }
+
+    return true
   })
 
   // Orden de prioridad: Vencidos -> Próximos -> En Plazo -> Otros
@@ -139,7 +195,7 @@ export default function InspeccionRutinaPage() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <span className="material-icons" style={{ fontSize: 24, color: '#2980B9' }}>schedule</span>
             <div className="topbar-title">
-              {isInspector ? 'Inspecciones por Rutina' : (subTab === 'MENU' ? 'Inspección por Rutina' : subTab === 'ALERTAS' ? 'Bandeja de Alertas' : 'Inspecciones Ordenadas')}
+              {isInspector ? 'Inspecciones por Rutina' : (subTab === 'MENU' ? 'Inspección por Rutina' : subTab === 'ALERTAS' ? 'Bandeja de Alertas' : 'Órdenes')}
             </div>
           </div>
         </div>
@@ -164,7 +220,7 @@ export default function InspeccionRutinaPage() {
               }}
             >
               <span className="material-icons" style={{ fontSize: 16 }}>playlist_add_check</span>
-              Ver Inspecciones Ordenadas ({rutinasOrdenadas.length})
+              Ver Órdenes ({rutinasOrdenadas.length})
             </button>
           </div>
         )}
@@ -422,7 +478,7 @@ export default function InspeccionRutinaPage() {
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 <h3 style={{ margin: 0, fontSize: 20, fontWeight: 800, color: '#0F172A' }}>
-                  Inspecciones Ordenadas
+                  Órdenes
                 </h3>
                 <p style={{ margin: 0, fontSize: 13.5, color: '#64748B', lineHeight: 1.5 }}>
                   Control y seguimiento de inspecciones en estados: Aceptado, Rechazado, Observado y Respuesta Emplazamiento.
@@ -437,16 +493,330 @@ export default function InspeccionRutinaPage() {
                 fontWeight: 750,
                 color: '#10B981'
               }}>
-                Ver inspecciones ({rutinasOrdenadas.length})
+                Ver órdenes ({rutinasOrdenadas.length})
                 <span className="material-icons" style={{ fontSize: 18 }}>arrow_forward</span>
               </div>
             </div>
           </div>
         ) : subTab === 'ALERTAS' ? (
           <BandejaAlertasRutina hideTopbar={true} />
-        ) : isTablet ? (
-          /* Vista de Cards Responsivas (Tablet/Móvil) */
-          sortedFilteredRutinas.length > 0 ? (
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {/* Barra de Filtros Dividida */}
+            <div
+              style={{
+                background: '#FFFFFF',
+                border: '1px solid #E2E8F0',
+                borderRadius: 14,
+                padding: '16px',
+                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.03)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 12,
+              }}
+            >
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))',
+                  gap: 12,
+                  alignItems: 'center',
+                }}
+              >
+                {/* 1. Nombre Establecimiento */}
+                <div style={{ position: 'relative' }}>
+                  <span
+                    className="material-icons"
+                    style={{
+                      position: 'absolute',
+                      left: 12,
+                      top: 10,
+                      color: filtroNombre ? '#0284c7' : '#94A3B8',
+                      fontSize: 18,
+                    }}
+                  >
+                    business
+                  </span>
+                  <input
+                    type="text"
+                    placeholder="Establecimiento..."
+                    value={filtroNombre}
+                    onChange={(e) => setFiltroNombre(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '9px 34px 9px 38px',
+                      borderRadius: 8,
+                      border: `1.5px solid ${filtroNombre ? '#0284c7' : '#CBD5E1'}`,
+                      fontSize: 13,
+                      outline: 'none',
+                      background: filtroNombre ? '#F0F9FF' : '#F8FAFC',
+                      transition: 'all 0.2s ease',
+                      boxSizing: 'border-box',
+                    }}
+                  />
+                  {filtroNombre && (
+                    <button
+                      onClick={() => setFiltroNombre('')}
+                      style={{
+                        position: 'absolute',
+                        right: 8,
+                        top: 8,
+                        background: 'transparent',
+                        border: 'none',
+                        color: '#94A3B8',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        padding: 2,
+                      }}
+                      title="Borrar"
+                    >
+                      <span className="material-icons" style={{ fontSize: 18 }}>
+                        cancel
+                      </span>
+                    </button>
+                  )}
+                </div>
+
+                {/* 2. CUIT */}
+                <div style={{ position: 'relative' }}>
+                  <span
+                    className="material-icons"
+                    style={{
+                      position: 'absolute',
+                      left: 12,
+                      top: 10,
+                      color: filtroCuit ? '#0284c7' : '#94A3B8',
+                      fontSize: 18,
+                    }}
+                  >
+                    badge
+                  </span>
+                  <input
+                    type="text"
+                    placeholder="CUIT..."
+                    value={filtroCuit}
+                    onChange={(e) => setFiltroCuit(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '9px 34px 9px 38px',
+                      borderRadius: 8,
+                      border: `1.5px solid ${filtroCuit ? '#0284c7' : '#CBD5E1'}`,
+                      fontSize: 13,
+                      outline: 'none',
+                      background: filtroCuit ? '#F0F9FF' : '#F8FAFC',
+                      transition: 'all 0.2s ease',
+                      boxSizing: 'border-box',
+                    }}
+                  />
+                  {filtroCuit && (
+                    <button
+                      onClick={() => setFiltroCuit('')}
+                      style={{
+                        position: 'absolute',
+                        right: 8,
+                        top: 8,
+                        background: 'transparent',
+                        border: 'none',
+                        color: '#94A3B8',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        padding: 2,
+                      }}
+                      title="Borrar"
+                    >
+                      <span className="material-icons" style={{ fontSize: 18 }}>
+                        cancel
+                      </span>
+                    </button>
+                  )}
+                </div>
+
+                {/* 3. Nro. Expediente / Trámite */}
+                <div style={{ position: 'relative' }}>
+                  <span
+                    className="material-icons"
+                    style={{
+                      position: 'absolute',
+                      left: 12,
+                      top: 10,
+                      color: filtroExpediente ? '#0284c7' : '#94A3B8',
+                      fontSize: 18,
+                    }}
+                  >
+                    description
+                  </span>
+                  <input
+                    type="text"
+                    placeholder="N° Expediente o Trámite..."
+                    value={filtroExpediente}
+                    onChange={(e) => setFiltroExpediente(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '9px 34px 9px 38px',
+                      borderRadius: 8,
+                      border: `1.5px solid ${filtroExpediente ? '#0284c7' : '#CBD5E1'}`,
+                      fontSize: 13,
+                      outline: 'none',
+                      background: filtroExpediente ? '#F0F9FF' : '#F8FAFC',
+                      transition: 'all 0.2s ease',
+                      boxSizing: 'border-box',
+                    }}
+                  />
+                  {filtroExpediente && (
+                    <button
+                      onClick={() => setFiltroExpediente('')}
+                      style={{
+                        position: 'absolute',
+                        right: 8,
+                        top: 8,
+                        background: 'transparent',
+                        border: 'none',
+                        color: '#94A3B8',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        padding: 2,
+                      }}
+                      title="Borrar"
+                    >
+                      <span className="material-icons" style={{ fontSize: 18 }}>
+                        cancel
+                      </span>
+                    </button>
+                  )}
+                </div>
+
+                {/* 4. Select Departamento */}
+                <div style={{ position: 'relative' }}>
+                  <span
+                    className="material-icons"
+                    style={{
+                      position: 'absolute',
+                      left: 12,
+                      top: 10,
+                      color: filtroDepartamento ? '#0284c7' : '#94A3B8',
+                      fontSize: 18,
+                      pointerEvents: 'none',
+                    }}
+                  >
+                    place
+                  </span>
+                  <select
+                    value={filtroDepartamento}
+                    onChange={(e) => {
+                      setFiltroDepartamento(e.target.value);
+                      setFiltroLocalidad('');
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '9px 30px 9px 38px',
+                      borderRadius: 8,
+                      border: `1.5px solid ${filtroDepartamento ? '#0284c7' : '#CBD5E1'}`,
+                      fontSize: 13,
+                      fontWeight: filtroDepartamento ? 650 : 400,
+                      outline: 'none',
+                      background: filtroDepartamento ? '#F0F9FF' : '#F8FAFC',
+                      color: filtroDepartamento ? '#0369A1' : '#0F172A',
+                      cursor: 'pointer',
+                      boxSizing: 'border-box',
+                    }}
+                  >
+                    <option value="">Todos los Departamentos</option>
+                    {departamentosDisponibles.map((dep) => (
+                      <option key={dep} value={dep}>
+                        {dep}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* 5. Select Localidad */}
+                <div style={{ position: 'relative' }}>
+                  <span
+                    className="material-icons"
+                    style={{
+                      position: 'absolute',
+                      left: 12,
+                      top: 10,
+                      color: filtroLocalidad ? '#0284c7' : '#94A3B8',
+                      fontSize: 18,
+                      pointerEvents: 'none',
+                    }}
+                  >
+                    location_on
+                  </span>
+                  <select
+                    value={filtroLocalidad}
+                    onChange={(e) => setFiltroLocalidad(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '9px 30px 9px 38px',
+                      borderRadius: 8,
+                      border: `1.5px solid ${filtroLocalidad ? '#0284c7' : '#CBD5E1'}`,
+                      fontSize: 13,
+                      fontWeight: filtroLocalidad ? 650 : 400,
+                      outline: 'none',
+                      background: filtroLocalidad ? '#F0F9FF' : '#F8FAFC',
+                      color: filtroLocalidad ? '#0369A1' : '#0F172A',
+                      cursor: 'pointer',
+                      boxSizing: 'border-box',
+                    }}
+                  >
+                    <option value="">Todas las Localidades</option>
+                    {localidadesDisponibles.map((loc) => (
+                      <option key={loc} value={loc}>
+                        {loc}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Botón de limpiar filtros activos si hay alguno */}
+              {hasInputFilters && (
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'flex-end',
+                    paddingTop: 2,
+                  }}
+                >
+                  <button
+                    onClick={() => {
+                      setFiltroNombre('');
+                      setFiltroCuit('');
+                      setFiltroExpediente('');
+                      setFiltroDepartamento('');
+                      setFiltroLocalidad('');
+                    }}
+                    style={{
+                      background: 'transparent',
+                      border: 'none',
+                      color: '#0284c7',
+                      fontSize: 12,
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 4,
+                      padding: '2px 6px',
+                      textDecoration: 'underline',
+                    }}
+                  >
+                    <span className="material-icons" style={{ fontSize: 15 }}>
+                      restart_alt
+                    </span>
+                    Limpiar búsqueda y filtros
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {isTablet ? (
+              /* Vista de Cards Responsivas (Tablet/Móvil) */
+              sortedFilteredRutinas.length > 0 ? (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 'var(--space-4)' }}>
               {sortedFilteredRutinas.map(t => {
                 const conf = ESTADO_CONFIG[t.estado]
@@ -843,6 +1213,8 @@ export default function InspeccionRutinaPage() {
                 })}
               </tbody>
             </table>
+          </div>
+        )}
           </div>
         )}
       </div>

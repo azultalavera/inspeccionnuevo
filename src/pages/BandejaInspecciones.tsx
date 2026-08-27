@@ -63,8 +63,13 @@ export default function BandejaInspecciones() {
     useState<boolean>(false);
   const autocompleteRef = useRef<HTMLDivElement>(null);
 
-  // Search & Pagination States
-  const [busqueda, setBusqueda] = useState<string>("");
+  // Search & Individual Filter States
+  const [filtroNombre, setFiltroNombre] = useState<string>("");
+  const [filtroCuit, setFiltroCuit] = useState<string>("");
+  const [filtroExpediente, setFiltroExpediente] = useState<string>("");
+  const [filtroDepartamento, setFiltroDepartamento] = useState<string>("");
+  const [filtroLocalidad, setFiltroLocalidad] = useState<string>("");
+
   const [paginaSeleccionada, setPaginaSeleccionada] = useState(1);
   const [cantidadFilasPorPagina, setCantidadFilasPorPagina] = useState(10);
 
@@ -106,7 +111,11 @@ export default function BandejaInspecciones() {
     filtroEstado,
     filtroVentanaRutina,
     filtroGeriatricos,
-    busqueda,
+    filtroNombre,
+    filtroCuit,
+    filtroExpediente,
+    filtroDepartamento,
+    filtroLocalidad,
     inspectorFiltro,
   ]);
 
@@ -143,6 +152,24 @@ export default function BandejaInspecciones() {
       .filter(Boolean);
   };
 
+  // Departamentos y Localidades disponibles
+  const departamentosDisponibles = useMemo(() => {
+    const set = new Set<string>();
+    inspeccionesBase.forEach((t) => {
+      if (t.departamento) set.add(t.departamento);
+    });
+    return Array.from(set).sort();
+  }, [inspeccionesBase]);
+
+  const localidadesDisponibles = useMemo(() => {
+    const set = new Set<string>();
+    inspeccionesBase.forEach((t) => {
+      if (filtroDepartamento && t.departamento !== filtroDepartamento) return;
+      if (t.localidad) set.add(t.localidad);
+    });
+    return Array.from(set).sort();
+  }, [inspeccionesBase, filtroDepartamento]);
+
   // Lista única de inspectores
   const listaInspectores = useMemo(() => {
     const nombresSet = new Set<string>();
@@ -166,45 +193,40 @@ export default function BandejaInspecciones() {
         n.toLowerCase().includes((user.apellido || "").toLowerCase()) ||
         n.toLowerCase().includes((user.nombre || "").toLowerCase()),
     );
-    return (
-      encontrado ||
-      (user.nombre && user.apellido ? `${user.nombre} ${user.apellido}` : "")
-    );
-  }, [user, listaInspectores]);
+    return encontrado || "";
+  }, [listaInspectores, user]);
 
-  // Resto de inspectores
+  // Resto de inspectores excluyendo al usuario logueado
   const restoInspectores = useMemo(() => {
-    return listaInspectores.filter(
-      (n) => n.toLowerCase() !== miNombreInspector.toLowerCase(),
-    );
+    if (!miNombreInspector) return listaInspectores;
+    return listaInspectores.filter((n) => n !== miNombreInspector);
   }, [listaInspectores, miNombreInspector]);
 
-  const getInspectorCount = (nombre: string) => {
-    const target = nombre.toLowerCase();
+  // Total de trámites asignados a un inspector
+  const getInspectorCount = (nombre: string): number => {
     return inspeccionesBase.filter((t) => {
       const list = getInspectoresTramite(t);
-      return (
-        list.some((n) => n.toLowerCase().includes(target)) ||
-        (t.inspectorAsignado || "").toLowerCase().includes(target)
-      );
+      return list.includes(nombre);
     }).length;
   };
 
-  // Filtrado por inspector seleccionado en el autocomplete
+  // Filtrado de trámites por inspector seleccionado
   const inspeccionesPorInspector = useMemo(() => {
-    if (!inspectorFiltro || inspectorFiltro === "TODOS")
-      return inspeccionesBase;
-    const target = inspectorFiltro.toLowerCase();
+    if (!inspectorFiltro) return inspeccionesBase;
     return inspeccionesBase.filter((t) => {
       const list = getInspectoresTramite(t);
-      return (
-        list.some((n) => n.toLowerCase().includes(target)) ||
-        (t.inspectorAsignado || "").toLowerCase().includes(target)
-      );
+      return list.includes(inspectorFiltro);
     });
   }, [inspeccionesBase, inspectorFiltro]);
 
-  const esEstadoOrdenado = (estado: string) =>
+  // Trámites de rutina para métricas de nivel 2
+  const inspeccionesRutina = useMemo(() => {
+    return inspeccionesPorInspector.filter(
+      (t) => t.tipoInspeccion === "RUTINA",
+    );
+  }, [inspeccionesPorInspector]);
+
+  const esEstadoOrdenado = (estado: EstadoTramite) =>
     [
       "ACEPTADO_DOC_AUD",
       "EN_ANALISIS_AUD",
@@ -215,19 +237,15 @@ export default function BandejaInspecciones() {
       "DESCARGO_INSP",
     ].includes(estado);
 
-  // Conteo Grupo 1 (Tipos)
+  // Métricas del Nivel 1 (Tipos de Trámite principales)
   const countTotal = inspeccionesPorInspector.length;
   const countHabilitacion = inspeccionesPorInspector.filter(
-    (t) => t.tipoInspeccion === "HABILITACION",
+    (t) => t.tipoInspeccion === "HABILITACION" || t.tipoInspeccion === "INICIAL" || t.tipoInspeccion === "RE_INSPECCION",
   ).length;
-  const countRutina = inspeccionesPorInspector.filter(
-    (t) => t.tipoInspeccion === "RUTINA",
-  ).length;
+  const countRutina = inspeccionesRutina.length;
+  const countRutinaTotal = countRutina;
 
-  // Métricas contextuales para Grupo 2 (Rutina)
-  const inspeccionesRutina = inspeccionesPorInspector.filter(
-    (t) => t.tipoInspeccion === "RUTINA",
-  );
+  // Métricas del Nivel 2 para Rutina
   const countRutinasOrdenadas = inspeccionesRutina.filter((t) =>
     esEstadoOrdenado(t.estado),
   ).length;
@@ -251,12 +269,10 @@ export default function BandejaInspecciones() {
       (t.tipologia || "").toLowerCase().includes("geriátricos"),
   ).length;
 
-  // Habilitación / Todos:
+  // Métricas del Nivel 2 para Habilitación
   const inspeccionesContexto =
-    tipoFiltro === "HABILITACION"
-      ? inspeccionesPorInspector.filter(
-          (t) => t.tipoInspeccion === "HABILITACION",
-        )
+    tipoFiltro !== "TODOS"
+      ? inspeccionesPorInspector.filter((t) => t.tipoInspeccion === tipoFiltro)
       : inspeccionesPorInspector;
 
   const countPendientes = inspeccionesContexto.filter(
@@ -317,27 +333,26 @@ export default function BandejaInspecciones() {
       }
     }
 
-    // 3. Búsqueda de texto
-    if (busqueda.trim() !== "") {
-      const q = busqueda.toLowerCase();
-      const matchDenom = (t.denominacion || "").toLowerCase().includes(q);
+    // 3. Filtros divididos individuales
+    if (filtroNombre.trim() !== "") {
+      const q = filtroNombre.toLowerCase();
+      if (!(t.denominacion || "").toLowerCase().includes(q)) return false;
+    }
+    if (filtroCuit.trim() !== "") {
+      const q = filtroCuit.toLowerCase();
+      if (!(t.cuit || "").toLowerCase().includes(q)) return false;
+    }
+    if (filtroExpediente.trim() !== "") {
+      const q = filtroExpediente.toLowerCase();
       const matchExp = (t.nroExpediente || "").toLowerCase().includes(q);
       const matchTramite = (t.nroTramite || "").toLowerCase().includes(q);
-      const matchCuit = (t.cuit || "").includes(q);
-      const matchInsp = (t.inspectorAsignado || t.agenteAsignado || "")
-        .toLowerCase()
-        .includes(q);
-      const matchLoc = (t.localidad || "").toLowerCase().includes(q);
-      if (
-        !matchDenom &&
-        !matchExp &&
-        !matchTramite &&
-        !matchCuit &&
-        !matchInsp &&
-        !matchLoc
-      ) {
-        return false;
-      }
+      if (!matchExp && !matchTramite) return false;
+    }
+    if (filtroDepartamento !== "") {
+      if ((t.departamento || "") !== filtroDepartamento) return false;
+    }
+    if (filtroLocalidad !== "") {
+      if ((t.localidad || "") !== filtroLocalidad) return false;
     }
 
     return true;
@@ -353,20 +368,31 @@ export default function BandejaInspecciones() {
     paginaSeleccionada * cantidadFilasPorPagina,
   );
 
+  const hasInputFilters =
+    filtroNombre.trim() !== "" ||
+    filtroCuit.trim() !== "" ||
+    filtroExpediente.trim() !== "" ||
+    filtroDepartamento !== "" ||
+    filtroLocalidad !== "" ||
+    inspectorFiltro !== "";
+
   const hasActiveFilters =
     tipoFiltro !== "TODOS" ||
     filtroEstado !== "TODOS" ||
     filtroVentanaRutina !== "TODAS" ||
     filtroGeriatricos ||
-    busqueda.trim() !== "" ||
-    inspectorFiltro !== "";
+    hasInputFilters;
 
   const handleLimpiarFiltros = () => {
     setTipoFiltro("TODOS");
     setFiltroEstado("TODOS");
     setFiltroVentanaRutina("TODAS");
     setFiltroGeriatricos(false);
-    setBusqueda("");
+    setFiltroNombre("");
+    setFiltroCuit("");
+    setFiltroExpediente("");
+    setFiltroDepartamento("");
+    setFiltroLocalidad("");
     setInspectorFiltro("");
     setInspectorSearchText("");
     setPaginaSeleccionada(1);
@@ -800,7 +826,7 @@ export default function BandejaInspecciones() {
                           textTransform: "uppercase",
                         }}
                       >
-                        Ordenadas
+                        Ordenes
                       </span>
                       <span
                         className="material-icons"
@@ -1432,82 +1458,276 @@ export default function BandejaInspecciones() {
           </div>
         </div>
 
-        {/* Barra de Búsqueda y Filtro de Inspector (Autocomplete) */}
+        {/* Barra de Filtros Dividida */}
         <div
           style={{
             background: "#FFFFFF",
             border: "1px solid #E2E8F0",
             borderRadius: 14,
-            padding: "12px 16px",
+            padding: "16px",
             boxShadow: "0 1px 3px rgba(0, 0, 0, 0.03)",
-            display: "grid",
-            gridTemplateColumns: "minmax(280px, 1fr) minmax(260px, 340px)",
-            gap: 14,
-            alignItems: "center",
+            display: "flex",
+            flexDirection: "column",
+            gap: 12,
           }}
         >
-          {/* Buscador de texto */}
-          <div style={{ position: "relative" }}>
-            <span
-              className="material-icons"
-              style={{
-                position: "absolute",
-                left: 12,
-                top: 10,
-                color: "#94A3B8",
-                fontSize: 18,
-              }}
-            >
-              search
-            </span>
-            <input
-              type="text"
-              placeholder="Buscar por establecimiento, CUIT, expediente, inspector o localidad..."
-              value={busqueda}
-              onChange={(e) => setBusqueda(e.target.value)}
-              style={{
-                width: "100%",
-                padding: "9px 36px 9px 38px",
-                borderRadius: 8,
-                border: "1px solid #CBD5E1",
-                fontSize: 13,
-                outline: "none",
-                background: "#F8FAFC",
-                transition: "all 0.2s ease",
-                boxSizing: "border-box",
-              }}
-              onFocus={(e) => {
-                e.currentTarget.style.borderColor = "#0284c7";
-                e.currentTarget.style.background = "#FFFFFF";
-              }}
-              onBlur={(e) => {
-                e.currentTarget.style.borderColor = "#CBD5E1";
-                e.currentTarget.style.background = "#F8FAFC";
-              }}
-            />
-            {busqueda && (
-              <button
-                onClick={() => setBusqueda("")}
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+              gap: 12,
+              alignItems: "center",
+            }}
+          >
+            {/* 1. Nombre Establecimiento */}
+            <div style={{ position: "relative" }}>
+              <span
+                className="material-icons"
                 style={{
                   position: "absolute",
-                  right: 8,
-                  top: 8,
-                  background: "transparent",
-                  border: "none",
-                  color: "#94A3B8",
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  padding: 2,
+                  left: 12,
+                  top: 10,
+                  color: filtroNombre ? "#0284c7" : "#94A3B8",
+                  fontSize: 18,
                 }}
-                title="Borrar búsqueda"
               >
-                <span className="material-icons" style={{ fontSize: 18 }}>
-                  cancel
-                </span>
-              </button>
-            )}
-          </div>
+                business
+              </span>
+              <input
+                type="text"
+                placeholder="Establecimiento..."
+                value={filtroNombre}
+                onChange={(e) => setFiltroNombre(e.target.value)}
+                style={{
+                  width: "100%",
+                  padding: "9px 34px 9px 38px",
+                  borderRadius: 8,
+                  border: `1.5px solid ${filtroNombre ? "#0284c7" : "#CBD5E1"}`,
+                  fontSize: 13,
+                  outline: "none",
+                  background: filtroNombre ? "#F0F9FF" : "#F8FAFC",
+                  transition: "all 0.2s ease",
+                  boxSizing: "border-box",
+                }}
+              />
+              {filtroNombre && (
+                <button
+                  onClick={() => setFiltroNombre("")}
+                  style={{
+                    position: "absolute",
+                    right: 8,
+                    top: 8,
+                    background: "transparent",
+                    border: "none",
+                    color: "#94A3B8",
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    padding: 2,
+                  }}
+                  title="Borrar"
+                >
+                  <span className="material-icons" style={{ fontSize: 18 }}>
+                    cancel
+                  </span>
+                </button>
+              )}
+            </div>
+
+            {/* 2. CUIT */}
+            <div style={{ position: "relative" }}>
+              <span
+                className="material-icons"
+                style={{
+                  position: "absolute",
+                  left: 12,
+                  top: 10,
+                  color: filtroCuit ? "#0284c7" : "#94A3B8",
+                  fontSize: 18,
+                }}
+              >
+                badge
+              </span>
+              <input
+                type="text"
+                placeholder="CUIT..."
+                value={filtroCuit}
+                onChange={(e) => setFiltroCuit(e.target.value)}
+                style={{
+                  width: "100%",
+                  padding: "9px 34px 9px 38px",
+                  borderRadius: 8,
+                  border: `1.5px solid ${filtroCuit ? "#0284c7" : "#CBD5E1"}`,
+                  fontSize: 13,
+                  outline: "none",
+                  background: filtroCuit ? "#F0F9FF" : "#F8FAFC",
+                  transition: "all 0.2s ease",
+                  boxSizing: "border-box",
+                }}
+              />
+              {filtroCuit && (
+                <button
+                  onClick={() => setFiltroCuit("")}
+                  style={{
+                    position: "absolute",
+                    right: 8,
+                    top: 8,
+                    background: "transparent",
+                    border: "none",
+                    color: "#94A3B8",
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    padding: 2,
+                  }}
+                  title="Borrar"
+                >
+                  <span className="material-icons" style={{ fontSize: 18 }}>
+                    cancel
+                  </span>
+                </button>
+              )}
+            </div>
+
+            {/* 3. Nro. Expediente / Trámite */}
+            <div style={{ position: "relative" }}>
+              <span
+                className="material-icons"
+                style={{
+                  position: "absolute",
+                  left: 12,
+                  top: 10,
+                  color: filtroExpediente ? "#0284c7" : "#94A3B8",
+                  fontSize: 18,
+                }}
+              >
+                description
+              </span>
+              <input
+                type="text"
+                placeholder="N° Expediente o Trámite..."
+                value={filtroExpediente}
+                onChange={(e) => setFiltroExpediente(e.target.value)}
+                style={{
+                  width: "100%",
+                  padding: "9px 34px 9px 38px",
+                  borderRadius: 8,
+                  border: `1.5px solid ${filtroExpediente ? "#0284c7" : "#CBD5E1"}`,
+                  fontSize: 13,
+                  outline: "none",
+                  background: filtroExpediente ? "#F0F9FF" : "#F8FAFC",
+                  transition: "all 0.2s ease",
+                  boxSizing: "border-box",
+                }}
+              />
+              {filtroExpediente && (
+                <button
+                  onClick={() => setFiltroExpediente("")}
+                  style={{
+                    position: "absolute",
+                    right: 8,
+                    top: 8,
+                    background: "transparent",
+                    border: "none",
+                    color: "#94A3B8",
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    padding: 2,
+                  }}
+                  title="Borrar"
+                >
+                  <span className="material-icons" style={{ fontSize: 18 }}>
+                    cancel
+                  </span>
+                </button>
+              )}
+            </div>
+
+            {/* 4. Select Departamento */}
+            <div style={{ position: "relative" }}>
+              <span
+                className="material-icons"
+                style={{
+                  position: "absolute",
+                  left: 12,
+                  top: 10,
+                  color: filtroDepartamento ? "#0284c7" : "#94A3B8",
+                  fontSize: 18,
+                  pointerEvents: "none",
+                }}
+              >
+                place
+              </span>
+              <select
+                value={filtroDepartamento}
+                onChange={(e) => {
+                  setFiltroDepartamento(e.target.value);
+                  setFiltroLocalidad("");
+                }}
+                style={{
+                  width: "100%",
+                  padding: "9px 30px 9px 38px",
+                  borderRadius: 8,
+                  border: `1.5px solid ${filtroDepartamento ? "#0284c7" : "#CBD5E1"}`,
+                  fontSize: 13,
+                  fontWeight: filtroDepartamento ? 650 : 400,
+                  outline: "none",
+                  background: filtroDepartamento ? "#F0F9FF" : "#F8FAFC",
+                  color: filtroDepartamento ? "#0369A1" : "#0F172A",
+                  cursor: "pointer",
+                  boxSizing: "border-box",
+                }}
+              >
+                <option value="">Todos los Departamentos</option>
+                {departamentosDisponibles.map((dep) => (
+                  <option key={dep} value={dep}>
+                    {dep}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* 5. Select Localidad */}
+            <div style={{ position: "relative" }}>
+              <span
+                className="material-icons"
+                style={{
+                  position: "absolute",
+                  left: 12,
+                  top: 10,
+                  color: filtroLocalidad ? "#0284c7" : "#94A3B8",
+                  fontSize: 18,
+                  pointerEvents: "none",
+                }}
+              >
+                location_on
+              </span>
+              <select
+                value={filtroLocalidad}
+                onChange={(e) => setFiltroLocalidad(e.target.value)}
+                style={{
+                  width: "100%",
+                  padding: "9px 30px 9px 38px",
+                  borderRadius: 8,
+                  border: `1.5px solid ${filtroLocalidad ? "#0284c7" : "#CBD5E1"}`,
+                  fontSize: 13,
+                  fontWeight: filtroLocalidad ? 650 : 400,
+                  outline: "none",
+                  background: filtroLocalidad ? "#F0F9FF" : "#F8FAFC",
+                  color: filtroLocalidad ? "#0369A1" : "#0F172A",
+                  cursor: "pointer",
+                  boxSizing: "border-box",
+                }}
+              >
+                <option value="">Todas las Localidades</option>
+                {localidadesDisponibles.map((loc) => (
+                  <option key={loc} value={loc}>
+                    {loc}
+                  </option>
+                ))}
+              </select>
+            </div>
 
           {/* Autocomplete de Inspector */}
           <div ref={autocompleteRef} style={{ position: "relative" }}>
@@ -1913,6 +2133,48 @@ export default function BandejaInspecciones() {
               </div>
             )}
           </div>
+        </div>
+
+        {/* Botón de limpiar filtros activos si hay alguno */}
+          {hasInputFilters && (
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "flex-end",
+                paddingTop: 2,
+              }}
+            >
+              <button
+                onClick={() => {
+                  setFiltroNombre("");
+                  setFiltroCuit("");
+                  setFiltroExpediente("");
+                  setFiltroDepartamento("");
+                  setFiltroLocalidad("");
+                  setInspectorFiltro("");
+                  setInspectorSearchText("");
+                }}
+                style={{
+                  background: "transparent",
+                  border: "none",
+                  color: "#0284c7",
+                  fontSize: 12,
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 4,
+                  padding: "2px 6px",
+                  textDecoration: "underline",
+                }}
+              >
+                <span className="material-icons" style={{ fontSize: 15 }}>
+                  restart_alt
+                </span>
+                Limpiar búsqueda y filtros
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Tabla Unificada de Inspecciones */}
