@@ -67,12 +67,12 @@ export default function ModuloTramites() {
             </span>
           </div>
 
-          {/* CARD 2: CONSULTAR ADECUACIÓN */}
+          {/* CARD 2: INSPECCIONES OBSERVADAS */}
           <div
-            onClick={() => navigate('/coordinador/adecuacion')}
+            onClick={() => navigate('/coordinador/inspecciones', { state: { filtroEstado: 'OBSERVADAS' } })}
             style={{
               background: '#FFFFFF',
-              border: '2px solid #8E44AD',
+              border: '2px solid #EA580C',
               borderRadius: 16,
               padding: '32px 24px',
               cursor: 'pointer',
@@ -81,33 +81,33 @@ export default function ModuloTramites() {
               alignItems: 'center',
               justifyContent: 'center',
               gap: 16,
-              boxShadow: '0 4px 14px rgba(142, 68, 173, 0.08)',
+              boxShadow: '0 4px 14px rgba(234, 88, 12, 0.08)',
               transition: 'all 0.2s ease',
               textAlign: 'center'
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.transform = 'translateY(-4px)'
-              e.currentTarget.style.boxShadow = '0 12px 24px rgba(142, 68, 173, 0.2)'
+              e.currentTarget.style.boxShadow = '0 12px 24px rgba(234, 88, 12, 0.2)'
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.transform = 'none'
-              e.currentTarget.style.boxShadow = '0 4px 14px rgba(142, 68, 173, 0.08)'
+              e.currentTarget.style.boxShadow = '0 4px 14px rgba(234, 88, 12, 0.08)'
             }}
           >
             <div style={{
               width: 64,
               height: 64,
               borderRadius: '50%',
-              background: '#F3E8FF',
-              color: '#8E44AD',
+              background: '#FFF7ED',
+              color: '#EA580C',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center'
             }}>
-              <span className="material-icons" style={{ fontSize: 36 }}>rule</span>
+              <span className="material-icons" style={{ fontSize: 36 }}>rate_review</span>
             </div>
-            <span style={{ fontSize: 17, fontWeight: 800, color: '#581C87' }}>
-              Consultar Adecuación
+            <span style={{ fontSize: 17, fontWeight: 800, color: '#9A3412' }}>
+              Inspecciones Observadas
             </span>
           </div>
         </div>

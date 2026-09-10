@@ -5,6 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "server": "node backend/src/server.js",
+    "test": "node --test backend/tests/inspecciones.test.js backend/tests/denuncias.test.js backend/tests/coordinador_inspector_3roles.test.js",
     "build": "tsc && vite build",
     "preview": "vite preview"
   },

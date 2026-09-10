@@ -4,6 +4,7 @@ import { TRAMITES, type Tramite, type EstadoTramite, ESTADO_CONFIG } from '../da
 import { useAuth } from '../context/AuthContext'
 import { useApp } from '../context/AppContext'
 import TableActionsMenu from '../components/TableActionsMenu'
+import ModalEmitirOrdenRutina from '../components/ModalEmitirOrdenRutina'
 
 const getTipologiaIcon = (tipologia?: string) => {
   if (!tipologia) return 'local_hospital'
@@ -35,10 +36,12 @@ export default function InspeccionHabilitacionPage() {
   const navigate = useNavigate()
   const isTablet = useIsTablet()
 
+  const isCoordinador = user?.rol === 'COORDINADOR'
   const [localTramites, setLocalTramites] = useState<Tramite[]>(TRAMITES)
   const [searchTerm, setSearchTerm] = useState('')
   const [filterEstado, setFilterEstado] = useState<string>('TODOS')
   const [filterFormato, setFilterFormato] = useState<string>('TODOS')
+  const [tramiteEmitirOrden, setTramiteEmitirOrden] = useState<Tramite | null>(null)
 
   useEffect(() => {
     setLocalTramites(tramites)
@@ -879,6 +882,17 @@ export default function InspeccionHabilitacionPage() {
           </div>
         )}
       </div>
+
+      {/* Modal Emitir Orden Rutina */}
+      {tramiteEmitirOrden && (
+        <ModalEmitirOrdenRutina
+          tramite={tramiteEmitirOrden}
+          onClose={() => setTramiteEmitirOrden(null)}
+          onSuccess={(nuevo) => {
+            setLocalTramites(prev => [nuevo, ...prev])
+          }}
+        />
+      )}
     </>
   )
 }

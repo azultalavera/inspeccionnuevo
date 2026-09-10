@@ -49,7 +49,7 @@ export const TIPOLOGIAS_DATA: Record<string, { label: string; icon: string; requ
   },
   'ESTABLECIMIENTOS GERIÁTRICOS': {
     label: 'ESTABLECIMIENTOS GERIÁTRICOS',
-    icon: 'home_emergency',
+    icon: 'local_hospital',
     requerida: 'Camas de Internación Prolongada, Sala de Procedimientos y accesibilidad completa.',
     restricciones: 'Quirófanos, UTI, UCO, UTIP, NEO.'
   },

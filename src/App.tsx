@@ -136,7 +136,8 @@ function AppRoutes() {
             <Route path="tramites" element={<ModuloTramites />} />
             <Route path="asignacion" element={<BandejaAsignacion />} />
             <Route path="alertas-rutina" element={<BandejaAlertasRutina />} />
-            <Route path="adecuacion" element={<BandejaAdecuacion />} />
+            <Route path="adecuacion" element={<Navigate to="/coordinador/inspecciones" state={{ filtroEstado: 'OBSERVADAS' }} replace />} />
+            <Route path="validacion/:id" element={<ValidacionRespuestas />} />
           </Route>
           <Route path="/coordinador/inspeccion/:id" element={<PantallaInspeccion />} />
           <Route path="/coordinador/revision/:id" element={<PantallaInspeccion />} />
