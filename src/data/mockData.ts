@@ -66,6 +66,8 @@ export interface Tramite {
   motivoReInspeccion?: string;
   prioridadDenuncia?: 'CRITICA' | 'URGENTE' | 'NORMAL';
   origenDenuncia?: 'CIUDADANA' | 'JUDICIAL' | 'AUTORIDAD';
+  frecuenciaRutinaAnual?: number;
+  inspeccionesRealizadasAno?: number;
 }
 
 export interface Establecimiento {
@@ -190,6 +192,58 @@ export interface DocumentoAdjunto {
 // ── TRÁMITES MOCK ──────────────────────────────────────────────
 
 export const TRAMITES: Tramite[] = [
+  {
+    id: 'TRM-HAB-001',
+    nroTramite: '2026-HAB-000101',
+    nroExpediente: 'EX-2026-0010101-APN-MS#CBA',
+    denominacion: 'Clínica Privada San Jerónimo',
+    cuit: '30-71554433-2',
+    tipologia: 'CLÍNICA, SANATORIO U HOSPITAL PRIVADO',
+    domicilio: 'Av. Colón 2800',
+    localidad: 'Córdoba',
+    departamento: 'Capital',
+    estado: 'ACEPTADO_DOC_AUD',
+    fechaIngreso: '2026-08-15',
+    inspectorAsignado: 'Dra. Valeria Romero',
+    agenteAsignado: 'Dra. Valeria Romero',
+    tipoInspeccion: 'HABILITACION',
+    formatoInspeccion: 'PRESENCIAL',
+    tipoTramite: 'HABILITACION',
+    nroActa: 1,
+  },
+  {
+    id: 'TRM-HAB-002',
+    nroTramite: '2026-HAB-000202',
+    nroExpediente: 'EX-2026-0020202-APN-MS#CBA',
+    denominacion: 'Sanatorio Metropolitano Córdoba',
+    cuit: '30-68997755-1',
+    tipologia: 'CLÍNICA, SANATORIO U HOSPITAL PRIVADO',
+    domicilio: 'Bv. San Juan 1450',
+    localidad: 'Córdoba',
+    departamento: 'Capital',
+    estado: 'DESCARGO_INSP',
+    fechaIngreso: '2026-07-20',
+    inspectorAsignado: 'Dra. Valeria Romero',
+    agenteAsignado: 'Dra. Valeria Romero',
+    tipoInspeccion: 'HABILITACION',
+    formatoInspeccion: 'PRESENCIAL',
+    tipoTramite: 'HABILITACION',
+    nroActa: 1,
+    emplazamiento: {
+      actaNumero: 'ACTA-001/2026',
+      faltasCriticasCount: 4,
+      diasRestantes: 5,
+      fechaVencimiento: '2026-09-10',
+      respuestaEmplazamientoRealizada: true,
+      observaciones: [
+        'No se constatan 6 quirófanos (declarados 11, constatados 5)',
+        'Excedente no declarado en camas de uso transitorio',
+        'Falta de firma profesional en Plano de Arquitectura',
+        'Falta de blindaje de plomo en puerta de Rayos X',
+        'Certificado de bomberos vencido'
+      ]
+    }
+  },
   {
     id: 'TRM001',
     nroTramite: '2024-000123',
@@ -371,7 +425,7 @@ export const TRAMITES: Tramite[] = [
       tipoTramite: 'HABILITACION'
     },
     {
-      id: 'TRM011',
+      id: 'TRM021',
       nroTramite: '2024-000611',
       nroExpediente: 'EX-2024-0110202-APN-MS#CBA',
       denominacion: 'Centro de Salud Ambulatorio San Francisco',
@@ -389,7 +443,7 @@ export const TRAMITES: Tramite[] = [
       tipoTramite: 'RENOVACION'
     },
     {
-      id: 'TRM012',
+      id: 'TRM022',
       nroTramite: '2024-000612',
       nroExpediente: 'EX-2024-0110203-APN-MS#CBA',
       denominacion: 'Unidad de Cirugía Ambulatoria Córdoba',
@@ -407,7 +461,7 @@ export const TRAMITES: Tramite[] = [
       tipoTramite: 'MODIFICACION'
     },
     {
-      id: 'TRM013',
+      id: 'TRM023',
       nroTramite: '2024-000613',
       nroExpediente: 'EX-2024-0110204-APN-MS#CBA',
       denominacion: 'Hogar Residencia Sol de Otoño',
@@ -425,7 +479,7 @@ export const TRAMITES: Tramite[] = [
       tipoTramite: 'HABILITACION'
     },
     {
-      id: 'TRM014',
+      id: 'TRM024',
       nroTramite: '2024-000614',
       nroExpediente: 'EX-2024-0110205-APN-MS#CBA',
       denominacion: 'Centro Médico Ambulatorio Nueva Córdoba',
@@ -443,7 +497,7 @@ export const TRAMITES: Tramite[] = [
       tipoTramite: 'RENOVACION'
     },
     {
-      id: 'TRM015',
+      id: 'TRM025',
       nroTramite: '2024-000502',
       nroExpediente: 'EX-2024-0100003-APN-MS#CBA',
       denominacion: 'Hospital Nuevo Horizonte',
@@ -706,6 +760,8 @@ export const TRAMITES: Tramite[] = [
       nroActa: 101,
       agenteAsignado: 'Dra. Valeria Romero',
       alertaRutina: 'CRITICO_VENCIDO',
+      frecuenciaRutinaAnual: 3,
+      inspeccionesRealizadasAno: 2,
       emplazamiento: {
         actaNumero: '101/2026',
         faltasCriticasCount: 3,
@@ -750,7 +806,9 @@ export const TRAMITES: Tramite[] = [
       formatoInspeccion: 'VIRTUAL',
       nroActa: 103,
       agenteAsignado: 'Dra. Valeria Romero',
-      alertaRutina: 'ALERTA_T30'
+      alertaRutina: 'ALERTA_T30',
+      frecuenciaRutinaAnual: 3,
+      inspeccionesRealizadasAno: 1
     },
     {
       id: 'TRM104',
@@ -770,6 +828,27 @@ export const TRAMITES: Tramite[] = [
       nroActa: 104,
       agenteAsignado: 'Dra. Valeria Romero',
       alertaRutina: 'AL_DIA'
+    },
+    {
+      id: 'TRM105',
+      nroTramite: '2024-001005',
+      nroExpediente: 'EX-2024-0160005-APN-MS#CBA',
+      denominacion: 'Residencia Geriátrica La Florida',
+      cuit: '30-71991122-8',
+      tipologia: 'ESTABLECIMIENTOS GERIÁTRICOS',
+      domicilio: 'Av. Richieri 2150',
+      localidad: 'Córdoba',
+      departamento: 'Capital',
+      estado: 'ACEPTADO_DOC_AUD',
+      fechaIngreso: '2024-06-18',
+      inspectorAsignado: 'Dra. Valeria Romero',
+      tipoInspeccion: 'RUTINA',
+      formatoInspeccion: 'PRESENCIAL',
+      nroActa: 105,
+      agenteAsignado: 'Dra. Valeria Romero',
+      alertaRutina: 'ALERTA_T30',
+      frecuenciaRutinaAnual: 3,
+      inspeccionesRealizadasAno: 2
     }
 ];
 
@@ -970,7 +1049,7 @@ export const HALLAZGOS: Hallazgo[] = [
 
 // ── USUARIOS MOCK ─────────────────────────────────────────────
 
-export type Rol = 'INSPECTOR' | 'ARQUITECTO' | 'AUDITOR' | 'COORDINADOR' | 'PROTOCOLIZADOR' | 'EFECTOR' | 'CONSULTOR';
+export type Rol = 'INSPECTOR' | 'ARQUITECTO' | 'AUDITOR' | 'COORDINADOR' | 'PROTOCOLIZADOR' | 'EFECTOR' | 'CONSULTOR' | 'AGENTE_DENUNCIAS' | 'ADMINISTRADOR';
 
 export interface Usuario {
   id: string;
@@ -1037,6 +1116,22 @@ export const USUARIOS: Usuario[] = [
     cuil: '27-77889900-1',
     rol: 'CONSULTOR',
     avatar: 'LM',
+  },
+  {
+    id: 'USR008',
+    nombre: 'Lucía',
+    apellido: 'Navarro',
+    cuil: '27-88990011-2',
+    rol: 'AGENTE_DENUNCIAS',
+    avatar: 'AD',
+  },
+  {
+    id: 'USR009',
+    nombre: 'Administrador',
+    apellido: 'General',
+    cuil: '20-11223344-5',
+    rol: 'ADMINISTRADOR',
+    avatar: 'AG',
   },
 ];
 
@@ -1374,3 +1469,361 @@ export const ALERTAS_RUTINA: AlertaRutinaItem[] = [
   },
 ];
 
+// ── ÓRDENES DE DENUNCIA (AGENTE DENUNCIAS) ─────────────────────────
+
+export type EstadoOrdenDenuncia =
+  | 'ASIGNADA_A_COORDINADOR'
+  | 'EN_INSPECCION'
+  | 'ACEPTADA'
+  | 'RECHAZADA';
+
+export const ESTADO_ORDEN_DENUNCIA_CONFIG: Record<
+  EstadoOrdenDenuncia,
+  { label: string; color: string; bg: string; border: string; icon: string; description: string }
+> = {
+  ASIGNADA_A_COORDINADOR: {
+    label: 'Asignada a Coordinador',
+    color: '#0284C7',
+    bg: '#E0F2FE',
+    border: '#BAE6FD',
+    icon: 'people',
+    description: 'Derivada al Coordinador para designación de equipo y fecha de operativo in situ',
+  },
+  EN_INSPECCION: {
+    label: 'En Inspección',
+    color: '#D97706',
+    bg: '#FEF3C7',
+    border: '#FDE68A',
+    icon: 'search',
+    description: 'En curso con inspector asignado para constatación técnica y labrado de acta',
+  },
+  ACEPTADA: {
+    label: 'Aceptada',
+    color: '#16A34A',
+    bg: '#DCFCE7',
+    border: '#BBF7D0',
+    icon: 'check_circle',
+    description: 'Denuncia formalmente admitida y validada para curso legal/administrativo',
+  },
+  RECHAZADA: {
+    label: 'Rechazada',
+    color: '#DC2626',
+    bg: '#FEE2E2',
+    border: '#FECACA',
+    icon: 'cancel',
+    description: 'Desestimada por incompetencia territorial, falta de mérito probatorio o duplicidad',
+  },
+};
+
+export interface EvidenciaOrdenDenuncia {
+  id: string;
+  nombre: string;
+  tamaño: string;
+  tipo: 'IMAGEN' | 'PDF' | 'DOCUMENTO';
+  url?: string;
+}
+
+export interface OrdenDenuncia {
+  id: string;
+  nroOrden: string;
+  nroExpediente: string;
+  nroExpedienteDenuncia: string;
+  fechaCreacion: string;
+  establecimiento: {
+    id?: string;
+    denominacion: string;
+    cuit: string;
+    tipologia: string;
+    domicilio: string;
+    localidad: string;
+    departamento: string;
+    esRegistrado: boolean;
+  };
+  origen: OrigenDenuncia;
+  prioridad: PrioridadDenuncia;
+  motivo: string;
+  descripcionMotivo: string;
+  estado: EstadoOrdenDenuncia;
+  coordinadorAsignado?: string;
+  inspectorAsignado?: string;
+  modalidad: 'PRESENCIAL' | 'VIRTUAL';
+  motivoRechazo?: string;
+  observaciones?: string;
+  fechaInspeccionSugerida?: string;
+  tramiteAsociadoId?: string;
+  creadoPor: string;
+  adjuntos?: EvidenciaOrdenDenuncia[];
+}
+
+export const ORDENES_DENUNCIA: OrdenDenuncia[] = [
+  {
+    id: 'ORD-DEN-001',
+    nroOrden: 'ORD-2026-00014',
+    nroExpediente: 'EX-2026-0158900-APN-MS#CBA',
+    nroExpedienteDenuncia: 'DEN-2026-0041',
+    fechaCreacion: '2026-08-28',
+    establecimiento: {
+      id: 'EST010',
+      denominacion: 'Sanatorio Sierra Bella S.A.',
+      cuit: '30-71882233-9',
+      tipologia: 'CLÍNICA, SANATORIO U HOSPITAL PRIVADO',
+      domicilio: 'Av. Colón 4500',
+      localidad: 'Córdoba',
+      departamento: 'Capital',
+      esRegistrado: true,
+    },
+    origen: 'JUDICIAL',
+    prioridad: 'CRITICA',
+    motivo: 'CONDICIONES_HIGIENICO_SANITARIAS',
+    descripcionMotivo: 'Requerimiento judicial por presunto abandono de paciente en guardia y falta de insumos críticos de soporte vital.',
+    estado: 'ASIGNADA_A_COORDINADOR',
+    coordinadorAsignado: 'Juan Gomez',
+    modalidad: 'PRESENCIAL',
+    observaciones: 'Oficio Judicial N° 1204/2026. Requiere designación urgente de comisión de inspectores.',
+    fechaInspeccionSugerida: '2026-09-03',
+    creadoPor: 'Lucía Navarro (Agente Denuncias)',
+    adjuntos: [
+      { id: 'ADJ-1', nombre: 'Oficio_Judicial_1204_2026.pdf', tamaño: '1.4 MB', tipo: 'PDF' },
+      { id: 'ADJ-2', nombre: 'Acta_Preventiva_Guardia.pdf', tamaño: '850 KB', tipo: 'PDF' }
+    ]
+  },
+  {
+    id: 'ORD-DEN-002',
+    nroOrden: 'ORD-2026-00015',
+    nroExpediente: 'EX-2026-0100010-APN-MS#CBA',
+    nroExpedienteDenuncia: 'DEN-2026-0038',
+    fechaCreacion: '2026-08-27',
+    establecimiento: {
+      id: 'EST012',
+      denominacion: 'Farmacia del Centro',
+      cuit: '30-44444444-4',
+      tipologia: 'FARMACIA',
+      domicilio: 'Av. General Paz 320',
+      localidad: 'Córdoba',
+      departamento: 'Capital',
+      esRegistrado: true,
+    },
+    origen: 'CIUDADANA',
+    prioridad: 'URGENTE',
+    motivo: 'FALTA_HABILITACION',
+    descripcionMotivo: 'Despacho de psicofármacos y medicamentos de venta bajo receta archivada sin presencia de profesional farmacéutico director.',
+    estado: 'EN_INSPECCION',
+    inspectorAsignado: 'Dra. Valeria Romero',
+    modalidad: 'PRESENCIAL',
+    observaciones: 'Inspector en terreno realizando verificación del libro de psicotrópicos y stock.',
+    tramiteAsociadoId: 'TRM011',
+    creadoPor: 'Lucía Navarro (Agente Denuncias)',
+    adjuntos: [
+      { id: 'ADJ-3', nombre: 'Ticket_Venta_Denunciado.jpg', tamaño: '2.1 MB', tipo: 'IMAGEN' }
+    ]
+  },
+  {
+    id: 'ORD-DEN-003',
+    nroOrden: 'ORD-2026-00016',
+    nroExpediente: 'EX-2026-0158901-APN-MS#CBA',
+    nroExpedienteDenuncia: 'DEN-2026-0042',
+    fechaCreacion: '2026-08-25',
+    establecimiento: {
+      id: 'EST011',
+      denominacion: 'Geriátrico Nueva Esperanza',
+      cuit: '30-71445566-3',
+      tipologia: 'ESTABLECIMIENTOS GERIÁTRICOS',
+      domicilio: 'Av. Patria 890',
+      localidad: 'Córdoba',
+      departamento: 'Capital',
+      esRegistrado: true,
+    },
+    origen: 'AUTORIDAD',
+    prioridad: 'CRITICA',
+    motivo: 'CONDICIONES_HIGIENICO_SANITARIAS',
+    descripcionMotivo: 'Disposición de la Dirección de Asuntos Legales por acopio indebido de residuos patogénicos sin retiro de empresa habilitada.',
+    estado: 'ACEPTADA',
+    coordinadorAsignado: 'Juan Gomez',
+    modalidad: 'PRESENCIAL',
+    observaciones: 'Denuncia admitida con mérito probatorio completo. Pasa a emisión de orden de inspección extraordinaria.',
+    creadoPor: 'Lucía Navarro (Agente Denuncias)',
+    adjuntos: [
+      { id: 'ADJ-4', nombre: 'Dictamen_Legales_MS_44.pdf', tamaño: '512 KB', tipo: 'PDF' }
+    ]
+  },
+  {
+    id: 'ORD-DEN-004',
+    nroOrden: 'ORD-2026-00017',
+    nroExpediente: 'EX-2026-0001402-APN-MS#CBA',
+    nroExpedienteDenuncia: 'DEN-2026-0032',
+    fechaCreacion: '2026-08-22',
+    establecimiento: {
+      denominacion: 'Consultorio Odontológico Sin Cartel',
+      cuit: '20-99887766-5',
+      tipologia: 'CONSULTORIO',
+      domicilio: 'Av. Colón 1420 Depto 3B',
+      localidad: 'Córdoba',
+      departamento: 'Capital',
+      esRegistrado: false,
+    },
+    origen: 'CIUDADANA',
+    prioridad: 'NORMAL',
+    motivo: 'OTRO',
+    descripcionMotivo: 'Denuncia por ruidos molestos en horario nocturno y desacuerdo comercial por honorarios de prótesis.',
+    estado: 'RECHAZADA',
+    motivoRechazo: 'Incompetencia material: El reclamo refiere a controversias comerciales entre privados y ruidos molestos (competencia municipal), sin configurar infracción sanitaria tipificada.',
+    modalidad: 'PRESENCIAL',
+    creadoPor: 'Lucía Navarro (Agente Denuncias)',
+    adjuntos: []
+  },
+  {
+    id: 'ORD-DEN-005',
+    nroOrden: 'ORD-2026-00018',
+    nroExpediente: 'EX-2026-0100020-APN-MS#CBA',
+    nroExpedienteDenuncia: 'DEN-2026-0040',
+    fechaCreacion: '2026-08-29',
+    establecimiento: {
+      id: 'EST015',
+      denominacion: 'Centro de Diálisis Norte',
+      cuit: '30-66666666-6',
+      tipologia: 'CENTRO DE DIÁLISIS',
+      domicilio: 'Bv. Los Alemanes 800',
+      localidad: 'Córdoba',
+      departamento: 'Capital',
+      esRegistrado: true,
+    },
+    origen: 'AUTORIDAD',
+    prioridad: 'URGENTE',
+    motivo: 'EQUIPAMIENTO_NO_AUTORIZADO',
+    descripcionMotivo: 'Presunta incorporación de 4 puestos de hemodiálisis adicionales no declarados en el plano de habilitación sanitaria.',
+    estado: 'ASIGNADA_A_COORDINADOR',
+    coordinadorAsignado: 'Juan Gomez',
+    modalidad: 'PRESENCIAL',
+    observaciones: 'Planos originales adjuntos al expediente para cotejo in situ.',
+    creadoPor: 'Lucía Navarro (Agente Denuncias)',
+    adjuntos: [
+      { id: 'ADJ-5', nombre: 'Plano_Aprobado_Habilitacion.pdf', tamaño: '3.8 MB', tipo: 'PDF' }
+    ]
+  },
+  {
+    id: 'ORD-DEN-006',
+    nroOrden: 'ORD-2026-00019',
+    nroExpediente: 'EX-2026-0100011-APN-MS#CBA',
+    nroExpedienteDenuncia: 'DEN-2026-0039',
+    fechaCreacion: '2026-08-26',
+    establecimiento: {
+      id: 'EST013',
+      denominacion: 'Residencia Geriátrica Los Pinos',
+      cuit: '30-55555555-5',
+      tipologia: 'ESTABLECIMIENTOS GERIÁTRICOS',
+      domicilio: 'Calle Los Aromos 150',
+      localidad: 'Villa Allende',
+      departamento: 'Colón',
+      esRegistrado: true,
+    },
+    origen: 'CIUDADANA',
+    prioridad: 'URGENTE',
+    motivo: 'CONDICIONES_HIGIENICO_SANITARIAS',
+    descripcionMotivo: 'Falta de cuidadores nocturnos y fallas en sistema de calefacción en sala de internados de alta dependencia.',
+    estado: 'EN_INSPECCION',
+    inspectorAsignado: 'Dr. Marcelo Juárez',
+    modalidad: 'PRESENCIAL',
+    tramiteAsociadoId: 'TRM012',
+    creadoPor: 'Lucía Navarro (Agente Denuncias)',
+    adjuntos: [
+      { id: 'ADJ-6', nombre: 'Fotos_Instalacion.jpg', tamaño: '1.9 MB', tipo: 'IMAGEN' }
+    ]
+  }
+];
+
+// ─── Prototipo Efector Mock Data Compatibility ───────────────────────────────
+const DEPARTAMENTOS = ["Capital", "Río Cuarto", "Punilla", "Colón", "General San Martín", "Tercero Arriba", "San Justo", "Santa María", "Calamuchita", "Unión"];
+const LOCALIDADES: Record<string, string[]> = {
+  "Capital": ["Córdoba"],
+  "Río Cuarto": ["Río Cuarto", "Vicuña Mackenna", "Sampacho"],
+  "Punilla": ["Villa Carlos Paz", "Cosquín", "La Falda"],
+  "Colón": ["Jesús María", "La Calera", "Villa Allende"],
+  "General San Martín": ["Villa María", "Villa Nueva"],
+  "Tercero Arriba": ["Río Tercero", "Oliva"],
+  "San Justo": ["San Francisco", "Las Varillas"],
+  "Santa María": ["Alta Gracia", "Malagueño"],
+  "Calamuchita": ["Santa Rosa", "Villa General Belgrano"],
+  "Unión": ["Bell Ville", "Justiniano Posse"]
+};
+const TIPOLOGIAS = [
+  "UNIDAD O SERVICIO DE DIÁLISIS",
+  "CENTRO DE ESTÉTICA CORPORAL",
+  "CENTRO DE SALUD AMBULATORIO",
+  "CENTRO CIRUGÍA AMBULATORIA",
+  "CLÍNICAS, SANATORIO U HOSPITAL PRIVADO",
+  "CONSULTORIO",
+  "ESTABLECIMIENTO / UNIDAD DE CUIDADOS PALIATIVOS CON INTERNACIÓN",
+  "SERVICIO DE ATENCIÓN EXTRAHOSPITALARIO MÓVIL",
+  "ESTABLECIMIENTOS GERIÁTRICOS",
+  "HOSPITAL DE DÍA ONCOLÓGICO. CENTRO Y/O SERVICIO DE QUIMIOTERAPIA",
+  "LABORATORIO DE ANÁLISIS CLÍNICOS",
+  "ÓPTICA Y CONTACTOLOGÍA",
+  "RADIOFÍSICA",
+  "SERVICIO DE INTERNACIÓN DOMICILIARIA",
+  "TATUADORES Y PERFORADORES"
+];
+const ESTADOS_ESTABLECIMIENTO = [
+  { label: "HABILITADO", color: "#2e7d32" },
+  { label: "PRÓXIMO A VENCER", color: "#f57f17" },
+  { label: "VENCIDO", color: "#d32f2f" },
+  { label: "EN PROCESO DE MODIFICACIÓN", color: "#6a1b9a" },
+  { label: "NO VIGENTE", color: "#004582" }
+];
+const TIPOS_TRAMITE = ["HABILITACIÓN", "ALTA DIGITAL", "RENOVACIÓN", "MODIFICACIÓN", "RENOVACIÓN Y ADECUACIÓN"];
+const ESTADOS_TRAMITE = [
+  { label: "BORRADOR AUDITORÍA", color: "#424242" },
+  { label: "RESPUESTA EMPLAZAMIENTO", color: "#800000" },
+  { label: "EN ANÁLISIS ARQUITECTURA", color: "#03a9f4" },
+  { label: "PENDIENTE EVALUACIÓN ARQUITECTURA", color: "#ff9800" },
+  { label: "ACEPTADO DOCUMENTACIÓN", color: "#fbc02d" }
+];
+
+const generateMockData = () => {
+  const establishments: any[] = [];
+  const tramites: any[] = [];
+
+  for (let i = 1; i <= 60; i++) {
+    const depto = DEPARTAMENTOS[Math.floor(Math.random() * DEPARTAMENTOS.length)];
+    const locs = LOCALIDADES[depto] || ["Córdoba"];
+    const loc = locs[Math.floor(Math.random() * locs.length)];
+    const tipologia = TIPOLOGIAS[Math.floor(Math.random() * TIPOLOGIAS.length)];
+    const estadoObj = ESTADOS_ESTABLECIMIENTO[Math.floor(Math.random() * ESTADOS_ESTABLECIMIENTO.length)];
+    const diasVencer = estadoObj.label === "PRÓXIMO A VENCER" ? Math.floor(Math.random() * 30) + 1 : null;
+    
+    const est = {
+      id: i,
+      codigo: `EST-${1000 + i}`,
+      nombre: `Establecimiento Salud ${i}`,
+      cuit: `30-${Math.floor(10000000 + Math.random() * 90000000)}-${i % 9}`,
+      departamento: depto,
+      localidad: loc,
+      domicilio: `Av. Siempre Viva ${i * 10}`,
+      tipologia: tipologia,
+      estado: estadoObj.label,
+      color: estadoObj.color,
+      diasVencer: diasVencer,
+      modificacionRequerida: estadoObj.label === "EN PROCESO DE MODIFICACIÓN",
+    };
+    establishments.push(est);
+
+    const tipo = TIPOS_TRAMITE[Math.floor(Math.random() * TIPOS_TRAMITE.length)];
+    const estadoTramiteObj = ESTADOS_TRAMITE[Math.floor(Math.random() * ESTADOS_TRAMITE.length)];
+    
+    tramites.push({
+      id: i,
+      expediente: `${170 + i}-2026`,
+      nSolicitud: (4408 + i).toString(),
+      servicio: est.nombre,
+      tipo: tipo,
+      estado: estadoTramiteObj.label,
+      fechaIngreso: `${Math.floor(Math.random() * 28) + 1}/${Math.floor(Math.random() * 12) + 1}/2026`,
+      color: estadoTramiteObj.color
+    });
+  }
+
+  return { establishments, tramites };
+};
+
+const _mockDataGenerated = generateMockData();
+export const MOCK_ESTABLECIMIENTOS = _mockDataGenerated.establishments;
+export const MOCK_TRAMITES = _mockDataGenerated.tramites;

@@ -63,6 +63,12 @@ export default function InspeccionRutinaPage() {
     return esEstadoOrdenado && esTipoRutina
   })
 
+  // Helper para tipología geriátricos
+  const isGeriatrico = (tipologia: string) => {
+    const tip = (tipologia || '').toLowerCase()
+    return tip.includes('geriátrico') || tip.includes('geriatrico') || tip.includes('geriátricos') || tip.includes('geriatricos')
+  }
+
   // Estado para filtrado interactivo por tarjetas del Inspector
   const [filtroVentana, setFiltroVentana] = useState<string>('TODAS')
   const [filtroGeriatricos, setFiltroGeriatricos] = useState(false)
@@ -71,13 +77,23 @@ export default function InspeccionRutinaPage() {
   const countVencidos = rutinasOrdenadas.filter(t => t.alertaRutina === 'CRITICO_VENCIDO').length
   const countProximos = rutinasOrdenadas.filter(t => t.alertaRutina === 'ALERTA_T15').length
   const countEnPlazo = rutinasOrdenadas.filter(t => t.alertaRutina === 'ALERTA_T30').length
-  const countGeriatricos = rutinasOrdenadas.filter(t => t.tipologia.toLowerCase().includes('geriátrico') || t.tipologia.toLowerCase().includes('geriátricos')).length
+  const countGeriatricos = rutinasOrdenadas.filter(t => isGeriatrico(t.tipologia)).length
+
+  // Conteos específicos cuando se activa el filtro Geriátricos (Vencidos y En plazo)
+  const countGeriatricosVencidos = rutinasOrdenadas.filter(t => isGeriatrico(t.tipologia) && t.alertaRutina === 'CRITICO_VENCIDO').length
+  const countGeriatricosEnPlazo = rutinasOrdenadas.filter(t => isGeriatrico(t.tipologia) && t.alertaRutina !== 'CRITICO_VENCIDO').length
 
   // Aplicar filtros de las tarjetas
   const filteredRutinas = rutinasOrdenadas.filter(t => {
+    if (filtroGeriatricos) {
+      if (!isGeriatrico(t.tipologia)) return false
+      if (filtroVentana === 'CRITICO_VENCIDO' || filtroVentana === 'VENCIDOS') return t.alertaRutina === 'CRITICO_VENCIDO'
+      if (filtroVentana === 'EN_PLAZO') return t.alertaRutina !== 'CRITICO_VENCIDO'
+      return true
+    }
+
     const matchVentana = filtroVentana === 'TODAS' || t.alertaRutina === filtroVentana
-    const matchGeri = !filtroGeriatricos || (t.tipologia.toLowerCase().includes('geriátrico') || t.tipologia.toLowerCase().includes('geriátricos'))
-    return matchVentana && matchGeri
+    return matchVentana
   })
 
   // Orden de prioridad: Vencidos -> Próximos -> En Plazo -> Otros
@@ -144,77 +160,94 @@ export default function InspeccionRutinaPage() {
           }}>
             {/* Vencidos Card */}
             <div
-              onClick={() => setFiltroVentana(filtroVentana === 'CRITICO_VENCIDO' ? 'TODAS' : 'CRITICO_VENCIDO')}
+              onClick={() => {
+                if (filtroGeriatricos) {
+                  setFiltroVentana(filtroVentana === 'VENCIDOS' ? 'TODAS' : 'VENCIDOS')
+                } else {
+                  setFiltroVentana(filtroVentana === 'CRITICO_VENCIDO' ? 'TODAS' : 'CRITICO_VENCIDO')
+                }
+              }}
               style={{
                 background: '#FFFFFF',
-                border: `1.5px solid ${filtroVentana === 'CRITICO_VENCIDO' ? '#EF4444' : '#E2E8F0'}`,
+                border: `1.5px solid ${(filtroGeriatricos ? filtroVentana === 'VENCIDOS' : filtroVentana === 'CRITICO_VENCIDO') ? '#EF4444' : '#E2E8F0'}`,
                 borderRadius: 10,
                 padding: '14px 16px',
                 cursor: 'pointer',
                 transition: 'all 0.2s ease',
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'space-between'
+                justifyContent: 'space-between',
+                boxShadow: (filtroGeriatricos ? filtroVentana === 'VENCIDOS' : filtroVentana === 'CRITICO_VENCIDO') ? '0 0 0 3px rgba(239, 68, 68, 0.15)' : 'none'
               }}
             >
               <div>
                 <div style={{ fontSize: 11, fontWeight: 750, color: '#64748B', textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                  Vencidos asignados
+                  {filtroGeriatricos ? 'Vencidos' : 'Vencidos asignados'}
                 </div>
                 <div style={{ fontSize: 24, fontWeight: 800, color: '#DC2626', marginTop: 2 }}>
-                  {countVencidos}
+                  {filtroGeriatricos ? countGeriatricosVencidos : countVencidos}
                 </div>
               </div>
               <span className="material-icons" style={{ fontSize: 28, color: '#FCA5A5' }}>error_outline</span>
             </div>
 
-            {/* Próximos Card */}
-            <div
-              onClick={() => setFiltroVentana(filtroVentana === 'ALERTA_T15' ? 'TODAS' : 'ALERTA_T15')}
-              style={{
-                background: '#FFFFFF',
-                border: `1.5px solid ${filtroVentana === 'ALERTA_T15' ? '#F59E0B' : '#E2E8F0'}`,
-                borderRadius: 10,
-                padding: '14px 16px',
-                cursor: 'pointer',
-                transition: 'all 0.2s ease',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between'
-              }}
-            >
-              <div>
-                <div style={{ fontSize: 11, fontWeight: 750, color: '#64748B', textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                  Próximos (&lt; 15 días)
+            {/* Próximos Card - Se oculta cuando se selecciona Geriátricos */}
+            {!filtroGeriatricos && (
+              <div
+                onClick={() => setFiltroVentana(filtroVentana === 'ALERTA_T15' ? 'TODAS' : 'ALERTA_T15')}
+                style={{
+                  background: '#FFFFFF',
+                  border: `1.5px solid ${filtroVentana === 'ALERTA_T15' ? '#F59E0B' : '#E2E8F0'}`,
+                  borderRadius: 10,
+                  padding: '14px 16px',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  boxShadow: filtroVentana === 'ALERTA_T15' ? '0 0 0 3px rgba(245, 158, 11, 0.15)' : 'none'
+                }}
+              >
+                <div>
+                  <div style={{ fontSize: 11, fontWeight: 750, color: '#64748B', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                    Próximos (&lt; 15 días)
+                  </div>
+                  <div style={{ fontSize: 24, fontWeight: 800, color: '#D97706', marginTop: 2 }}>
+                    {countProximos}
+                  </div>
                 </div>
-                <div style={{ fontSize: 24, fontWeight: 800, color: '#D97706', marginTop: 2 }}>
-                  {countProximos}
-                </div>
+                <span className="material-icons" style={{ fontSize: 28, color: '#FDE68A' }}>warning_amber</span>
               </div>
-              <span className="material-icons" style={{ fontSize: 28, color: '#FDE68A' }}>warning_amber</span>
-            </div>
+            )}
 
             {/* En Plazo Card */}
             <div
-              onClick={() => setFiltroVentana(filtroVentana === 'ALERTA_T30' ? 'TODAS' : 'ALERTA_T30')}
+              onClick={() => {
+                if (filtroGeriatricos) {
+                  setFiltroVentana(filtroVentana === 'EN_PLAZO' ? 'TODAS' : 'EN_PLAZO')
+                } else {
+                  setFiltroVentana(filtroVentana === 'ALERTA_T30' ? 'TODAS' : 'ALERTA_T30')
+                }
+              }}
               style={{
                 background: '#FFFFFF',
-                border: `1.5px solid ${filtroVentana === 'ALERTA_T30' ? '#2980B9' : '#E2E8F0'}`,
+                border: `1.5px solid ${(filtroGeriatricos ? filtroVentana === 'EN_PLAZO' : filtroVentana === 'ALERTA_T30') ? '#2980B9' : '#E2E8F0'}`,
                 borderRadius: 10,
                 padding: '14px 16px',
                 cursor: 'pointer',
                 transition: 'all 0.2s ease',
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'space-between'
+                justifyContent: 'space-between',
+                boxShadow: (filtroGeriatricos ? filtroVentana === 'EN_PLAZO' : filtroVentana === 'ALERTA_T30') ? '0 0 0 3px rgba(41, 128, 185, 0.15)' : 'none'
               }}
             >
               <div>
                 <div style={{ fontSize: 11, fontWeight: 750, color: '#64748B', textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                  En plazo (&lt; 30 días)
+                  {filtroGeriatricos ? 'En plazo' : 'En plazo (< 30 días)'}
                 </div>
                 <div style={{ fontSize: 24, fontWeight: 800, color: '#2980B9', marginTop: 2 }}>
-                  {countEnPlazo}
+                  {filtroGeriatricos ? countGeriatricosEnPlazo : countEnPlazo}
                 </div>
               </div>
               <span className="material-icons" style={{ fontSize: 28, color: '#AED6F1' }}>schedule</span>
@@ -222,9 +255,12 @@ export default function InspeccionRutinaPage() {
 
             {/* Geriátricos Card */}
             <div
-              onClick={() => setFiltroGeriatricos(!filtroGeriatricos)}
+              onClick={() => {
+                setFiltroGeriatricos(!filtroGeriatricos)
+                setFiltroVentana('TODAS')
+              }}
               style={{
-                background: '#FFFFFF',
+                background: filtroGeriatricos ? '#FFFBEB' : '#FFFFFF',
                 border: `1.5px solid ${filtroGeriatricos ? '#D97706' : '#E2E8F0'}`,
                 borderRadius: 10,
                 padding: '14px 16px',
@@ -232,11 +268,18 @@ export default function InspeccionRutinaPage() {
                 transition: 'all 0.2s ease',
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'space-between'
+                justifyContent: 'space-between',
+                boxShadow: filtroGeriatricos ? '0 0 0 3px rgba(217, 119, 6, 0.15)' : 'none'
+              }}
+              onMouseEnter={e => {
+                if (!filtroGeriatricos) e.currentTarget.style.borderColor = '#D97706'
+              }}
+              onMouseLeave={e => {
+                if (!filtroGeriatricos) e.currentTarget.style.borderColor = '#E2E8F0'
               }}
             >
               <div>
-                <div style={{ fontSize: 11, fontWeight: 750, color: '#64748B', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                <div style={{ fontSize: 11, fontWeight: 750, color: filtroGeriatricos ? '#B45309' : '#64748B', textTransform: 'uppercase', letterSpacing: 0.5 }}>
                   Geriátricos (3/año)
                 </div>
                 <div style={{ fontSize: 24, fontWeight: 800, color: '#D97706', marginTop: 2 }}>
@@ -389,9 +432,29 @@ export default function InspeccionRutinaPage() {
                 return (
                   <div key={t.id} className="card" style={{ padding: 'var(--space-4)', display: 'flex', flexDirection: 'column', gap: 12 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                      <span className={`badge ${conf?.badge || 'badge-neutral'}`} style={{ display: 'inline-flex', alignItems: 'center', padding: '4px 8px' }}>
-                        {conf?.label || t.estado}
-                      </span>
+                      {filtroGeriatricos ? (
+                        <span
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 5,
+                            padding: '4px 10px',
+                            borderRadius: 14,
+                            fontWeight: 750,
+                            fontSize: 12,
+                            background: '#EFF6FF',
+                            color: '#1D4ED8',
+                            border: '1px solid #BFDBFE'
+                          }}
+                        >
+                          <span className="material-icons" style={{ fontSize: 15, color: '#2563EB' }}>event_repeat</span>
+                          Inspecciones: {t.inspeccionesRealizadasAno ?? 2}/{t.frecuenciaRutinaAnual ?? 3}
+                        </span>
+                      ) : (
+                        <span className={`badge ${conf?.badge || 'badge-neutral'}`} style={{ display: 'inline-flex', alignItems: 'center', padding: '4px 8px' }}>
+                          {conf?.label || t.estado}
+                        </span>
+                      )}
                       <span className="badge badge-neutral" style={{ padding: '3px 8px', fontWeight: 600 }}>
                         {t.formatoInspeccion}
                       </span>
@@ -421,110 +484,31 @@ export default function InspeccionRutinaPage() {
                       </div>
                     </div>
 
-                    <div style={{ borderTop: '1px solid #F1F5F9', paddingTop: 10, display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 8 }}>
-                      {(t.estado === 'ACEPTADO_DOC_AUD' || t.estado === 'EN_ANALISIS_AUD' || t.estado === 'RE_INSP_SOLICITADA') && (
-                        <button
-                          onClick={() => handleAbrirInspeccion(t.id, t.estado)}
-                          style={{
-                            background: '#2980B9',
-                            color: '#FFFFFF',
-                            border: 'none',
-                            borderRadius: 6,
-                            padding: '6px 12px',
-                            fontSize: 12,
-                            fontWeight: 700,
-                            cursor: 'pointer',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: 6,
-                            boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
-                            transition: 'all 0.15s ease'
-                          }}
-                          onMouseEnter={e => e.currentTarget.style.background = '#1F618D'}
-                          onMouseLeave={e => e.currentTarget.style.background = '#2980B9'}
-                        >
-                          <span className="material-icons" style={{ fontSize: 16 }}>play_arrow</span>
-                          {t.estado === 'ACEPTADO_DOC_AUD' ? 'Iniciar Acta' : 'Continuar Acta'}
-                        </button>
-                      )}
-                      {t.estado === 'DESCARGO_INSP' && (
-                        <button
-                          onClick={() => handleVerValidacion(t.id)}
-                          style={{
-                            background: '#10B981',
-                            color: '#FFFFFF',
-                            border: 'none',
-                            borderRadius: 6,
-                            padding: '6px 12px',
-                            fontSize: 12,
-                            fontWeight: 700,
-                            cursor: 'pointer',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: 6,
-                            boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
-                            transition: 'all 0.15s ease'
-                          }}
-                          onMouseEnter={e => e.currentTarget.style.background = '#059669'}
-                          onMouseLeave={e => e.currentTarget.style.background = '#10B981'}
-                        >
-                          <span className="material-icons" style={{ fontSize: 16 }}>rate_review</span>
-                          Revisar Respuestas
-                        </button>
-                      )}
+                    <div style={{ borderTop: '1px solid #F1F5F9', paddingTop: 10, display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
                       <button
-                        onClick={() => alert(`Historial de Inspección N° ${t.nroTramite}`)}
-                        title="Ver Historial"
+                        onClick={() => handleAbrirInspeccion(t.id, t.estado)}
+                        title="Iniciar orden de inspección"
                         style={{
-                          background: '#F1F5F9',
-                          color: '#475569',
+                          background: 'transparent',
                           border: 'none',
-                          borderRadius: 6,
-                          width: 32,
-                          height: 32,
+                          color: '#2980B9',
                           cursor: 'pointer',
+                          padding: 4,
                           display: 'inline-flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          transition: 'all 0.15s ease'
+                          transition: 'transform 0.15s ease, color 0.15s ease'
                         }}
                         onMouseEnter={e => {
-                          e.currentTarget.style.background = '#E2E8F0'
-                          e.currentTarget.style.color = '#1E293B'
+                          e.currentTarget.style.transform = 'scale(1.2)'
+                          e.currentTarget.style.color = '#1F618D'
                         }}
                         onMouseLeave={e => {
-                          e.currentTarget.style.background = '#F1F5F9'
-                          e.currentTarget.style.color = '#475569'
+                          e.currentTarget.style.transform = 'none'
+                          e.currentTarget.style.color = '#2980B9'
                         }}
                       >
-                        <span className="material-icons" style={{ fontSize: 18 }}>history</span>
-                      </button>
-                      <button
-                        onClick={() => alert(`Descargando Acta de Inspección del Trámite ${t.nroTramite}...`)}
-                        title="Descargar Acta"
-                        style={{
-                          background: '#F1F5F9',
-                          color: '#475569',
-                          border: 'none',
-                          borderRadius: 6,
-                          width: 32,
-                          height: 32,
-                          cursor: 'pointer',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          transition: 'all 0.15s ease'
-                        }}
-                        onMouseEnter={e => {
-                          e.currentTarget.style.background = '#E2E8F0'
-                          e.currentTarget.style.color = '#1E293B'
-                        }}
-                        onMouseLeave={e => {
-                          e.currentTarget.style.background = '#F1F5F9'
-                          e.currentTarget.style.color = '#475569'
-                        }}
-                      >
-                        <span className="material-icons" style={{ fontSize: 18 }}>download</span>
+                        <span className="material-icons" style={{ fontSize: 24 }}>play_circle</span>
                       </button>
                     </div>
                   </div>
@@ -549,8 +533,12 @@ export default function InspeccionRutinaPage() {
                   <th>Trámite / Expediente</th>
                   <th>Formato</th>
                   <th>Inspector Asignado</th>
-                  <th>Estado Actual</th>
-                  <th>Acciones</th>
+                  {filtroGeriatricos ? (
+                    <th style={{ textAlign: 'center' }}>Inspecciones por rutina en el año</th>
+                  ) : (
+                    <th>Estado Actual</th>
+                  )}
+                  <th style={{ textAlign: 'center' }}>Acciones</th>
                 </tr>
               </thead>
               <tbody>
@@ -586,119 +574,61 @@ export default function InspeccionRutinaPage() {
                       <td style={{ fontSize: 13, color: 'var(--color-gray-700)' }}>
                         {t.inspectorAsignado || t.agenteAsignado || 'Sin Asignar'}
                       </td>
-                      <td>
-                        <span className={`badge ${conf?.badge || 'badge-neutral'}`} style={{ display: 'inline-flex', alignItems: 'center', padding: '4px 8px' }}>
-                          {conf?.label || t.estado}
-                        </span>
-                      </td>
-                      <td>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          {(t.estado === 'ACEPTADO_DOC_AUD' || t.estado === 'EN_ANALISIS_AUD' || t.estado === 'RE_INSP_SOLICITADA') && (
-                            <button
-                              onClick={() => handleAbrirInspeccion(t.id, t.estado)}
-                              style={{
-                                background: '#2980B9',
-                                color: '#FFFFFF',
-                                border: 'none',
-                                borderRadius: 6,
-                                padding: '6px 12px',
-                                fontSize: 12,
-                                fontWeight: 700,
-                                cursor: 'pointer',
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: 6,
-                                boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
-                                transition: 'all 0.15s ease'
-                              }}
-                              onMouseEnter={e => e.currentTarget.style.background = '#1F618D'}
-                              onMouseLeave={e => e.currentTarget.style.background = '#2980B9'}
-                            >
-                              <span className="material-icons" style={{ fontSize: 16 }}>play_arrow</span>
-                              {t.estado === 'ACEPTADO_DOC_AUD' ? 'Iniciar Acta' : 'Continuar Acta'}
-                            </button>
-                          )}
-                          {t.estado === 'DESCARGO_INSP' && (
-                            <button
-                              onClick={() => handleVerValidacion(t.id)}
-                              style={{
-                                background: '#10B981',
-                                color: '#FFFFFF',
-                                border: 'none',
-                                borderRadius: 6,
-                                padding: '6px 12px',
-                                fontSize: 12,
-                                fontWeight: 700,
-                                cursor: 'pointer',
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: 6,
-                                boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
-                                transition: 'all 0.15s ease'
-                              }}
-                              onMouseEnter={e => e.currentTarget.style.background = '#059669'}
-                              onMouseLeave={e => e.currentTarget.style.background = '#10B981'}
-                            >
-                              <span className="material-icons" style={{ fontSize: 16 }}>rate_review</span>
-                              Revisar Respuestas
-                            </button>
-                          )}
-                          <button
-                            onClick={() => alert(`Historial de Inspección N° ${t.nroTramite}`)}
-                            title="Ver Historial"
+                      {filtroGeriatricos ? (
+                        <td style={{ textAlign: 'center' }}>
+                          <span
                             style={{
-                              background: '#F1F5F9',
-                              color: '#475569',
-                              border: 'none',
-                              borderRadius: 6,
-                              width: 32,
-                              height: 32,
-                              cursor: 'pointer',
                               display: 'inline-flex',
                               alignItems: 'center',
-                              justifyContent: 'center',
-                              transition: 'all 0.15s ease'
+                              gap: 6,
+                              padding: '5px 12px',
+                              borderRadius: 20,
+                              fontWeight: 750,
+                              fontSize: 13,
+                              background: '#EFF6FF',
+                              color: '#1D4ED8',
+                              border: '1.5px solid #BFDBFE'
                             }}
-                            onMouseEnter={e => {
-                              e.currentTarget.style.background = '#E2E8F0'
-                              e.currentTarget.style.color = '#1E293B'
-                            }}
-                            onMouseLeave={e => {
-                              e.currentTarget.style.background = '#F1F5F9'
-                              e.currentTarget.style.color = '#475569'
-                            }}
+                            title="Cantidad de inspecciones de rutina realizadas en el año"
                           >
-                            <span className="material-icons" style={{ fontSize: 18 }}>history</span>
-                          </button>
-                          <button
-                            onClick={() => alert(`Descargando Acta de Inspección del Trámite ${t.nroTramite}...`)}
-                            title="Descargar Acta"
-                            style={{
-                              background: '#F1F5F9',
-                              color: '#475569',
-                              border: 'none',
-                              borderRadius: 6,
-                              width: 32,
-                              height: 32,
-                              cursor: 'pointer',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              transition: 'all 0.15s ease'
-                            }}
-                            onMouseEnter={e => {
-                              e.currentTarget.style.background = '#E2E8F0'
-                              e.currentTarget.style.color = '#1E293B'
-                            }}
-                            onMouseLeave={e => {
-                              e.currentTarget.style.background = '#F1F5F9'
-                              e.currentTarget.style.color = '#475569'
-                        }}
-                      >
-                        <span className="material-icons" style={{ fontSize: 18 }}>download</span>
-                      </button>
-                    </div>
-                  </td>
+                            <span className="material-icons" style={{ fontSize: 16, color: '#2563EB' }}>event_repeat</span>
+                            {t.inspeccionesRealizadasAno ?? 2}/{t.frecuenciaRutinaAnual ?? 3}
+                          </span>
+                        </td>
+                      ) : (
+                        <td>
+                          <span className={`badge ${conf?.badge || 'badge-neutral'}`} style={{ display: 'inline-flex', alignItems: 'center', padding: '4px 8px' }}>
+                            {conf?.label || t.estado}
+                          </span>
+                        </td>
+                      )}
+                      <td style={{ textAlign: 'center' }}>
+                        <button
+                          onClick={() => handleAbrirInspeccion(t.id, t.estado)}
+                          title="Iniciar orden de inspección"
+                          style={{
+                            background: 'transparent',
+                            border: 'none',
+                            color: '#2980B9',
+                            cursor: 'pointer',
+                            padding: 4,
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            transition: 'transform 0.15s ease, color 0.15s ease'
+                          }}
+                          onMouseEnter={e => {
+                            e.currentTarget.style.transform = 'scale(1.2)'
+                            e.currentTarget.style.color = '#1F618D'
+                          }}
+                          onMouseLeave={e => {
+                            e.currentTarget.style.transform = 'none'
+                            e.currentTarget.style.color = '#2980B9'
+                          }}
+                        >
+                          <span className="material-icons" style={{ fontSize: 22 }}>play_circle</span>
+                        </button>
+                      </td>
                     </tr>
                   )
                 })}

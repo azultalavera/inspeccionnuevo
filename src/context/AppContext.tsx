@@ -1,6 +1,6 @@
-import React, { createContext, useContext, useState, type ReactNode } from 'react'
-import type { Tramite } from '../data/mockData'
-import { TRAMITES, HALLAZGOS, ESTABLECIMIENTOS, type Hallazgo } from '../data/mockData'
+import React, { createContext, useContext, useState, useEffect, type ReactNode } from 'react'
+import type { Tramite, OrdenDenuncia, EstadoOrdenDenuncia, EstadoTramite } from '../data/mockData'
+import { TRAMITES, HALLAZGOS, ESTABLECIMIENTOS, ORDENES_DENUNCIA, type Hallazgo } from '../data/mockData'
 
 interface InspeccionData {
   tramiteId: string;
@@ -28,6 +28,7 @@ interface AppContextType {
   tramites: Tramite[];
   hallazgos: Hallazgo[];
   inspeccionActiva: InspeccionData | null;
+  ordenesDenuncia: OrdenDenuncia[];
   iniciarInspeccion: (tramiteId: string) => void;
   actualizarInspeccion: (data: Partial<InspeccionData>) => void;
   finalizarInspeccion: () => void;
@@ -36,6 +37,11 @@ interface AppContextType {
   generarOrdenRutina: (establecimientoId: string, inspectorId: string, modalidad?: 'PRESENCIAL' | 'VIRTUAL') => Tramite;
   unificarTramiteRutina: (alertaId: string, tramiteId: string) => void;
   responderEmplazamiento: (tramiteId: string, respuestaEmplazamiento: { observacion?: string; adjuntos?: string[]; derivadoAModificacion?: boolean }) => void;
+  solicitarReInspeccion: (tramiteId: string, motivo?: string) => void;
+  emplazarTramite: (tramiteId: string, plazo: string, observaciones?: string[]) => void;
+  actualizarEstadoTramite: (tramiteId: string, nuevoEstado: EstadoTramite) => void;
+  crearOrdenDenuncia: (data: Omit<OrdenDenuncia, 'id' | 'nroOrden' | 'fechaCreacion' | 'creadoPor'>) => OrdenDenuncia;
+  actualizarEstadoOrdenDenuncia: (id: string, nuevoEstado: EstadoOrdenDenuncia, datosAdicionales?: Partial<OrdenDenuncia>) => void;
 }
 
 const AppContext = createContext<AppContextType | null>(null)
@@ -43,10 +49,18 @@ const AppContext = createContext<AppContextType | null>(null)
 export function AppProvider({ children }: { children: ReactNode }) {
   const [tramites, setTramites] = useState<Tramite[]>(TRAMITES)
   const [hallazgos] = useState<Hallazgo[]>(HALLAZGOS)
+  const [ordenesDenuncia, setOrdenesDenuncia] = useState<OrdenDenuncia[]>(() => {
+    const saved = localStorage.getItem('clicsalud_ordenes_denuncia')
+    return saved ? JSON.parse(saved) : ORDENES_DENUNCIA
+  })
   const [inspeccionActiva, setInspeccionActiva] = useState<InspeccionData | null>(() => {
     const saved = localStorage.getItem('clicsalud_inspeccion')
     return saved ? JSON.parse(saved) : null
   })
+
+  useEffect(() => {
+    localStorage.setItem('clicsalud_ordenes_denuncia', JSON.stringify(ordenesDenuncia))
+  }, [ordenesDenuncia])
 
   const iniciarInspeccion = (tramiteId: string) => {
     const nueva: InspeccionData = {
@@ -166,6 +180,44 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }))
   }
 
+  const solicitarReInspeccion = (tramiteId: string, motivo?: string) => {
+    setTramites(prev => prev.map(t => {
+      if (t.id === tramiteId) {
+        return {
+          ...t,
+          estado: 'RE_INSP_SOLICITADA' as const,
+          motivoReInspeccion: motivo || 'Se validaron las respuestas del descargo y se solicita re-inspección presencial para verificación final.',
+        }
+      }
+      return t
+    }))
+  }
+
+  const emplazarTramite = (tramiteId: string, plazo: string, observaciones?: string[]) => {
+    setTramites(prev => prev.map(t => {
+      if (t.id === tramiteId) {
+        const dias = parseInt(plazo, 10) || 10
+        return {
+          ...t,
+          estado: 'OBSERVADO_INSP' as const,
+          emplazamiento: {
+            actaNumero: `ACTA-001/2026`,
+            faltasCriticasCount: observaciones?.length || 2,
+            diasRestantes: dias,
+            fechaVencimiento: new Date(Date.now() + dias * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+            respuestaEmplazamientoRealizada: false,
+            observaciones: observaciones || ['Requerimientos observados en revisión de descargo pendientes de subsanación'],
+          }
+        }
+      }
+      return t
+    }))
+  }
+
+  const actualizarEstadoTramite = (tramiteId: string, nuevoEstado: EstadoTramite) => {
+    setTramites(prev => prev.map(t => (t.id === tramiteId ? { ...t, estado: nuevoEstado } : t)))
+  }
+
   const crearNuevoTramite = (
     tipo: 'ALTA_DIGITAL' | 'HABILITACION' | 'RENOVACION' | 'MODIFICACION' | 'ADECUACION',
     tipologia: string,
@@ -215,11 +267,68 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return nuevoTramite;
   };
 
+  const crearOrdenDenuncia = (data: Omit<OrdenDenuncia, 'id' | 'nroOrden' | 'fechaCreacion' | 'creadoPor'>): OrdenDenuncia => {
+    const randomNum = Math.floor(10000 + Math.random() * 90000);
+    const nroOrden = `ORD-2026-${randomNum}`;
+    const id = `ORD-DEN-${Math.floor(100 + Math.random() * 900)}`;
+    const fechaCreacion = new Date().toISOString().split('T')[0];
+
+    const nuevaOrden: OrdenDenuncia = {
+      ...data,
+      id,
+      nroOrden,
+      fechaCreacion,
+      creadoPor: 'Lucía Navarro (Agente Denuncias)',
+    };
+
+    // Si la orden se genera en inspección o asignada a coordinador, vincular con los trámites en curso
+    if (data.estado === 'EN_INSPECCION' || data.estado === 'ASIGNADA_A_COORDINADOR') {
+      const nuevoTramite: Tramite = {
+        id: `TRM-DEN-${Math.floor(1000 + Math.random() * 9000)}`,
+        nroTramite: `2026-DEN-${randomNum}`,
+        nroExpediente: data.nroExpediente || `EX-2026-${randomNum}-APN-MS#CBA`,
+        denominacion: data.establecimiento.denominacion,
+        cuit: data.establecimiento.cuit,
+        tipologia: data.establecimiento.tipologia,
+        domicilio: data.establecimiento.domicilio,
+        localidad: data.establecimiento.localidad,
+        departamento: data.establecimiento.departamento || 'Capital',
+        estado: data.estado === 'EN_INSPECCION' ? 'EN_ANALISIS_AUD' : 'PENDIENTE_EVAL_AUD',
+        fechaIngreso: fechaCreacion,
+        inspectorAsignado: data.inspectorAsignado || 'Sin Asignar',
+        agenteAsignado: data.inspectorAsignado || data.coordinadorAsignado || 'Sin Asignar',
+        tipoInspeccion: 'DENUNCIA',
+        formatoInspeccion: data.modalidad || 'PRESENCIAL',
+        prioridadDenuncia: data.prioridad,
+        origenDenuncia: data.origen,
+      };
+      nuevaOrden.tramiteAsociadoId = nuevoTramite.id;
+      setTramites(prev => [nuevoTramite, ...prev]);
+    }
+
+    setOrdenesDenuncia(prev => [nuevaOrden, ...prev]);
+    return nuevaOrden;
+  };
+
+  const actualizarEstadoOrdenDenuncia = (id: string, nuevoEstado: EstadoOrdenDenuncia, datosAdicionales?: Partial<OrdenDenuncia>) => {
+    setOrdenesDenuncia(prev => prev.map(ord => {
+      if (ord.id === id) {
+        return {
+          ...ord,
+          estado: nuevoEstado,
+          ...(datosAdicionales || {})
+        };
+      }
+      return ord;
+    }));
+  };
+
   return (
     <AppContext.Provider value={{
       tramites,
       hallazgos,
       inspeccionActiva,
+      ordenesDenuncia,
       iniciarInspeccion,
       actualizarInspeccion,
       finalizarInspeccion,
@@ -228,6 +337,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
       generarOrdenRutina,
       unificarTramiteRutina,
       responderEmplazamiento,
+      solicitarReInspeccion,
+      emplazarTramite,
+      actualizarEstadoTramite,
+      crearOrdenDenuncia,
+      actualizarEstadoOrdenDenuncia,
     }}>
       {children}
     </AppContext.Provider>
@@ -239,3 +353,4 @@ export function useApp() {
   if (!ctx) throw new Error('useApp must be used inside AppProvider')
   return ctx
 }
+

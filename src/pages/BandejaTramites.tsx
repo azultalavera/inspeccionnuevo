@@ -343,7 +343,15 @@ export default function BandejaTramites() {
     navigate(`/inspector/inspeccion/${id}`)
   }
 
-  const handleVerValidacion = (id: string) => navigate(`/inspector/validacion/${id}`)
+  const handleVerValidacion = (id: string) => {
+    if (user?.rol === 'ARQUITECTO') {
+      navigate(`/arquitecto/revision/${id}`)
+    } else if (user?.rol === 'AUDITOR') {
+      navigate(`/auditor/revision/${id}`)
+    } else {
+      navigate(`/inspector/inspeccion/${id}?view=revision`)
+    }
+  }
 
   const statsCount = (est: EstadoTramite | EstadoTramite[]) => {
     if (Array.isArray(est)) {

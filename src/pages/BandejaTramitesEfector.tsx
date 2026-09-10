@@ -504,7 +504,7 @@ export default function BandejaTramitesEfector() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginLeft: 'auto' }}>
           <button
             className="btn btn-primary"
-            onClick={() => setModalOpen(true)}
+            onClick={() => navigate('/efector/alta-habilitacion')}
             style={{ display: 'flex', alignItems: 'center', gap: 6 }}
           >
             <span className="material-icons">add_business</span>

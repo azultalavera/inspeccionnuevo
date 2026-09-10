@@ -37,6 +37,7 @@ export interface EstablecimientoDenunciadoPayload {
   es_registrado?: boolean;
   establecimiento_id?: string | null;
   razon_social_o_nombre: string;
+  persona_referencia?: string;
   cuit_titular_presunto?: string | null;
   domicilio: DomicilioPayload;
   tipologia_estimada?: string;

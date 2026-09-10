@@ -28,7 +28,7 @@ const getEtapaLabel = (estado: string) => {
     case 'ACEPTADO_INSP':
     case 'OBSERVADO_INSP':
     case 'DESCARGO_INSP':
-      return 'DOCUMENTOS ADJUNTOS'
+      return 'RESPUESTA EMPLAZAMIENTO'
 
     case 'EN_PROTOCOLIZACION':
       return 'PROTOCOLIZACIÓN'
@@ -107,8 +107,12 @@ export default function BandejaExpedientesAbiertos() {
     if (user?.rol === 'INSPECTOR') {
       return t.estado === 'ACEPTADO_DOC_AUD' || t.estado === 'DESCARGO_INSP' || t.estado === 'OBSERVADO_INSP'
     }
-    if (user?.rol === 'ARQUITECTO') return t.estado === 'PENDIENTE_EVAL_ARQ' || t.estado === 'EN_ANALISIS_ARQ'
-    if (user?.rol === 'AUDITOR') return t.estado === 'PENDIENTE_EVAL_AUD' || t.estado === 'EN_ANALISIS_AUD'
+    if (user?.rol === 'ARQUITECTO') {
+      return t.estado === 'PENDIENTE_EVAL_ARQ' || t.estado === 'EN_ANALISIS_ARQ' || t.estado === 'DESCARGO_INSP'
+    }
+    if (user?.rol === 'AUDITOR') {
+      return t.estado === 'PENDIENTE_EVAL_AUD' || t.estado === 'EN_ANALISIS_AUD' || t.estado === 'DESCARGO_INSP'
+    }
     return t.estado === 'EN_PROTOCOLIZACION'
   }
 
@@ -117,13 +121,20 @@ export default function BandejaExpedientesAbiertos() {
 
   // Handle selecting a row directly
   const handleSelectRow = (t: Tramite) => {
-    if (user?.rol === 'INSPECTOR') {
-      if (t.estado === 'DESCARGO_INSP') {
-        navigate(`/inspector/validacion/${t.id}`)
+    if (t.estado === 'DESCARGO_INSP') {
+      if (user?.rol === 'ARQUITECTO') {
+        navigate(`/arquitecto/revision/${t.id}`)
+      } else if (user?.rol === 'AUDITOR') {
+        navigate(`/auditor/revision/${t.id}`)
       } else {
-        if (t.estado === 'ACEPTADO_DOC_AUD') iniciarInspeccion(t.id)
-        navigate(`/inspector/inspeccion/${t.id}`)
+        navigate(`/inspector/inspeccion/${t.id}?view=revision`)
       }
+      return
+    }
+
+    if (user?.rol === 'INSPECTOR') {
+      if (t.estado === 'ACEPTADO_DOC_AUD') iniciarInspeccion(t.id)
+      navigate(`/inspector/inspeccion/${t.id}`)
     } else {
       setEvaluatingTramite(t)
     }

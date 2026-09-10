@@ -16,6 +16,8 @@ const ROLES_INFO: { id: Rol; icon: string; label: string; route: string }[] = [
   { id: 'PROTOCOLIZADOR',  icon: '📜', label: 'Protocolizador',  route: '/protocolizador/home' },
   { id: 'EFECTOR',         icon: '🏨', label: 'Efector',         route: '/efector/home' },
   { id: 'CONSULTOR',       icon: '🕵️', label: 'Agente Consultor', route: '/consultor/establecimientos' },
+  { id: 'AGENTE_DENUNCIAS',icon: '🚨', label: 'Agente Denuncias', route: '/agente-denuncias/denuncias' },
+  { id: 'ADMINISTRADOR',   icon: '⚙️', label: 'Administrador',   route: '/admin/dashboard' },
 ]
 
 export default function UserAvatarMenu({ size = 36, align = 'right' }: UserAvatarMenuProps) {

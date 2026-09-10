@@ -184,6 +184,7 @@ export default function DesktopLayout() {
             shortLabel: 'Trámites',
             subItems: [
               { to: '/efector/bandeja', icon: 'folder', label: 'Mis Trámites' },
+              { to: '/efector/alta-habilitacion', icon: 'add_circle', label: 'Iniciar Trámite' },
             ]
           },
           { id: 'establecimientos', to: '/efector/establecimientos', icon: 'business', label: 'Módulo Establecimientos', shortLabel: 'Locales' },
@@ -191,6 +192,32 @@ export default function DesktopLayout() {
       case 'CONSULTOR':
         return [
           { id: 'establecimientos', to: '/consultor/establecimientos', icon: 'business', label: 'Módulo Establecimientos', shortLabel: 'Locales' },
+        ]
+      case 'AGENTE_DENUNCIAS':
+        return [
+          { id: 'denuncias', to: '/agente-denuncias/denuncias', icon: 'report', label: 'Bandeja Denuncias', shortLabel: 'Denuncias' },
+        ]
+      case 'ADMINISTRADOR':
+        return [
+          { id: 'dashboard', to: '/admin/dashboard', icon: 'dashboard', label: 'Dashboard', shortLabel: 'Dashboard' },
+          { id: 'asignacion-roles', to: '/admin/asignar-rol', icon: 'people', label: 'Asignación de Roles', shortLabel: 'Roles' },
+          {
+            id: 'gestion-recursos',
+            to: '/admin/gestion-recursos',
+            icon: 'settings',
+            label: 'Configuración de Recursos',
+            shortLabel: 'Recursos',
+            subItems: [
+              { to: '/admin/gestion-recursos', icon: 'dashboard_customize', label: 'Panel General' },
+              { to: '/admin/gestion-recursos/tipos-equipos', icon: 'precision_manufacturing', label: 'Tipo de Equipos' },
+              { to: '/admin/gestion-recursos/requerimientos-equipos', icon: 'tune', label: 'Características por Equipos' },
+              { to: '/admin/gestion-recursos/infraestructura', icon: 'business', label: 'Infraestructura' },
+              { to: '/admin/gestion-recursos/equipamientos', icon: 'home_repair_service', label: 'Equipamientos' },
+              { to: '/admin/gestion-recursos/recursos-humanos', icon: 'groups', label: 'Recursos Humanos' },
+              { to: '/admin/gestion-recursos/jefe-servicio', icon: 'supervisor_account', label: 'Jefe de Servicio' },
+              { to: '/admin/gestion-recursos/servicios', icon: 'medical_services', label: 'Servicios' },
+            ]
+          },
         ]
       default:
         return []
@@ -560,17 +587,24 @@ export default function DesktopLayout() {
       {/* Main Content starts below the header */}
       <main className="main-content" style={{ marginTop: '64px' }}>
         {/* Page Content Panel (White 25% Transparent) */}
-        <div style={{
-          flex: 1,
-          margin: '24px',
-          background: 'rgba(255, 255, 255, 0.75)',
-          borderRadius: '24px',
-          border: '1px solid rgba(255, 255, 255, 0.5)',
-          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.05)',
-          display: 'flex',
-          flexDirection: 'column',
-          overflow: 'hidden',
-        }}>
+        <div 
+          className="desktop-page-panel"
+          style={{
+            flex: 1,
+            margin: '24px',
+            width: 'calc(100% - 48px)',
+            minWidth: 'calc(100% - 48px)',
+            maxWidth: 'calc(100% - 48px)',
+            boxSizing: 'border-box',
+            background: 'rgba(255, 255, 255, 0.75)',
+            borderRadius: '24px',
+            border: '1px solid rgba(255, 255, 255, 0.5)',
+            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.05)',
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden',
+          }}
+        >
           <Outlet />
         </div>
 

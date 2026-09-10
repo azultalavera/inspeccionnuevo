@@ -4,7 +4,6 @@ import { useAuth } from '../context/AuthContext'
 import { useApp } from '../context/AppContext'
 import { ESTABLECIMIENTOS, Tramite } from '../data/mockData'
 import ModalIniciarTramite from '../components/ModalIniciarTramite'
-import ModalPresentarDenuncia from '../components/ModalPresentarDenuncia'
 import ModalResponderEmplazamiento from '../components/ModalResponderEmplazamiento'
 import { consultarMisDenuncias, consultarDenunciasPendientesAdmin } from '../services/denunciaApi'
 import { consultarAntecedentesEfector } from '../services/inspeccionApi'
@@ -26,7 +25,6 @@ export default function HomeDashboard() {
   const isTablet = useIsTablet()
 
   const [modalTramiteOpen, setModalTramiteOpen] = useState(false)
-  const [modalDenunciaOpen, setModalDenunciaOpen] = useState(false)
   const [selectedEmplazamientoTramite, setSelectedEmplazamientoTramite] = useState<Tramite | null>(null)
 
   // Real API state integration
@@ -194,7 +192,7 @@ export default function HomeDashboard() {
               {/* Botones de Acción Inmediata */}
               <div style={{ display: 'flex', gap: '10px' }}>
                 <button
-                  onClick={() => setModalTramiteOpen(true)}
+                  onClick={() => navigate('/efector/alta-habilitacion')}
                   style={{
                     background: 'linear-gradient(135deg, #0F172A 0%, #1E293B 100%)',
                     color: '#ffffff',
@@ -216,7 +214,7 @@ export default function HomeDashboard() {
                 </button>
 
                 <button
-                  onClick={() => setModalDenunciaOpen(true)}
+                  onClick={() => navigate('/efector/nueva-denuncia')}
                   style={{
                     background: '#FFFFFF',
                     color: '#991B1B',
@@ -1009,15 +1007,6 @@ export default function HomeDashboard() {
         onConfirm={handleIniciarTramite}
       />
 
-      {/* MODAL 2: PRESENTAR DENUNCIA SANITARIA */}
-      <ModalPresentarDenuncia
-        isOpen={modalDenunciaOpen}
-        onClose={() => setModalDenunciaOpen(false)}
-        onSuccess={(numExp) => {
-          setAlertaExito(`Denuncia presentada correctamente bajo Expediente N° ${numExp}`)
-          setMisDenunciasCount(prev => prev + 1)
-        }}
-      />
 
       {/* MODAL 3: RESPONDER EMPLAZAMIENTO (EFECTOR) */}
       {selectedEmplazamientoTramite && (

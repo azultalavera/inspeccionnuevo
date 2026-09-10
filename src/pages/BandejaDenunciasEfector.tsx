@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { consultarMisDenuncias, type ExpedienteDenunciaResponse } from '../services/denunciaApi'
-import ModalPresentarDenuncia from '../components/ModalPresentarDenuncia'
 
 export default function BandejaDenunciasEfector() {
   const { user } = useAuth()
@@ -10,7 +9,6 @@ export default function BandejaDenunciasEfector() {
 
   const [denuncias, setDenuncias] = useState<ExpedienteDenunciaResponse[]>([])
   const [loading, setLoading] = useState(true)
-  const [modalOpen, setModalOpen] = useState(false)
   const [criterioBusqueda, setCriterioBusqueda] = useState('')
 
   const userCuit = user?.cuil || '20-33445566-7'
@@ -93,7 +91,7 @@ export default function BandejaDenunciasEfector() {
         </div>
 
         <button
-          onClick={() => setModalOpen(true)}
+          onClick={() => navigate('/efector/nueva-denuncia')}
           style={{
             background: 'linear-gradient(135deg, #e11d48 0%, #be123c 100%)',
             color: '#ffffff',
@@ -137,7 +135,15 @@ export default function BandejaDenunciasEfector() {
           <div style={{ padding: '40px', textAlign: 'center' }}>
             <span className="material-icons" style={{ fontSize: '48px', color: 'var(--color-gray-300)', marginBottom: '12px' }}>folder_off</span>
             <h4 style={{ margin: '0 0 4px 0', fontSize: '16px', color: 'var(--color-gray-700)' }}>No tienes denuncias registradas</h4>
-            <p style={{ margin: 0, fontSize: '13px', color: 'var(--color-gray-500)' }}>Puedes realizar una presentación haciendo clic en "Presentar Nueva Denuncia".</p>
+            <p style={{ margin: '0 0 16px 0', fontSize: '13px', color: 'var(--color-gray-500)' }}>Puedes realizar una presentación haciendo clic en el botón a continuación.</p>
+            <button
+              className="btn btn-primary"
+              onClick={() => navigate('/efector/nueva-denuncia')}
+              style={{ background: '#E11D48', borderColor: '#E11D48', display: 'inline-flex', alignItems: 'center', gap: 6 }}
+            >
+              <span className="material-icons" style={{ fontSize: 16 }}>add</span>
+              Presentar Nueva Denuncia
+            </button>
           </div>
         ) : (
           <div className="table-responsive">
@@ -186,15 +192,6 @@ export default function BandejaDenunciasEfector() {
           </div>
         )}
       </div>
-
-      <ModalPresentarDenuncia
-        isOpen={modalOpen}
-        onClose={() => setModalOpen(false)}
-        onSuccess={() => {
-          setModalOpen(false)
-          cargarDenuncias()
-        }}
-      />
     </div>
   )
 }

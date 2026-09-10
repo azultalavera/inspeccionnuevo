@@ -17,3 +17,9 @@ declare module '*.webp' {
   const content: string
   export default content
 }
+
+declare module '*.jsx' {
+  const Component: React.ComponentType<any>
+  export default Component
+}
+

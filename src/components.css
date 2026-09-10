@@ -859,3 +859,19 @@
     gap: var(--space-4);
   }
 }
+
+/* ── Permanent Full Width Container Enforcement ── */
+.desktop-page-panel {
+  width: calc(100% - 48px) !important;
+  min-width: calc(100% - 48px) !important;
+  max-width: calc(100% - 48px) !important;
+  box-sizing: border-box !important;
+  align-self: stretch !important;
+}
+
+.desktop-page-panel > * {
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+}
+

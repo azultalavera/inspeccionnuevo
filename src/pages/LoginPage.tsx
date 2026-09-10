@@ -85,6 +85,15 @@ export default function LoginPage() {
                 borderColor: 'var(--color-brand-200)',
               },
               {
+                rol: 'AGENTE_DENUNCIAS' as Rol,
+                icon: 'report',
+                title: 'Agente Denuncias',
+                desc: 'Gestión y emisión de órdenes de inspección por denuncia sanitaria',
+                color: '#DC2626',
+                bgColor: '#FEF2F2',
+                borderColor: '#FECACA',
+              },
+              {
                 rol: 'EFECTOR' as Rol,
                 icon: 'business',
                 title: 'Efector',
@@ -92,6 +101,15 @@ export default function LoginPage() {
                 color: '#E67E22',
                 bgColor: '#FFF8F0',
                 borderColor: '#FDDDB0',
+              },
+              {
+                rol: 'ADMINISTRADOR' as Rol,
+                icon: 'admin_panel_settings',
+                title: 'Administrador',
+                desc: 'Configuración de recursos sanitarios y asignación de roles',
+                color: '#005596',
+                bgColor: '#F0F9FF',
+                borderColor: '#BAE6FD',
               },
             ].map(opt => (
               <button
@@ -145,7 +163,7 @@ export default function LoginPage() {
             onClick={() => selected && login(selected)}
             style={{ width: '100%', fontSize: 16, height: 52 }}
           >
-            Ingresar como {selected === 'INSPECTOR' ? 'Inspector' : selected === 'EFECTOR' ? 'Efector' : '—'}
+            Ingresar como {selected === 'INSPECTOR' ? 'Inspector' : selected === 'AGENTE_DENUNCIAS' ? 'Agente Denuncias' : selected === 'EFECTOR' ? 'Efector' : '—'}
           </button>
 
           <p style={{ textAlign: 'center', marginTop: 'var(--space-4)', fontSize: 11, color: 'var(--color-gray-400)' }}>

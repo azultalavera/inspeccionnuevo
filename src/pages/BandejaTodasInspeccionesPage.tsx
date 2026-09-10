@@ -172,6 +172,11 @@ export default function BandejaTodasInspeccionesPage() {
                             onClick: () => handleVerValidacion(t.id)
                           }] : []),
                           {
+                            label: 'Ver trámite',
+                            icon: 'visibility',
+                            onClick: () => navigate(user?.rol === 'COORDINADOR' ? `/coordinador/ver-tramite/${t.id}` : `/inspector/ver-tramite/${t.id}`)
+                          },
+                          {
                             label: 'Ver Historial',
                             icon: 'history',
                             onClick: () => alert(`Historial de Inspección N° ${t.nroTramite}`)

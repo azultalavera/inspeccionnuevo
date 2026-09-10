@@ -1,384 +1,722 @@
-import React, { useState } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
-import { useApp } from '../context/AppContext'
+import React, { useState, useMemo, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import {
+  Box,
+  Typography,
+  Paper,
+  Stepper,
+  Step,
+  StepLabel,
+  StepConnector,
+  stepConnectorClasses,
+  styled,
+  Button,
+  Stack,
+  Chip,
+  TextField,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  IconButton,
+} from "@mui/material";
+import {
+  Map as MapIcon,
+  Business as BusinessIcon,
+  Person as PersonIcon,
+  MedicalServices as MedicalServicesIcon,
+  Groups as GroupsIcon,
+  AccountTree as AccountTreeIcon,
+  HomeRepairService as HomeRepairServiceIcon,
+  CloudUpload as CloudUploadIcon,
+  ArrowBackIos as ArrowBackIosIcon,
+  Cancel as CancelIcon,
+  Send as SendIcon,
+  Save as SaveIcon,
+  Visibility as VisibilityIcon,
+  Add as AddIcon,
+  Delete as DeleteIcon,
+  CheckCircle as CheckCircleIcon,
+} from "@mui/icons-material";
+
+import { useApp } from "../context/AppContext";
+import { DEFAULT_EFECTOR_DATA } from "../data/masterConfig";
+import ServicesStep from "../components/efector/steps/ServicesStep";
+import RRHHStep from "../components/efector/steps/RRHHStep";
+import JefeServicioStep from "../components/efector/steps/JefeServicioStep";
+import Equipamientos from "../components/efector/steps/Equipamientos";
+import FileViewerModal from "../components/inspeccion/inspector/components/FileViewerModal";
+
+// ─── Estilos Stepper Conectado Qonto ──────────────────────────────────────────
+const QontoConnector = styled(StepConnector)(() => ({
+  [`&.${stepConnectorClasses.alternativeLabel}`]: { top: 22 },
+  [`& .${stepConnectorClasses.line}`]: {
+    borderColor: "#29b6f6",
+    borderTopWidth: 2,
+    borderRadius: 1,
+  },
+}));
+
+const StepIconRoot = styled("div")<{ ownerState: { active?: boolean; completed?: boolean } }>(
+  ({ ownerState }) => ({
+    backgroundColor: ownerState.active ? "#005596" : "#29b6f6",
+    zIndex: 1,
+    color: "#fff",
+    width: 44,
+    height: 44,
+    display: "flex",
+    borderRadius: "50%",
+    justifyContent: "center",
+    alignItems: "center",
+    transition: "0.3s",
+    boxShadow: ownerState.active ? "0 4px 14px rgba(0, 85, 150, 0.4)" : "none",
+    "&:hover": { transform: "scale(1.1)", backgroundColor: "#005596" },
+    cursor: "pointer",
+  })
+);
+
+function StepIconCustom(props: any) {
+  const { active, completed, icon, onClick } = props;
+  const icons: Record<string, React.ReactNode> = {
+    1: <MapIcon sx={{ fontSize: 22 }} />,
+    2: <BusinessIcon sx={{ fontSize: 22 }} />,
+    3: <PersonIcon sx={{ fontSize: 22 }} />,
+    4: <MedicalServicesIcon sx={{ fontSize: 22 }} />,
+    5: <GroupsIcon sx={{ fontSize: 22 }} />,
+    6: <AccountTreeIcon sx={{ fontSize: 22 }} />,
+    7: <HomeRepairServiceIcon sx={{ fontSize: 22 }} />,
+    8: <CloudUploadIcon sx={{ fontSize: 22 }} />,
+  };
+  return (
+    <StepIconRoot ownerState={{ active, completed }} onClick={onClick}>
+      {icons[String(icon)]}
+    </StepIconRoot>
+  );
+}
+
+const STEPS = [
+  { label: "Arquitectura", icon: 1 },
+  { label: "Establecimiento", icon: 2 },
+  { label: "Director Técnico", icon: 3 },
+  { label: "Servicios", icon: 4 },
+  { label: "Recursos Humanos", icon: 5 },
+  { label: "Jefe de Servicio", icon: 6 },
+  { label: "Equipamientos", icon: 7 },
+  { label: "Documentos", icon: 8 },
+];
 
 export default function FormularioHabilitacion() {
-  const { id } = useParams<{ id: string }>()
-  const navigate = useNavigate()
-  const { tramites } = useApp()
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const { tramites } = useApp();
 
-  // Find the trámite or mock fallback
-  const tramite = tramites.find(t => t.id === id) || {
-    id: 'TRM-NEW',
-    nroTramite: 'TR-PENDIENTE',
-    nroExpediente: 'EXP-PENDIENTE',
-    denominacion: 'Establecimiento Nuevo (Borrador)',
-    cuit: '30-99999999-9',
-    tipologia: 'Consultorio',
-    domicilio: 'Calle Falsa 123',
-    localidad: 'Córdoba',
-    departamento: 'Capital',
-    estado: 'PENDIENTE_ARQUITECTURA',
-    tipoTramite: 'HABILITACION' as const,
-  }
+  const tramite = useMemo(() => {
+    return tramites.find((t) => t.id === id) || {
+      id: id || "TRM-NEW",
+      nroTramite: "2026-8840",
+      nroExpediente: "EX-2026-0045672-APN-MS#CBA",
+      denominacion: "Sanatorio Allende N.V.",
+      cuit: "30-54678901-4",
+      tipologia: "CLÍNICA, SANATORIO U HOSPITAL PRIVADO",
+      domicilio: "Av. Rafael Núñez 4750",
+      localidad: "Córdoba",
+      departamento: "Capital",
+      estado: "PENDIENTE_ARQUITECTURA" as const,
+      tipoTramite: "HABILITACION" as const,
+    };
+  }, [tramites, id]);
 
-  const TIPO_LABELS: Record<string, string> = {
-    ALTA_DIGITAL: 'Alta Digital',
-    HABILITACION: 'Habilitación',
-    RENOVACION: 'Renovación',
-    MODIFICACION: 'Modificación',
-    ADECUACION: 'Adecuación',
-  }
-  const tipoLabel = TIPO_LABELS[tramite.tipoTramite || ''] || 'Habilitación'
+  const [activeStep, setActiveStep] = useState(0);
+  const [viewerFile, setViewerFile] = useState<{ name: string; url: string } | null>(null);
 
-  // Wizard Step State: 1 | 2 | 3
-  const [step, setStep] = useState<1 | 2 | 3>(1)
+  // ─── Estados Editables del Trámite ──────────────────────────────────────────
+  // Paso 0: Planos
+  const [planos, setPlanos] = useState([
+    { id: "p1", tipo: "Plano General de Edificación y Distribución", file: "plano_general_sanatorio.pdf", fecha: "15/08/2026" },
+    { id: "p2", tipo: "Plano de Evacuación y Seguridad contra Incendio", file: "plano_evacuacion_bomberos.pdf", fecha: "15/08/2026" },
+    { id: "p3", tipo: "Protocolo de Instalación Eléctrica", file: "protocolo_electrico_colegiado.pdf", fecha: "15/08/2026" },
+    { id: "p4", tipo: "Certificado de Puesta a Tierra (PAT)", file: "medicion_pat_2026.pdf", fecha: "15/08/2026" },
+  ]);
 
-  // Form State
-  const [denominacion, setDenominacion] = useState(tramite.denominacion)
-  const [cuit, setCuit] = useState(tramite.cuit)
-  const [domicilio, setDomicilio] = useState(tramite.domicilio)
-  const [localidad, setLocalidad] = useState(tramite.localidad)
-  const [departamento, setDepartamento] = useState(tramite.departamento || 'Capital')
+  // Paso 1: Establecimiento
+  const [denominacion, setDenominacion] = useState(tramite.denominacion);
+  const [cuit, setCuit] = useState(tramite.cuit);
+  const [tipologia, setTipologia] = useState(tramite.tipologia);
+  const [domicilio, setDomicilio] = useState(tramite.domicilio);
+  const [localidad, setLocalidad] = useState(tramite.localidad);
+  const [departamento, setDepartamento] = useState(tramite.departamento || "Capital");
+  const [telefono, setTelefono] = useState("0351-4567890");
 
-  // Mock Upload state for Step 2
-  const [docs, setDocs] = useState<Record<string, boolean>>({
-    planos: false,
-    bomberos: false,
-    responsable: false,
-  })
+  // Paso 2: Director Técnico
+  const [dtNombre, setDtNombre] = useState(`${DEFAULT_EFECTOR_DATA.directorTecnico.nombre} ${DEFAULT_EFECTOR_DATA.directorTecnico.apellido}`);
+  const [dtDni, setDtDni] = useState(DEFAULT_EFECTOR_DATA.directorTecnico.dni);
+  const [dtMatricula, setDtMatricula] = useState(DEFAULT_EFECTOR_DATA.directorTecnico.matricula);
+  const [dtEspecialidad, setDtEspecialidad] = useState("Clínica Médica / Terapia Intensiva Adultos");
+  const [dtCargaHoraria, setDtCargaHoraria] = useState("35 Horas Semanales");
+
+  // Paso 3: Servicios
+  const [selectedServices, setSelectedServices] = useState<Record<string, { thirdParty: boolean }>>(() => {
+    const saved = localStorage.getItem(`efector_servicios_${tramite.id}`);
+    if (saved) {
+      try {
+        const arr = JSON.parse(saved);
+        if (Array.isArray(arr) && arr.length > 0) {
+          const obj: Record<string, { thirdParty: boolean }> = {};
+          arr.forEach((k: string) => { obj[k] = { thirdParty: false }; });
+          return obj;
+        }
+      } catch (e) {}
+    }
+    const defaultServices: Record<string, { thirdParty: boolean }> = {};
+    DEFAULT_EFECTOR_DATA.servicios.forEach((nombre) => {
+      defaultServices[nombre] = { thirdParty: false };
+    });
+    return defaultServices;
+  });
+
+  const [infraSelection, setInfraSelection] = useState<Record<string, any>>(() => {
+    const saved = localStorage.getItem(`efector_infra_${tramite.id}`);
+    return saved ? JSON.parse(saved) : DEFAULT_EFECTOR_DATA.infraestructura;
+  });
+
+  // Paso 4: Recursos Humanos
+  const [rrhhCargado, setRrhhCargado] = useState<any[]>(() => {
+    const saved = localStorage.getItem(`efector_rrhh_${tramite.id}`);
+    return saved ? JSON.parse(saved) : DEFAULT_EFECTOR_DATA.rrhh;
+  });
+
+  // Paso 5: Jefe de Servicio
+  const [jefesCargados, setJefesCargados] = useState<any[]>(() => {
+    const saved = localStorage.getItem(`efector_jefes_${tramite.id}`);
+    return saved ? JSON.parse(saved) : DEFAULT_EFECTOR_DATA.jefes;
+  });
+
+  // Paso 6: Equipamientos
+  const [equiposCargados, setEquiposCargados] = useState<any[]>(() => {
+    const saved = localStorage.getItem(`efector_equipos_${tramite.id}`);
+    return saved ? JSON.parse(saved) : DEFAULT_EFECTOR_DATA.equipamientos;
+  });
+
+  // Paso 7: Documentación
+  const [documentos] = useState([
+    { id: "d1", req: "Estatuto Social / Contrato de Constitución", file: "estatuto_social.pdf", venc: "Sin Vto." },
+    { id: "d2", req: "Título de Propiedad o Contrato de Locación", file: "escritura_inmueble.pdf", venc: "Sin Vto." },
+    { id: "d3", req: "Póliza de Seguro de Responsabilidad Civil (Mala Praxis)", file: "poliza_seguro_2026.pdf", venc: "31/12/2026" },
+    { id: "d4", req: "Contrato con Empresa de Residuos Patógenos", file: "contrato_residuos.pdf", venc: "30/11/2026" },
+    { id: "d5", req: "Certificado de Habilitación de Bomberos", file: "certificado_bomberos.pdf", venc: "15/09/2026" },
+  ]);
+
+  // Persistencia en LocalStorage
+  useEffect(() => {
+    if (!tramite.id) return;
+    const activeServicesList = Object.keys(selectedServices).filter((k) => !!selectedServices[k]);
+    localStorage.setItem(`efector_servicios_${tramite.id}`, JSON.stringify(activeServicesList));
+    localStorage.setItem(`efector_infra_${tramite.id}`, JSON.stringify(infraSelection));
+    localStorage.setItem(`efector_equipos_${tramite.id}`, JSON.stringify(equiposCargados));
+    localStorage.setItem(`efector_rrhh_${tramite.id}`, JSON.stringify(rrhhCargado));
+    localStorage.setItem(`efector_jefes_${tramite.id}`, JSON.stringify(jefesCargados));
+  }, [selectedServices, infraSelection, equiposCargados, rrhhCargado, jefesCargados, tramite.id]);
+
+  const handleNext = () => {
+    if (activeStep < STEPS.length - 1) {
+      setActiveStep(activeStep + 1);
+    }
+  };
+
+  const handleBack = () => {
+    if (activeStep > 0) {
+      setActiveStep(activeStep - 1);
+    }
+  };
 
   const handleGuardarBorrador = () => {
-    alert('✓ Borrador guardado localmente en su bandeja.')
-    navigate('/efector/bandeja')
-  }
+    alert("✓ Borrador de trámite guardado exitosamente.");
+  };
 
-  const handleEnviarTramite = () => {
-    alert('✓ Trámite de habilitación enviado al Ministerio de Salud con éxito.')
-    navigate('/efector/bandeja')
-  }
+  const handleFinalizarYPresentar = () => {
+    alert("✓ Trámite de Habilitación presentado exitosamente ante el Ministerio de Salud. El expediente ha sido ingresado para evaluación técnica.");
+    navigate("/efector/bandeja");
+  };
+
+  const handleAgregarPlano = () => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".pdf,.dwg,.jpg,.png";
+    input.onchange = (e: any) => {
+      const file = e.target.files?.[0];
+      if (file) {
+        setPlanos((prev) => [
+          ...prev,
+          {
+            id: `p${Date.now()}`,
+            tipo: "Plano Complementario / Memoria Descriptiva",
+            file: file.name,
+            fecha: new Date().toLocaleDateString("es-AR"),
+          },
+        ]);
+      }
+    };
+    input.click();
+  };
+
+  const handleEliminarPlano = (idPlano: string) => {
+    setPlanos((prev) => prev.filter((p) => p.id !== idPlano));
+  };
 
   return (
-    <>
-      <div className="topbar">
-        <button className="btn btn-ghost btn-sm" onClick={() => navigate('/efector/home')} style={{ marginRight: 'var(--space-3)' }}>
-          ← Cancelar
-        </button>
-        <div className="topbar-title">Iniciar {tipoLabel}</div>
-        <div style={{ fontSize: 13, color: 'var(--color-gray-500)', fontWeight: 600, background: 'var(--color-gray-150)', padding: '6px 14px', borderRadius: 'var(--radius-full)' }}>
-          Borrador: {tramite.nroTramite}
-        </div>
-      </div>
+    <Box sx={{ p: { xs: 1.5, sm: 3 } }}>
+      
+      {/* Barra Superior con Navegación y Chips Informativos */}
+      <Box sx={{ mb: 2, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 1.5 }}>
+        <Button
+          variant="outlined"
+          startIcon={<ArrowBackIosIcon />}
+          onClick={() => navigate("/efector/bandeja")}
+          sx={{
+            color: "#005596",
+            borderColor: "#005596",
+            fontWeight: 800,
+            textTransform: "none",
+            "&:hover": { bgcolor: "#f0f9ff", borderColor: "#003b66" },
+          }}
+        >
+          Volver a Mis Trámites
+        </Button>
 
-      <div className="page-content" style={{ maxWidth: 800, margin: '0 auto' }}>
-        
-        {/* Wizard Stepper Banner */}
-        <div style={{
-          background: 'white',
-          borderRadius: 'var(--radius-2xl)',
-          padding: 'var(--space-5) var(--space-6)',
-          boxShadow: '0 2px 12px rgba(0,0,0,0.04)',
-          border: '1px solid var(--color-gray-200)',
-          marginBottom: 'var(--space-6)'
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-3)' }}>
-            <div>
-              <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--color-brand-600)', textTransform: 'uppercase' }}>Habilitación Sanitaria</span>
-              <h2 style={{ margin: '2px 0 0', fontSize: 18, fontWeight: 800 }}>
-                {step === 1 && 'Paso 1: Datos del Establecimiento'}
-                {step === 2 && 'Paso 2: Adjuntar Documentación Obligatoria'}
-                {step === 3 && 'Paso 3: Confirmación y Declaración Jurada'}
-              </h2>
-            </div>
-            <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--color-gray-500)', background: 'var(--color-gray-100)', padding: '4px 10px', borderRadius: 'var(--radius-full)' }}>
-              Paso {step} de 3
-            </span>
-          </div>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+          <Chip
+            icon={<CheckCircleIcon sx={{ fontSize: "14px !important", color: "#005596 !important" }} />}
+            label="MODO EDICIÓN TRÁMITE SANITARIO"
+            size="small"
+            sx={{
+              fontWeight: 800,
+              bgcolor: "#e0f2fe",
+              color: "#0369a1",
+              border: "1px solid #bae6fd",
+              height: 28,
+            }}
+          />
+          <Chip
+            label={`Trámite: ${tramite.nroTramite}`}
+            size="small"
+            sx={{ fontWeight: 800, bgcolor: "#ffffff", color: "#1e293b", border: "1px solid #cbd5e1", height: 28 }}
+          />
+          <Chip
+            label="EN CARGA"
+            size="small"
+            color="primary"
+            sx={{ fontWeight: 850, height: 28 }}
+          />
+        </Box>
+      </Box>
+
+      {/* Tarjeta Principal del Trámite */}
+      <Paper
+        elevation={2}
+        sx={{
+          borderRadius: "8px",
+          overflow: "hidden",
+          mb: 2,
+          mx: "auto",
+          width: "100%",
+          backgroundColor: "white",
+        }}
+      >
+        {/* Banner Azul Superior */}
+        <Box
+          sx={{
+            backgroundColor: "#005596",
+            color: "white",
+            py: 2.2,
+            px: 3,
+            textAlign: "center",
+          }}
+        >
+          <Typography variant="h5" sx={{ fontWeight: 900, letterSpacing: -0.5, fontSize: "1.35rem" }}>
+            Expediente N° {tramite.nroExpediente || "170-2026"} | Habilitación
+          </Typography>
+          <Typography
+            variant="subtitle1"
+            sx={{ fontWeight: 700, opacity: 0.95, mt: 0.5, textTransform: "uppercase", letterSpacing: 1.5, fontSize: "1rem" }}
+          >
+            {STEPS[activeStep].label}
+          </Typography>
+          <Typography variant="body2" sx={{ opacity: 0.85, mt: 0.5, fontSize: "0.88rem" }}>
+            {denominacion} — {tipologia}
+          </Typography>
+        </Box>
+
+        <Box sx={{ p: { xs: 2, sm: 3.5 }, backgroundColor: "white" }}>
           
-          <div style={{ height: 6, background: 'var(--color-gray-100)', borderRadius: 3, overflow: 'hidden', display: 'flex', gap: 4 }}>
-            <div style={{ flex: 1, background: step >= 1 ? 'var(--color-brand-600)' : 'var(--color-gray-200)', transition: 'background 0.3s' }} />
-            <div style={{ flex: 1, background: step >= 2 ? 'var(--color-brand-600)' : 'var(--color-gray-200)', transition: 'background 0.3s' }} />
-            <div style={{ flex: 1, background: step >= 3 ? 'var(--color-brand-600)' : 'var(--color-gray-200)', transition: 'background 0.3s' }} />
-          </div>
-        </div>
-
-        {/* STEP 1: DATOS DEL ESTABLECIMIENTO */}
-        {step === 1 && (
-          <div className="card" style={{ border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
-            <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
-              
-              <div style={{ padding: 'var(--space-4)', background: 'var(--color-brand-50)', borderRadius: 'var(--radius-xl)', border: '1px solid var(--color-brand-100)' }}>
-                <div style={{ display: 'flex', gap: 'var(--space-3)', alignItems: 'center' }}>
-                  <span className="material-icons" style={{ color: 'var(--color-brand-600)' }}>info</span>
-                  <div style={{ fontSize: 13, color: 'var(--color-brand-800)', lineHeight: 1.5 }}>
-                    Los datos ingresados corresponden al trámite preventivo de habilitación. Verificá que la tipología declarada sea la correspondiente antes de avanzar.
-                  </div>
-                </div>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)' }}>
-                
-                <div className="form-group" style={{ gridColumn: 'span 2' }}>
-                  <label className="form-label">Denominación del Establecimiento <span className="required">*</span></label>
-                  <input
-                    type="text"
-                    className="form-input"
-                    value={denominacion}
-                    onChange={e => setDenominacion(e.target.value)}
-                    placeholder="Ej. Consultorio Médico San Martín"
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label className="form-label">CUIT Titular / Razón Social <span className="required">*</span></label>
-                  <input
-                    type="text"
-                    className="form-input"
-                    value={cuit}
-                    onChange={e => setCuit(e.target.value)}
-                    placeholder="30-XXXXXXXX-X"
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label className="form-label">Tipo de Trámite (Bloqueado)</label>
-                  <div style={{ position: 'relative' }}>
-                    <input
-                      type="text"
-                      className="form-input"
-                      value={tipoLabel}
-                      disabled
-                      style={{
-                        background: 'var(--color-gray-100)',
-                        color: 'var(--color-gray-600)',
-                        border: '1.5px solid var(--color-gray-300)',
-                        cursor: 'not-allowed',
-                        paddingRight: '40px',
-                        fontWeight: 600
+          {/* Stepper Oficial Conectado */}
+          <Box sx={{ mb: 4 }}>
+            <Stepper alternativeLabel activeStep={activeStep} connector={<QontoConnector />}>
+              {STEPS.map((step, index) => (
+                <Step key={step.label}>
+                  <StepLabel
+                    slots={{
+                      stepIcon: (props) => (
+                        <StepIconCustom {...props} icon={step.icon} onClick={() => setActiveStep(index)} />
+                      ),
+                    }}
+                  >
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        fontWeight: activeStep === index ? "900" : "bold",
+                        color: activeStep === index ? "#005596" : "#4B5563",
+                        display: "block",
+                        mt: 0.8,
+                        fontSize: "0.78rem",
                       }}
-                    />
-                    <span className="material-icons" style={{
-                      position: 'absolute',
-                      right: 12,
-                      top: '50%',
-                      transform: 'translateY(-50%)',
-                      color: 'var(--color-gray-400)',
-                      fontSize: 20
-                    }}>
-                      lock
-                    </span>
-                  </div>
-                </div>
-
-                <div className="form-group">
-                  <label className="form-label">Tipología de Habilitación (Bloqueada)</label>
-                  <div style={{ position: 'relative' }}>
-                    <input
-                      type="text"
-                      className="form-input"
-                      value={tramite.tipologia}
-                      disabled
-                      style={{
-                        background: 'var(--color-gray-100)',
-                        color: 'var(--color-gray-600)',
-                        border: '1.5px solid var(--color-gray-300)',
-                        cursor: 'not-allowed',
-                        paddingRight: '40px',
-                        fontWeight: 600
-                      }}
-                    />
-                    <span className="material-icons" style={{
-                      position: 'absolute',
-                      right: 12,
-                      top: '50%',
-                      transform: 'translateY(-50%)',
-                      color: 'var(--color-gray-400)',
-                      fontSize: 20
-                    }}>
-                      lock
-                    </span>
-                  </div>
-                  <span style={{ fontSize: 11, color: 'var(--color-gray-500)', marginTop: 4 }}>
-                    El tipo de trámite y tipología no se pueden editar. Si desea cambiarlos, cancele el borrador e inicie uno nuevo.
-                  </span>
-                </div>
-
-                <div className="form-group" style={{ gridColumn: 'span 2' }}>
-                  <label className="form-label">Domicilio Real (Calle, Número, Piso, Dpto) <span className="required">*</span></label>
-                  <input
-                    type="text"
-                    className="form-input"
-                    value={domicilio}
-                    onChange={e => setDomicilio(e.target.value)}
-                    placeholder="Ej. Av. Colón 1250, Piso 3"
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label className="form-label">Localidad <span className="required">*</span></label>
-                  <input
-                    type="text"
-                    className="form-input"
-                    value={localidad}
-                    onChange={e => setLocalidad(e.target.value)}
-                    placeholder="Ej. Córdoba"
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label className="form-label">Departamento <span className="required">*</span></label>
-                  <input
-                    type="text"
-                    className="form-input"
-                    value={departamento}
-                    onChange={e => setDepartamento(e.target.value)}
-                    placeholder="Ej. Capital"
-                  />
-                </div>
-
-              </div>
-
-              <div style={{ display: 'flex', gap: 'var(--space-3)', justifyContent: 'flex-end', marginTop: 'var(--space-4)', borderTop: '1px solid var(--color-gray-200)', paddingTop: 'var(--space-4)' }}>
-                <button className="btn btn-secondary" onClick={handleGuardarBorrador} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                  <span className="material-icons" style={{ fontSize: 16 }}>save</span>
-                  Guardar
-                </button>
-                <button
-                  className="btn btn-primary"
-                  disabled={!denominacion.trim() || !cuit.trim() || !domicilio.trim() || !localidad.trim() || !departamento.trim()}
-                  onClick={() => setStep(2)}
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
-                >
-                  Continuar
-                  <span className="material-icons" style={{ fontSize: 16 }}>arrow_forward</span>
-                </button>
-              </div>
-
-            </div>
-          </div>
-        )}
-
-        {/* STEP 2: ADJUNTAR DOCUMENTACIÓN */}
-        {step === 2 && (
-          <div className="card" style={{ border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
-            <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
-              
-              <div style={{ fontSize: 14, color: 'var(--color-gray-600)' }}>
-                Cargá la documentación requerida obligatoria correspondiente a la tipología <strong>{tramite.tipologia}</strong>. Los archivos deben estar en formato PDF o imagen.
-              </div>
-
-              {[
-                { key: 'planos', label: 'Planos de Arquitectura aprobados por el Municipio o Colegio profesional', desc: 'Obligatorio. Planos de escala o croquis reglamentario.' },
-                { key: 'bomberos', label: 'Certificación / Informe de Bomberos vigente', desc: 'Obligatorio. Aprobación de seguridad contra incendios.' },
-                { key: 'responsable', label: 'Título del Responsable Técnico / Habilitación Profesional', desc: 'Obligatorio. Matrícula habilitante del director médico / técnico.' },
-              ].map(item => (
-                <div key={item.key} style={{
-                  padding: 'var(--space-4)',
-                  borderRadius: 'var(--radius-xl)',
-                  border: '1.5px solid var(--color-gray-200)',
-                  background: 'white',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  gap: 'var(--space-4)'
-                }}>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--color-gray-800)' }}>{item.label}</div>
-                    <div style={{ fontSize: 11, color: 'var(--color-gray-500)', marginTop: 2 }}>{item.desc}</div>
-                  </div>
-                  <div>
-                    {docs[item.key] ? (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <span className="badge badge-success" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                          <span className="material-icons" style={{ fontSize: 14 }}>check_circle</span>
-                          Cargado
-                        </span>
-                        <button className="btn btn-ghost btn-sm" onClick={() => setDocs(p => ({ ...p, [item.key]: false }))}>✕ Quitar</button>
-                      </div>
-                    ) : (
-                      <button className="btn btn-secondary btn-sm" onClick={() => setDocs(p => ({ ...p, [item.key]: true }))} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                        <span className="material-icons" style={{ fontSize: 16 }}>attach_file</span>
-                        Adjuntar
-                      </button>
-                    )}
-                  </div>
-                </div>
+                    >
+                      {step.label}
+                    </Typography>
+                  </StepLabel>
+                </Step>
               ))}
+            </Stepper>
+          </Box>
 
-              <div style={{ display: 'flex', gap: 'var(--space-3)', justifyContent: 'flex-end', marginTop: 'var(--space-4)', borderTop: '1px solid var(--color-gray-200)', paddingTop: 'var(--space-4)' }}>
-                <button className="btn btn-ghost" onClick={() => setStep(1)} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                  <span className="material-icons" style={{ fontSize: 16 }}>arrow_back</span>
-                  Atrás
-                </button>
-                <button className="btn btn-secondary" onClick={handleGuardarBorrador} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                  <span className="material-icons" style={{ fontSize: 16 }}>save</span>
-                  Guardar
-                </button>
-                <button
-                  className="btn btn-primary"
-                  disabled={!docs.planos || !docs.bomberos || !docs.responsable}
-                  onClick={() => setStep(3)}
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+          {/* ── CONTENIDO DEL PASO ACTIVO ───────────────────────────────────── */}
+          <Box sx={{ minHeight: "380px" }}>
+
+            {/* PASO 0: ARQUITECTURA */}
+            {activeStep === 0 && (
+              <Box>
+                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
+                  <Typography variant="h6" sx={{ color: "#005596", fontWeight: "bold", fontSize: "1.1rem" }}>
+                    Documentación y Planos de Arquitectura
+                  </Typography>
+                  <Button
+                    variant="contained"
+                    size="small"
+                    startIcon={<AddIcon />}
+                    onClick={handleAgregarPlano}
+                    sx={{ backgroundColor: "#005596", fontWeight: 700, textTransform: "none" }}
+                  >
+                    Adjuntar Nuevo Plano
+                  </Button>
+                </Box>
+
+                <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 2 }}>
+                  <Table size="small">
+                    <TableHead sx={{ bgcolor: "#f8fafc" }}>
+                      <TableRow>
+                        <TableCell sx={{ fontWeight: 850 }}>TIPO DE PLANO</TableCell>
+                        <TableCell sx={{ fontWeight: 850 }}>ARCHIVO DECLARADO</TableCell>
+                        <TableCell sx={{ fontWeight: 850 }}>FECHA DE CARGA</TableCell>
+                        <TableCell align="center" sx={{ fontWeight: 850 }}>ESTADO</TableCell>
+                        <TableCell align="center" sx={{ fontWeight: 850 }}>ACCIONES</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {planos.map((row) => (
+                        <TableRow key={row.id} hover>
+                          <TableCell sx={{ fontWeight: 750 }}>{row.tipo}</TableCell>
+                          <TableCell sx={{ color: "#005596", fontWeight: 600 }}>{row.file}</TableCell>
+                          <TableCell>{row.fecha}</TableCell>
+                          <TableCell align="center">
+                            <Chip label="CARGADO" size="small" color="primary" sx={{ fontWeight: 800, fontSize: "0.65rem" }} />
+                          </TableCell>
+                          <TableCell align="center">
+                            <Box sx={{ display: "flex", gap: 1, justifyContent: "center" }}>
+                              <Button
+                                size="small"
+                                variant="outlined"
+                                startIcon={<VisibilityIcon />}
+                                onClick={() => setViewerFile({ name: row.file, url: "/src/assets/archivos/planos/plano1.pdf" })}
+                                sx={{ textTransform: "none", fontWeight: 800, fontSize: "0.75rem" }}
+                              >
+                                Ver
+                              </Button>
+                              <IconButton size="small" color="error" onClick={() => handleEliminarPlano(row.id)}>
+                                <DeleteIcon fontSize="small" />
+                              </IconButton>
+                            </Box>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </Box>
+            )}
+
+            {/* PASO 1: ESTABLECIMIENTO */}
+            {activeStep === 1 && (
+              <Box>
+                <Typography variant="h6" sx={{ color: "#005596", mb: 2, fontWeight: "bold", fontSize: "1.1rem" }}>
+                  Datos del Establecimiento
+                </Typography>
+                <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "2fr 1fr" }, gap: 2.5, mb: 2.5 }}>
+                  <TextField
+                    fullWidth
+                    variant="standard"
+                    label="Denominación o Nombre de Fantasía *"
+                    value={denominacion}
+                    onChange={(e) => setDenominacion(e.target.value)}
+                  />
+                  <TextField
+                    fullWidth
+                    variant="standard"
+                    label="CUIT *"
+                    value={cuit}
+                    onChange={(e) => setCuit(e.target.value)}
+                  />
+                </Box>
+                <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 2.5, mb: 2.5 }}>
+                  <TextField
+                    fullWidth
+                    variant="standard"
+                    label="Tipología Sanitaria *"
+                    value={tipologia}
+                    onChange={(e) => setTipologia(e.target.value)}
+                  />
+                  <TextField
+                    fullWidth
+                    variant="standard"
+                    label="Domicilio Real (Calle y Número) *"
+                    value={domicilio}
+                    onChange={(e) => setDomicilio(e.target.value)}
+                  />
+                </Box>
+                <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr 1fr" }, gap: 2.5 }}>
+                  <TextField
+                    fullWidth
+                    variant="standard"
+                    label="Localidad *"
+                    value={localidad}
+                    onChange={(e) => setLocalidad(e.target.value)}
+                  />
+                  <TextField
+                    fullWidth
+                    variant="standard"
+                    label="Departamento *"
+                    value={departamento}
+                    onChange={(e) => setDepartamento(e.target.value)}
+                  />
+                  <TextField
+                    fullWidth
+                    variant="standard"
+                    label="Teléfono de Contacto"
+                    value={telefono}
+                    onChange={(e) => setTelefono(e.target.value)}
+                  />
+                </Box>
+              </Box>
+            )}
+
+            {/* PASO 2: DIRECTOR TÉCNICO */}
+            {activeStep === 2 && (
+              <Box>
+                <Typography variant="h6" sx={{ color: "#005596", mb: 2, fontWeight: "bold", fontSize: "1.1rem" }}>
+                  Datos del Director Técnico
+                </Typography>
+                <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "2fr 1fr 1fr" }, gap: 2.5, mb: 2.5 }}>
+                  <TextField
+                    fullWidth
+                    variant="standard"
+                    label="Nombre y Apellido *"
+                    value={dtNombre}
+                    onChange={(e) => setDtNombre(e.target.value)}
+                  />
+                  <TextField
+                    fullWidth
+                    variant="standard"
+                    label="DNI *"
+                    value={dtDni}
+                    onChange={(e) => setDtDni(e.target.value)}
+                  />
+                  <TextField
+                    fullWidth
+                    variant="standard"
+                    label="Matrícula Profesional *"
+                    value={dtMatricula}
+                    onChange={(e) => setDtMatricula(e.target.value)}
+                  />
+                </Box>
+                <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 2.5 }}>
+                  <TextField
+                    fullWidth
+                    variant="standard"
+                    label="Especialidad *"
+                    value={dtEspecialidad}
+                    onChange={(e) => setDtEspecialidad(e.target.value)}
+                  />
+                  <TextField
+                    fullWidth
+                    variant="standard"
+                    label="Carga Horaria Semanal *"
+                    value={dtCargaHoraria}
+                    onChange={(e) => setDtCargaHoraria(e.target.value)}
+                  />
+                </Box>
+              </Box>
+            )}
+
+            {/* PASO 3: SERVICIOS */}
+            {activeStep === 3 && (
+              <Box>
+                <ServicesStep
+                  selectedServices={selectedServices}
+                  setSelectedServices={setSelectedServices}
+                  infraSelection={infraSelection}
+                  setInfraSelection={setInfraSelection}
+                  onValidationChange={() => {}}
+                />
+              </Box>
+            )}
+
+            {/* PASO 4: RECURSOS HUMANOS */}
+            {activeStep === 4 && (
+              <Box>
+                <RRHHStep
+                  selectedServices={selectedServices}
+                  rrhhCargado={rrhhCargado}
+                  setRrhhCargado={setRrhhCargado}
+                  onValidationSuccess={() => {}}
+                />
+              </Box>
+            )}
+
+            {/* PASO 5: JEFE DE SERVICIO */}
+            {activeStep === 5 && (
+              <Box>
+                <JefeServicioStep
+                  selectedServices={selectedServices}
+                  cargados={jefesCargados}
+                  setCargados={setJefesCargados}
+                />
+              </Box>
+            )}
+
+            {/* PASO 6: EQUIPAMIENTOS */}
+            {activeStep === 6 && (
+              <Box>
+                {React.createElement(Equipamientos as any, {
+                  selectedServices,
+                  infraSelection,
+                  equiposCargados,
+                  setEquiposCargados,
+                  onValidationChange: () => {},
+                })}
+              </Box>
+            )}
+
+            {/* PASO 7: DOCUMENTOS */}
+            {activeStep === 7 && (
+              <Box>
+                <Typography variant="h6" sx={{ color: "#005596", mb: 2, fontWeight: "bold", fontSize: "1.1rem" }}>
+                  Documentación Adjunta
+                </Typography>
+                <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 2 }}>
+                  <Table size="small">
+                    <TableHead sx={{ bgcolor: "#f8fafc" }}>
+                      <TableRow>
+                        <TableCell sx={{ fontWeight: 850 }}>DOCUMENTO</TableCell>
+                        <TableCell sx={{ fontWeight: 850 }}>ARCHIVO DECLARADO</TableCell>
+                        <TableCell sx={{ fontWeight: 850 }}>VENCIMIENTO</TableCell>
+                        <TableCell align="center" sx={{ fontWeight: 850 }}>ACCIONES</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {documentos.map((doc) => (
+                        <TableRow key={doc.id} hover>
+                          <TableCell sx={{ fontWeight: 750 }}>{doc.req}</TableCell>
+                          <TableCell sx={{ color: "#005596", fontWeight: 600 }}>{doc.file}</TableCell>
+                          <TableCell>{doc.venc}</TableCell>
+                          <TableCell align="center">
+                            <Button
+                              size="small"
+                              variant="outlined"
+                              startIcon={<VisibilityIcon />}
+                              onClick={() => setViewerFile({ name: doc.file, url: "/src/assets/archivos/planos/plano1.pdf" })}
+                              sx={{ textTransform: "none", fontWeight: 800, fontSize: "0.75rem" }}
+                            >
+                              Ver PDF
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </Box>
+            )}
+          </Box>
+
+          {/* ── BOTONERA INFERIOR ───────────────────────────────────────────── */}
+          <Box
+            sx={{
+              mt: 4,
+              pt: 2.5,
+              borderTop: "1px solid #eee",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              flexWrap: "wrap",
+              gap: 1.5,
+            }}
+          >
+            <Button
+              variant="outlined"
+              color="error"
+              startIcon={<CancelIcon />}
+              onClick={() => navigate("/efector/bandeja")}
+              sx={{ fontWeight: "bold", textTransform: "none" }}
+            >
+              VOLVER A BANDEJA
+            </Button>
+
+            <Stack direction="row" spacing={1.5}>
+              <Button
+                variant="outlined"
+                startIcon={<ArrowBackIosIcon />}
+                onClick={handleBack}
+                disabled={activeStep === 0}
+                sx={{ fontWeight: "bold", textTransform: "none" }}
+              >
+                ANTERIOR
+              </Button>
+              <Button
+                variant="outlined"
+                startIcon={<SaveIcon />}
+                onClick={handleGuardarBorrador}
+                sx={{ fontWeight: "bold", textTransform: "none" }}
+              >
+                GUARDAR BORRADOR
+              </Button>
+
+              {activeStep < STEPS.length - 1 ? (
+                <Button
+                  variant="contained"
+                  endIcon={<SendIcon />}
+                  onClick={handleNext}
+                  sx={{ backgroundColor: "#29b6f6", fontWeight: "bold", textTransform: "none", "&:hover": { backgroundColor: "#0288d1" } }}
                 >
-                  Continuar
-                  <span className="material-icons" style={{ fontSize: 16 }}>arrow_forward</span>
-                </button>
-              </div>
+                  SIGUIENTE
+                </Button>
+              ) : (
+                <Button
+                  variant="contained"
+                  endIcon={<SendIcon />}
+                  onClick={handleFinalizarYPresentar}
+                  sx={{ backgroundColor: "#005596", fontWeight: "bold", textTransform: "none", "&:hover": { backgroundColor: "#003b66" } }}
+                >
+                  FINALIZAR Y PRESENTAR TRÁMITE
+                </Button>
+              )}
+            </Stack>
+          </Box>
 
-            </div>
-          </div>
-        )}
+        </Box>
+      </Paper>
 
-        {/* STEP 3: CONFIRMACIÓN Y DECLARACIÓN JURADA */}
-        {step === 3 && (
-          <div className="card" style={{ border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
-            <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
-              
-              <div style={{ padding: 'var(--space-4)', background: '#fffbeb', borderRadius: 'var(--radius-xl)', border: '1px solid #fef3c7' }}>
-                <h4 style={{ margin: '0 0 6px 0', color: '#b45309', display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span className="material-icons">gavel</span>
-                  Declaración Jurada de Habilitación
-                </h4>
-                <p style={{ margin: 0, fontSize: 13, color: '#78350f', lineHeight: 1.5 }}>
-                  Al presionar "Enviar Trámite", declaro bajo juramento que los datos de infraestructura provistos, el domicilio real y la documentación anexa son fidedignos y se adecúan a los requerimientos de la tipología <strong>{tramite.tipologia}</strong> del Ministerio de Salud. La falsedad de los mismos anulará automáticamente el trámite.
-                </p>
-              </div>
-
-              <div className="card" style={{ border: '1px solid var(--color-gray-200)' }}>
-                <div className="card-header">
-                  <h3>Resumen del Establecimiento</h3>
-                </div>
-                <div className="card-body" style={{ padding: 'var(--space-4) var(--space-5)' }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-3)', fontSize: 13 }}>
-                    <div><strong>Nombre:</strong> {denominacion}</div>
-                    <div><strong>CUIT:</strong> {cuit}</div>
-                    <div><strong>Tipología:</strong> {tramite.tipologia}</div>
-                    <div><strong>Localidad:</strong> {localidad} ({departamento})</div>
-                    <div style={{ gridColumn: 'span 2' }}><strong>Domicilio:</strong> {domicilio}</div>
-                  </div>
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', gap: 'var(--space-3)', justifyContent: 'flex-end', marginTop: 'var(--space-4)', borderTop: '1px solid var(--color-gray-200)', paddingTop: 'var(--space-4)' }}>
-                <button className="btn btn-ghost" onClick={() => setStep(2)} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                  <span className="material-icons" style={{ fontSize: 16 }}>arrow_back</span>
-                  Atrás
-                </button>
-                <button className="btn btn-secondary" onClick={handleGuardarBorrador} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                  <span className="material-icons" style={{ fontSize: 16 }}>save</span>
-                  Guardar
-                </button>
-                <button className="btn btn-primary" onClick={handleEnviarTramite} style={{ background: 'var(--color-success)', borderColor: 'var(--color-success)', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                  <span className="material-icons" style={{ fontSize: 16 }}>send</span>
-                  Enviar Trámite
-                </button>
-              </div>
-
-            </div>
-          </div>
-        )}
-
-      </div>
-    </>
-  )
+      {/* Modal de Previsualización de Archivos */}
+      <FileViewerModal file={viewerFile} onClose={() => setViewerFile(null)} />
+    </Box>
+  );
 }
