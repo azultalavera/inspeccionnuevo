@@ -277,7 +277,7 @@ export default function InspeccionRutinaPage() {
             >
               <div>
                 <div style={{ fontSize: 11, fontWeight: 750, color: '#64748B', textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                  {filtroGeriatricos ? 'Vencidos' : 'Vencidos asignados'}
+                  Faltantes
                 </div>
                 <div style={{ fontSize: 24, fontWeight: 800, color: '#DC2626', marginTop: 2 }}>
                   {filtroGeriatricos ? countGeriatricosVencidos : countVencidos}
@@ -348,31 +348,33 @@ export default function InspeccionRutinaPage() {
               <span className="material-icons" style={{ fontSize: 28, color: '#AED6F1' }}>schedule</span>
             </div>
 
-            {/* Mayor a 30 días Card */}
-            <div
-              onClick={() => setFiltroVentana(filtroVentana === 'AL_DIA' ? 'TODAS' : 'AL_DIA')}
-              style={{
-                background: '#FFFFFF',
-                border: `1.5px solid ${filtroVentana === 'AL_DIA' ? '#10B981' : '#E2E8F0'}`,
-                borderRadius: 10,
-                padding: '14px 16px',
-                cursor: 'pointer',
-                transition: 'all 0.2s ease',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between'
-              }}
-            >
-              <div>
-                <div style={{ fontSize: 11, fontWeight: 750, color: '#64748B', textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                  Al día (&gt; 30 días)
+            {/* Mayor a 30 días Card - Se oculta cuando se selecciona Geriátricos */}
+            {!filtroGeriatricos && (
+              <div
+                onClick={() => setFiltroVentana(filtroVentana === 'AL_DIA' ? 'TODAS' : 'AL_DIA')}
+                style={{
+                  background: '#FFFFFF',
+                  border: `1.5px solid ${filtroVentana === 'AL_DIA' ? '#10B981' : '#E2E8F0'}`,
+                  borderRadius: 10,
+                  padding: '14px 16px',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between'
+                }}
+              >
+                <div>
+                  <div style={{ fontSize: 11, fontWeight: 750, color: '#64748B', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                    Al día (&gt; 30 días)
+                  </div>
+                  <div style={{ fontSize: 24, fontWeight: 800, color: '#059669', marginTop: 2 }}>
+                    {countMayor30}
+                  </div>
                 </div>
-                <div style={{ fontSize: 24, fontWeight: 800, color: '#059669', marginTop: 2 }}>
-                  {countMayor30}
-                </div>
+                <span className="material-icons" style={{ fontSize: 28, color: '#A7F3D0' }}>event_available</span>
               </div>
-              <span className="material-icons" style={{ fontSize: 28, color: '#A7F3D0' }}>event_available</span>
-            </div>
+            )}
 
             {/* Geriátricos Card */}
             <div

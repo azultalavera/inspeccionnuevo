@@ -29,7 +29,7 @@ export default function BandejaInspecciones() {
 
   // Scope Filter (Tipo de Inspección)
   const [tipoFiltro, setTipoFiltro] = useState<
-    "TODOS" | "HABILITACION" | "RUTINA"
+    "TODOS" | "HABILITACION" | "RUTINA" | "DENUNCIA"
   >("TODOS");
 
   // Contextual Sub-filters
@@ -95,7 +95,7 @@ export default function BandejaInspecciones() {
 
   // Reset contextual sub-filters when main type changes
   const handleCambiarTipo = (
-    nuevoTipo: "TODOS" | "HABILITACION" | "RUTINA",
+    nuevoTipo: "TODOS" | "HABILITACION" | "RUTINA" | "DENUNCIA",
   ) => {
     setTipoFiltro(nuevoTipo);
     setFiltroEstado("TODOS");
@@ -131,12 +131,14 @@ export default function BandejaInspecciones() {
       "FINALIZADO",
     ].includes(t.estado);
 
-  // Inspecciones base (en fase de inspección o de rutina, excluyendo denuncias)
+  // Inspecciones base (en fase de inspección, rutina o denuncia)
   const inspeccionesBase = useMemo(() => {
     return localTramites.filter((t) => {
-      const esFase = inInspectionPhase(t) || t.tipoInspeccion === "RUTINA";
-      const noDenuncia = t.tipoInspeccion !== "DENUNCIA";
-      return esFase && noDenuncia;
+      return (
+        inInspectionPhase(t) ||
+        t.tipoInspeccion === "RUTINA" ||
+        t.tipoInspeccion === "DENUNCIA"
+      );
     });
   }, [localTramites]);
 
@@ -244,14 +246,28 @@ export default function BandejaInspecciones() {
   ).length;
   const countRutina = inspeccionesRutina.length;
   const countRutinaTotal = countRutina;
+  const countDenuncia = inspeccionesPorInspector.filter(
+    (t) => t.tipoInspeccion === "DENUNCIA",
+  ).length;
 
-  // Métricas del Nivel 2 para Rutina
+  const isGeriatrico = (t: Tramite) => {
+    const tip = (t.tipologia || "").toLowerCase();
+    return (
+      tip.includes("geriátrico") ||
+      tip.includes("geriatrico") ||
+      tip.includes("geriátricos") ||
+      tip.includes("geriatricos")
+    );
+  };
+
+  // Métricas del Nivel 2 para Rutina (General)
   const countRutinasOrdenadas = inspeccionesRutina.filter((t) =>
     esEstadoOrdenado(t.estado),
   ).length;
-  const countVencidos = inspeccionesRutina.filter(
+  const countFaltantes = inspeccionesRutina.filter(
     (t) => t.alertaRutina === "CRITICO_VENCIDO",
   ).length;
+  const countVencidos = countFaltantes;
   const countProximos = inspeccionesRutina.filter(
     (t) => t.alertaRutina === "ALERTA_T15",
   ).length;
@@ -263,16 +279,29 @@ export default function BandejaInspecciones() {
       t.alertaRutina === "AL_DIA" ||
       (!t.alertaRutina && t.tipoInspeccion === "RUTINA"),
   ).length;
-  const countGeriatricos = inspeccionesRutina.filter(
-    (t) =>
-      (t.tipologia || "").toLowerCase().includes("geriátrico") ||
-      (t.tipologia || "").toLowerCase().includes("geriátricos"),
+
+  // Métricas del Nivel 2 para Rutina (Geriátricos)
+  const countGeriatricos = inspeccionesRutina.filter((t) => isGeriatrico(t)).length;
+  const countGeriatricosFaltantes = inspeccionesRutina.filter(
+    (t) => isGeriatrico(t) && t.alertaRutina === "CRITICO_VENCIDO",
+  ).length;
+  const countGeriatricosEnPlazo = inspeccionesRutina.filter(
+    (t) => isGeriatrico(t) && t.alertaRutina !== "CRITICO_VENCIDO",
   ).length;
 
-  // Métricas del Nivel 2 para Habilitación
+  // Métricas del Nivel 2 para Habilitación / Denuncias / Contexto
   const inspeccionesContexto =
     tipoFiltro !== "TODOS"
-      ? inspeccionesPorInspector.filter((t) => t.tipoInspeccion === tipoFiltro)
+      ? inspeccionesPorInspector.filter((t) => {
+          if (tipoFiltro === "HABILITACION") {
+            return (
+              t.tipoInspeccion === "HABILITACION" ||
+              t.tipoInspeccion === "INICIAL" ||
+              t.tipoInspeccion === "RE_INSPECCION"
+            );
+          }
+          return t.tipoInspeccion === tipoFiltro;
+        })
       : inspeccionesPorInspector;
 
   const countPendientes = inspeccionesContexto.filter(
@@ -291,27 +320,56 @@ export default function BandejaInspecciones() {
   // Filtrado final
   const filtradas = inspeccionesPorInspector.filter((t) => {
     // 1. Tipo principal
-    if (tipoFiltro !== "TODOS" && t.tipoInspeccion !== tipoFiltro) return false;
+    if (tipoFiltro !== "TODOS") {
+      if (tipoFiltro === "HABILITACION") {
+        if (
+          t.tipoInspeccion !== "HABILITACION" &&
+          t.tipoInspeccion !== "INICIAL" &&
+          t.tipoInspeccion !== "RE_INSPECCION"
+        )
+          return false;
+      } else if (t.tipoInspeccion !== tipoFiltro) {
+        return false;
+      }
+    }
 
     // 2. Sub-filtros contextuales
     if (tipoFiltro === "RUTINA") {
-      if (filtroVentanaRutina !== "TODAS") {
-        if (filtroVentanaRutina === "ORDENADAS") {
-          if (!esEstadoOrdenado(t.estado)) return false;
-        } else if (filtroVentanaRutina === "AL_DIA") {
-          if (t.alertaRutina !== "AL_DIA" && t.alertaRutina) return false;
-        } else {
-          if (t.alertaRutina !== filtroVentanaRutina) return false;
+      if (filtroGeriatricos) {
+        if (!isGeriatrico(t)) return false;
+
+        if (
+          filtroVentanaRutina === "CRITICO_VENCIDO" ||
+          filtroVentanaRutina === "FALTANTES"
+        ) {
+          if (t.alertaRutina !== "CRITICO_VENCIDO") return false;
+        } else if (
+          filtroVentanaRutina === "ALERTA_T30" ||
+          filtroVentanaRutina === "EN_PLAZO"
+        ) {
+          if (t.alertaRutina === "CRITICO_VENCIDO") return false;
+        }
+      } else {
+        if (filtroVentanaRutina !== "TODAS") {
+          if (
+            filtroVentanaRutina === "FALTANTES" ||
+            filtroVentanaRutina === "CRITICO_VENCIDO"
+          ) {
+            if (t.alertaRutina !== "CRITICO_VENCIDO") return false;
+          } else if (
+            filtroVentanaRutina === "EN_PLAZO" ||
+            filtroVentanaRutina === "ALERTA_T30"
+          ) {
+            if (t.alertaRutina !== "ALERTA_T30") return false;
+          } else if (filtroVentanaRutina === "ORDENADAS") {
+            if (!esEstadoOrdenado(t.estado)) return false;
+          } else if (filtroVentanaRutina === "AL_DIA") {
+            if (t.alertaRutina !== "AL_DIA" && t.alertaRutina) return false;
+          } else {
+            if (t.alertaRutina !== filtroVentanaRutina) return false;
+          }
         }
       }
-      if (
-        filtroGeriatricos &&
-        !(
-          (t.tipologia || "").toLowerCase().includes("geriátrico") ||
-          (t.tipologia || "").toLowerCase().includes("geriátricos")
-        )
-      )
-        return false;
     } else {
       if (filtroEstado !== "TODOS") {
         if (filtroEstado === "PENDIENTES" && t.estado !== "ACEPTADO_DOC_AUD")
@@ -518,11 +576,11 @@ export default function BandejaInspecciones() {
               )}
             </div>
 
-            {/* 2 Botones Grupo 1 */}
+            {/* 3 Botones Grupo 1 */}
             <div
               style={{
                 display: "grid",
-                gridTemplateColumns: "1fr 1fr",
+                gridTemplateColumns: "repeat(3, 1fr)",
                 gap: 12,
               }}
             >
@@ -683,6 +741,86 @@ export default function BandejaInspecciones() {
                   Periódicas / Programadas
                 </div>
               </div>
+
+              {/* Botón 1.3: DENUNCIA */}
+              <div
+                onClick={() =>
+                  handleCambiarTipo(
+                    tipoFiltro === "DENUNCIA" ? "TODOS" : "DENUNCIA",
+                  )
+                }
+                style={{
+                  background:
+                    tipoFiltro === "DENUNCIA" ? "#FEF2F2" : "#FFFFFF",
+                  border: `2px solid ${tipoFiltro === "DENUNCIA" ? "#EF4444" : "#E2E8F0"}`,
+                  borderRadius: 12,
+                  padding: "12px 14px",
+                  cursor: "pointer",
+                  transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 6,
+                  boxShadow:
+                    tipoFiltro === "DENUNCIA"
+                      ? "0 4px 14px rgba(239, 68, 68, 0.16)"
+                      : "0 1px 2px rgba(0,0,0,0.02)",
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                  }}
+                >
+                  <span
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 800,
+                      color:
+                        tipoFiltro === "DENUNCIA" ? "#B91C1C" : "#64748B",
+                      textTransform: "uppercase",
+                      letterSpacing: 0.4,
+                    }}
+                  >
+                    Denuncias
+                  </span>
+                  <div
+                    style={{
+                      width: 30,
+                      height: 30,
+                      borderRadius: 8,
+                      background:
+                        tipoFiltro === "DENUNCIA" ? "#FECACA" : "#FEE2E2",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <span
+                      className="material-icons"
+                      style={{ fontSize: 18, color: "#DC2626" }}
+                    >
+                      report
+                    </span>
+                  </div>
+                </div>
+                <div
+                  style={{
+                    fontSize: 26,
+                    fontWeight: 900,
+                    color: "#DC2626",
+                    lineHeight: 1,
+                  }}
+                >
+                  {countDenuncia}
+                </div>
+                <div
+                  style={{ fontSize: 11, color: "#64748B", fontWeight: 550 }}
+                >
+                  Sanitarias / Reclamos
+                </div>
+              </div>
             </div>
           </div>
 
@@ -717,10 +855,16 @@ export default function BandejaInspecciones() {
                         ? "#D97706"
                         : tipoFiltro === "HABILITACION"
                           ? "#059669"
-                          : "#475569",
+                          : tipoFiltro === "DENUNCIA"
+                            ? "#DC2626"
+                            : "#475569",
                   }}
                 >
-                  {tipoFiltro === "RUTINA" ? "alarm" : "filter_alt"}
+                  {tipoFiltro === "RUTINA"
+                    ? "alarm"
+                    : tipoFiltro === "DENUNCIA"
+                      ? "report"
+                      : "filter_alt"}
                 </span>
                 <span
                   style={{
@@ -732,10 +876,14 @@ export default function BandejaInspecciones() {
                   }}
                 >
                   {tipoFiltro === "RUTINA"
-                    ? "Estados y Alertas de Rutina"
+                    ? filtroGeriatricos
+                      ? "Alertas de Rutina - Geriátricos"
+                      : "Estados y Alertas de Rutina"
                     : tipoFiltro === "HABILITACION"
                       ? "Estados de Habilitación"
-                      : "Estados de Inspección"}
+                      : tipoFiltro === "DENUNCIA"
+                        ? "Estados de Denuncias"
+                        : "Estados de Inspección"}
                 </span>
               </div>
               {((tipoFiltro === "RUTINA" &&
@@ -771,347 +919,406 @@ export default function BandejaInspecciones() {
 
             {/* Sub-tarjetas dinámicas de Grupo 2 */}
             {tipoFiltro === "RUTINA" ? (
-              /* Tarjetas para Rutina: Inspecciones Ordenadas + 4 Plazos + Refinamiento de Tipología */
               <div
                 style={{ display: "flex", flexDirection: "column", gap: 10 }}
               >
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "repeat(auto-fit, minmax(110px, 1fr))",
-                    gap: 10,
-                  }}
-                >
-                  {/* Botón Rutina 2.0: Inspecciones Ordenadas */}
+                {filtroGeriatricos ? (
+                  /* Tarjetas cuando además se selecciona geriátrico: FALTANTES y EN PLAZO */
                   <div
-                    onClick={() =>
-                      setFiltroVentanaRutina((prev) =>
-                        prev === "ORDENADAS" ? "TODAS" : "ORDENADAS",
-                      )
-                    }
                     style={{
-                      background:
-                        filtroVentanaRutina === "ORDENADAS"
-                          ? "#ECFDF5"
-                          : "#FFFFFF",
-                      border: `1.5px solid ${filtroVentanaRutina === "ORDENADAS" ? "#059669" : "#E2E8F0"}`,
-                      borderRadius: 10,
-                      padding: "10px 12px",
-                      cursor: "pointer",
-                      transition: "all 0.2s ease",
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: 4,
-                      boxShadow:
-                        filtroVentanaRutina === "ORDENADAS"
-                          ? "0 3px 10px rgba(5, 150, 105, 0.15)"
-                          : "none",
+                      display: "grid",
+                      gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
+                      gap: 10,
                     }}
                   >
+                    {/* Botón Geriátrico: FALTANTES */}
                     <div
+                      onClick={() =>
+                        setFiltroVentanaRutina((prev) =>
+                          prev === "FALTANTES" || prev === "CRITICO_VENCIDO"
+                            ? "TODAS"
+                            : "FALTANTES",
+                        )
+                      }
                       style={{
+                        background:
+                          filtroVentanaRutina === "FALTANTES" ||
+                          filtroVentanaRutina === "CRITICO_VENCIDO"
+                            ? "#FEF2F2"
+                            : "#FFFFFF",
+                        border: `1.5px solid ${
+                          filtroVentanaRutina === "FALTANTES" ||
+                          filtroVentanaRutina === "CRITICO_VENCIDO"
+                            ? "#EF4444"
+                            : "#E2E8F0"
+                        }`,
+                        borderRadius: 10,
+                        padding: "10px 12px",
+                        cursor: "pointer",
+                        transition: "all 0.2s ease",
                         display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
+                        flexDirection: "column",
+                        gap: 4,
+                        boxShadow:
+                          filtroVentanaRutina === "FALTANTES" ||
+                          filtroVentanaRutina === "CRITICO_VENCIDO"
+                            ? "0 3px 10px rgba(239, 68, 68, 0.15)"
+                            : "none",
                       }}
                     >
-                      <span
+                      <div
                         style={{
-                          fontSize: 10.5,
-                          fontWeight: 750,
-                          color:
-                            filtroVentanaRutina === "ORDENADAS"
-                              ? "#047857"
-                              : "#64748B",
-                          textTransform: "uppercase",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
                         }}
                       >
-                        Ordenes
-                      </span>
-                      <span
-                        className="material-icons"
+                        <span
+                          style={{
+                            fontSize: 10.5,
+                            fontWeight: 750,
+                            color:
+                              filtroVentanaRutina === "FALTANTES" ||
+                              filtroVentanaRutina === "CRITICO_VENCIDO"
+                                ? "#DC2626"
+                                : "#64748B",
+                            textTransform: "uppercase",
+                            letterSpacing: 0.5,
+                          }}
+                        >
+                          Faltantes
+                        </span>
+                        <span
+                          className="material-icons"
+                          style={{ fontSize: 16, color: "#EF4444" }}
+                        >
+                          error_outline
+                        </span>
+                      </div>
+                      <div
                         style={{
-                          fontSize: 16,
-                          color:
-                            filtroVentanaRutina === "ORDENADAS"
-                              ? "#047857"
-                              : "#059669",
+                          fontSize: 20,
+                          fontWeight: 900,
+                          color: "#DC2626",
                         }}
                       >
-                        playlist_add_check
-                      </span>
+                        {countGeriatricosFaltantes}
+                      </div>
+                      <div style={{ fontSize: 10, color: "#94A3B8" }}>
+                        Inspecciones vencidas
+                      </div>
                     </div>
-                    <div
-                      style={{
-                        fontSize: 20,
-                        fontWeight: 900,
-                        color: "#059669",
-                      }}
-                    >
-                      {countRutinasOrdenadas}
-                    </div>
-                    <div style={{ fontSize: 10, color: "#94A3B8" }}>
-                      En proceso
-                    </div>
-                  </div>
-                  {/* Botón Rutina: Vencidos */}
-                  <div
-                    onClick={() =>
-                      setFiltroVentanaRutina((prev) =>
-                        prev === "CRITICO_VENCIDO"
-                          ? "TODAS"
-                          : "CRITICO_VENCIDO",
-                      )
-                    }
-                    style={{
-                      background:
-                        filtroVentanaRutina === "CRITICO_VENCIDO"
-                          ? "#FEF2F2"
-                          : "#FFFFFF",
-                      border: `1.5px solid ${filtroVentanaRutina === "CRITICO_VENCIDO" ? "#EF4444" : "#E2E8F0"}`,
-                      borderRadius: 10,
-                      padding: "10px 12px",
-                      cursor: "pointer",
-                      transition: "all 0.2s ease",
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: 4,
-                      boxShadow:
-                        filtroVentanaRutina === "CRITICO_VENCIDO"
-                          ? "0 3px 10px rgba(239, 68, 68, 0.15)"
-                          : "none",
-                    }}
-                  >
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                      }}
-                    >
-                      <span
-                        style={{
-                          fontSize: 10.5,
-                          fontWeight: 750,
-                          color: "#64748B",
-                          textTransform: "uppercase",
-                        }}
-                      >
-                        Vencidos
-                      </span>
-                      <span
-                        className="material-icons"
-                        style={{ fontSize: 16, color: "#EF4444" }}
-                      >
-                        error_outline
-                      </span>
-                    </div>
-                    <div
-                      style={{
-                        fontSize: 20,
-                        fontWeight: 900,
-                        color: "#DC2626",
-                      }}
-                    >
-                      {countVencidos}
-                    </div>
-                    <div style={{ fontSize: 10, color: "#94A3B8" }}>
-                      Asignados
-                    </div>
-                  </div>
 
-                  {/* Botón Rutina: Próximos */}
-                  <div
-                    onClick={() =>
-                      setFiltroVentanaRutina((prev) =>
-                        prev === "ALERTA_T15" ? "TODAS" : "ALERTA_T15",
-                      )
-                    }
-                    style={{
-                      background:
-                        filtroVentanaRutina === "ALERTA_T15"
-                          ? "#FEF3C7"
-                          : "#FFFFFF",
-                      border: `1.5px solid ${filtroVentanaRutina === "ALERTA_T15" ? "#F59E0B" : "#E2E8F0"}`,
-                      borderRadius: 10,
-                      padding: "10px 12px",
-                      cursor: "pointer",
-                      transition: "all 0.2s ease",
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: 4,
-                      boxShadow:
-                        filtroVentanaRutina === "ALERTA_T15"
-                          ? "0 3px 10px rgba(245, 158, 11, 0.15)"
-                          : "none",
-                    }}
-                  >
+                    {/* Botón Geriátrico: EN PLAZO */}
                     <div
+                      onClick={() =>
+                        setFiltroVentanaRutina((prev) =>
+                          prev === "EN_PLAZO" || prev === "ALERTA_T30"
+                            ? "TODAS"
+                            : "EN_PLAZO",
+                        )
+                      }
                       style={{
+                        background:
+                          filtroVentanaRutina === "EN_PLAZO" ||
+                          filtroVentanaRutina === "ALERTA_T30"
+                            ? "#EFF6FF"
+                            : "#FFFFFF",
+                        border: `1.5px solid ${
+                          filtroVentanaRutina === "EN_PLAZO" ||
+                          filtroVentanaRutina === "ALERTA_T30"
+                            ? "#3B82F6"
+                            : "#E2E8F0"
+                        }`,
+                        borderRadius: 10,
+                        padding: "10px 12px",
+                        cursor: "pointer",
+                        transition: "all 0.2s ease",
                         display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
+                        flexDirection: "column",
+                        gap: 4,
+                        boxShadow:
+                          filtroVentanaRutina === "EN_PLAZO" ||
+                          filtroVentanaRutina === "ALERTA_T30"
+                            ? "0 3px 10px rgba(59, 130, 246, 0.15)"
+                            : "none",
                       }}
                     >
-                      <span
+                      <div
                         style={{
-                          fontSize: 10.5,
-                          fontWeight: 750,
-                          color: "#64748B",
-                          textTransform: "uppercase",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
                         }}
                       >
-                        Próximos
-                      </span>
-                      <span
-                        className="material-icons"
-                        style={{ fontSize: 16, color: "#D97706" }}
+                        <span
+                          style={{
+                            fontSize: 10.5,
+                            fontWeight: 750,
+                            color:
+                              filtroVentanaRutina === "EN_PLAZO" ||
+                              filtroVentanaRutina === "ALERTA_T30"
+                                ? "#2563EB"
+                                : "#64748B",
+                            textTransform: "uppercase",
+                            letterSpacing: 0.5,
+                          }}
+                        >
+                          En Plazo
+                        </span>
+                        <span
+                          className="material-icons"
+                          style={{ fontSize: 16, color: "#2563EB" }}
+                        >
+                          schedule
+                        </span>
+                      </div>
+                      <div
+                        style={{
+                          fontSize: 20,
+                          fontWeight: 900,
+                          color: "#2563EB",
+                        }}
                       >
-                        warning_amber
-                      </span>
-                    </div>
-                    <div
-                      style={{
-                        fontSize: 20,
-                        fontWeight: 900,
-                        color: "#D97706",
-                      }}
-                    >
-                      {countProximos}
-                    </div>
-                    <div style={{ fontSize: 10, color: "#94A3B8" }}>
-                      &lt; 15 días
+                        {countGeriatricosEnPlazo}
+                      </div>
+                      <div style={{ fontSize: 10, color: "#94A3B8" }}>
+                        En término
+                      </div>
                     </div>
                   </div>
+                ) : (
+                  /* Tarjetas para Rutina General: VENCIDOS, PROXIMOS, EN PLAZO */
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))",
+                      gap: 10,
+                    }}
+                  >
+                    {/* Botón Rutina: Faltantes */}
+                    <div
+                      onClick={() =>
+                        setFiltroVentanaRutina((prev) =>
+                          prev === "FALTANTES" || prev === "CRITICO_VENCIDO"
+                            ? "TODAS"
+                            : "FALTANTES",
+                        )
+                      }
+                      style={{
+                        background:
+                          filtroVentanaRutina === "FALTANTES" ||
+                          filtroVentanaRutina === "CRITICO_VENCIDO"
+                            ? "#FEF2F2"
+                            : "#FFFFFF",
+                        border: `1.5px solid ${
+                          filtroVentanaRutina === "FALTANTES" ||
+                          filtroVentanaRutina === "CRITICO_VENCIDO"
+                            ? "#EF4444"
+                            : "#E2E8F0"
+                        }`,
+                        borderRadius: 10,
+                        padding: "10px 12px",
+                        cursor: "pointer",
+                        transition: "all 0.2s ease",
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: 4,
+                        boxShadow:
+                          filtroVentanaRutina === "FALTANTES" ||
+                          filtroVentanaRutina === "CRITICO_VENCIDO"
+                            ? "0 3px 10px rgba(239, 68, 68, 0.15)"
+                            : "none",
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                        }}
+                      >
+                        <span
+                          style={{
+                            fontSize: 10.5,
+                            fontWeight: 750,
+                            color:
+                              filtroVentanaRutina === "FALTANTES" ||
+                              filtroVentanaRutina === "CRITICO_VENCIDO"
+                                ? "#DC2626"
+                                : "#64748B",
+                            textTransform: "uppercase",
+                            letterSpacing: 0.5,
+                          }}
+                        >
+                          Faltantes
+                        </span>
+                        <span
+                          className="material-icons"
+                          style={{ fontSize: 16, color: "#EF4444" }}
+                        >
+                          error_outline
+                        </span>
+                      </div>
+                      <div
+                        style={{
+                          fontSize: 20,
+                          fontWeight: 900,
+                          color: "#DC2626",
+                        }}
+                      >
+                        {countFaltantes}
+                      </div>
+                      <div style={{ fontSize: 10, color: "#94A3B8" }}>
+                        Inspecciones pendientes
+                      </div>
+                    </div>
 
-                  {/* Botón Rutina: En Plazo */}
-                  <div
-                    onClick={() =>
-                      setFiltroVentanaRutina((prev) =>
-                        prev === "ALERTA_T30" ? "TODAS" : "ALERTA_T30",
-                      )
-                    }
-                    style={{
-                      background:
-                        filtroVentanaRutina === "ALERTA_T30"
-                          ? "#EFF6FF"
-                          : "#FFFFFF",
-                      border: `1.5px solid ${filtroVentanaRutina === "ALERTA_T30" ? "#3B82F6" : "#E2E8F0"}`,
-                      borderRadius: 10,
-                      padding: "10px 12px",
-                      cursor: "pointer",
-                      transition: "all 0.2s ease",
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: 4,
-                      boxShadow:
-                        filtroVentanaRutina === "ALERTA_T30"
-                          ? "0 3px 10px rgba(59, 130, 246, 0.15)"
-                          : "none",
-                    }}
-                  >
+                    {/* Botón Rutina: Próximos */}
                     <div
+                      onClick={() =>
+                        setFiltroVentanaRutina((prev) =>
+                          prev === "ALERTA_T15" ? "TODAS" : "ALERTA_T15",
+                        )
+                      }
                       style={{
+                        background:
+                          filtroVentanaRutina === "ALERTA_T15"
+                            ? "#FEF3C7"
+                            : "#FFFFFF",
+                        border: `1.5px solid ${
+                          filtroVentanaRutina === "ALERTA_T15"
+                            ? "#F59E0B"
+                            : "#E2E8F0"
+                        }`,
+                        borderRadius: 10,
+                        padding: "10px 12px",
+                        cursor: "pointer",
+                        transition: "all 0.2s ease",
                         display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
+                        flexDirection: "column",
+                        gap: 4,
+                        boxShadow:
+                          filtroVentanaRutina === "ALERTA_T15"
+                            ? "0 3px 10px rgba(245, 158, 11, 0.15)"
+                            : "none",
                       }}
                     >
-                      <span
+                      <div
                         style={{
-                          fontSize: 10.5,
-                          fontWeight: 750,
-                          color: "#64748B",
-                          textTransform: "uppercase",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
                         }}
                       >
-                        En Plazo
-                      </span>
-                      <span
-                        className="material-icons"
-                        style={{ fontSize: 16, color: "#2563EB" }}
+                        <span
+                          style={{
+                            fontSize: 10.5,
+                            fontWeight: 750,
+                            color:
+                              filtroVentanaRutina === "ALERTA_T15"
+                                ? "#D97706"
+                                : "#64748B",
+                            textTransform: "uppercase",
+                            letterSpacing: 0.5,
+                          }}
+                        >
+                          Próximos
+                        </span>
+                        <span
+                          className="material-icons"
+                          style={{ fontSize: 16, color: "#D97706" }}
+                        >
+                          warning_amber
+                        </span>
+                      </div>
+                      <div
+                        style={{
+                          fontSize: 20,
+                          fontWeight: 900,
+                          color: "#D97706",
+                        }}
                       >
-                        schedule
-                      </span>
+                        {countProximos}
+                      </div>
+                      <div style={{ fontSize: 10, color: "#94A3B8" }}>
+                        &lt; 15 días
+                      </div>
                     </div>
-                    <div
-                      style={{
-                        fontSize: 20,
-                        fontWeight: 900,
-                        color: "#2563EB",
-                      }}
-                    >
-                      {countEnPlazo}
-                    </div>
-                    <div style={{ fontSize: 10, color: "#94A3B8" }}>
-                      &lt; 30 días
-                    </div>
-                  </div>
 
-                  {/* Botón Rutina: Mayor a 30 días (> 30 días) */}
-                  <div
-                    onClick={() =>
-                      setFiltroVentanaRutina((prev) =>
-                        prev === "AL_DIA" ? "TODAS" : "AL_DIA",
-                      )
-                    }
-                    style={{
-                      background:
-                        filtroVentanaRutina === "AL_DIA"
-                          ? "#ECFDF5"
-                          : "#FFFFFF",
-                      border: `1.5px solid ${filtroVentanaRutina === "AL_DIA" ? "#10B981" : "#E2E8F0"}`,
-                      borderRadius: 10,
-                      padding: "10px 12px",
-                      cursor: "pointer",
-                      transition: "all 0.2s ease",
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: 4,
-                      boxShadow:
-                        filtroVentanaRutina === "AL_DIA"
-                          ? "0 3px 10px rgba(16, 185, 129, 0.15)"
-                          : "none",
-                    }}
-                  >
+                    {/* Botón Rutina: En Plazo */}
                     <div
+                      onClick={() =>
+                        setFiltroVentanaRutina((prev) =>
+                          prev === "ALERTA_T30" ? "TODAS" : "ALERTA_T30",
+                        )
+                      }
                       style={{
+                        background:
+                          filtroVentanaRutina === "ALERTA_T30"
+                            ? "#EFF6FF"
+                            : "#FFFFFF",
+                        border: `1.5px solid ${
+                          filtroVentanaRutina === "ALERTA_T30"
+                            ? "#3B82F6"
+                            : "#E2E8F0"
+                        }`,
+                        borderRadius: 10,
+                        padding: "10px 12px",
+                        cursor: "pointer",
+                        transition: "all 0.2s ease",
                         display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
+                        flexDirection: "column",
+                        gap: 4,
+                        boxShadow:
+                          filtroVentanaRutina === "ALERTA_T30"
+                            ? "0 3px 10px rgba(59, 130, 246, 0.15)"
+                            : "none",
                       }}
                     >
-                      <span
+                      <div
                         style={{
-                          fontSize: 10.5,
-                          fontWeight: 750,
-                          color: "#64748B",
-                          textTransform: "uppercase",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
                         }}
                       >
-                        Al Día
-                      </span>
-                      <span
-                        className="material-icons"
-                        style={{ fontSize: 16, color: "#059669" }}
+                        <span
+                          style={{
+                            fontSize: 10.5,
+                            fontWeight: 750,
+                            color:
+                              filtroVentanaRutina === "ALERTA_T30"
+                                ? "#2563EB"
+                                : "#64748B",
+                            textTransform: "uppercase",
+                            letterSpacing: 0.5,
+                          }}
+                        >
+                          En Plazo
+                        </span>
+                        <span
+                          className="material-icons"
+                          style={{ fontSize: 16, color: "#2563EB" }}
+                        >
+                          schedule
+                        </span>
+                      </div>
+                      <div
+                        style={{
+                          fontSize: 20,
+                          fontWeight: 900,
+                          color: "#2563EB",
+                        }}
                       >
-                        event_available
-                      </span>
-                    </div>
-                    <div
-                      style={{
-                        fontSize: 20,
-                        fontWeight: 900,
-                        color: "#059669",
-                      }}
-                    >
-                      {countMayor30}
-                    </div>
-                    <div style={{ fontSize: 10, color: "#94A3B8" }}>
-                      &gt; 30 días
+                        {countEnPlazo}
+                      </div>
+                      <div style={{ fontSize: 10, color: "#94A3B8" }}>
+                        &lt; 30 días
+                      </div>
                     </div>
                   </div>
-                </div>
+                )}
 
                 {/* Modificador / Refinamiento de Tipología (Geriátricos) */}
                 <div
@@ -1140,7 +1347,10 @@ export default function BandejaInspecciones() {
                     </span>
                     <button
                       type="button"
-                      onClick={() => setFiltroGeriatricos(!filtroGeriatricos)}
+                      onClick={() => {
+                        setFiltroGeriatricos(!filtroGeriatricos);
+                        setFiltroVentanaRutina("TODAS");
+                      }}
                       style={{
                         background: filtroGeriatricos ? "#7C3AED" : "#F5F3FF",
                         color: filtroGeriatricos ? "#FFFFFF" : "#6D28D9",
@@ -2452,52 +2662,80 @@ export default function BandejaInspecciones() {
                       <td
                         style={{ padding: "14px 18px", verticalAlign: "top" }}
                       >
-                        <div>
-                          <span
-                            style={{
-                              background: esRutina ? "#E0F2FE" : "#ECFDF5",
-                              color: esRutina ? "#0369A1" : "#047857",
-                              fontWeight: 800,
-                              fontSize: 11,
-                              padding: "3px 8px",
-                              borderRadius: 7,
-                              display: "inline-flex",
-                              alignItems: "center",
-                              gap: 4,
-                            }}
-                          >
-                            <span
-                              className="material-icons"
-                              style={{ fontSize: 13 }}
-                            >
-                              {esRutina ? "schedule" : "verified"}
-                            </span>
-                            {esRutina ? "Rutina" : "Habilitación"}
-                          </span>
-                        </div>
-                        <div
-                          style={{
-                            fontSize: 11.5,
-                            color: "#64748B",
-                            fontWeight: 550,
-                            display: "inline-flex",
-                            alignItems: "center",
-                            gap: 4,
-                            marginTop: 6,
-                          }}
-                        >
-                          <span
-                            className="material-icons"
-                            style={{ fontSize: 15, color: "#94A3B8" }}
-                          >
-                            {t.formatoInspeccion === "VIRTUAL"
-                              ? "devices"
-                              : "business"}
-                          </span>
-                          {t.formatoInspeccion === "VIRTUAL"
-                            ? "Virtual"
-                            : "Presencial"}
-                        </div>
+                        {(() => {
+                          const esDenuncia = t.tipoInspeccion === "DENUNCIA";
+                          const tipoBadgeBg = esRutina
+                            ? "#E0F2FE"
+                            : esDenuncia
+                              ? "#FEE2E2"
+                              : "#ECFDF5";
+                          const tipoBadgeColor = esRutina
+                            ? "#0369A1"
+                            : esDenuncia
+                              ? "#B91C1C"
+                              : "#047857";
+                          const tipoBadgeIcon = esRutina
+                            ? "schedule"
+                            : esDenuncia
+                              ? "report"
+                              : "verified";
+                          const tipoBadgeText = esRutina
+                            ? "Rutina"
+                            : esDenuncia
+                              ? "Denuncia"
+                              : "Habilitación";
+
+                          return (
+                            <>
+                              <div>
+                                <span
+                                  style={{
+                                    background: tipoBadgeBg,
+                                    color: tipoBadgeColor,
+                                    fontWeight: 800,
+                                    fontSize: 11,
+                                    padding: "3px 8px",
+                                    borderRadius: 7,
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    gap: 4,
+                                  }}
+                                >
+                                  <span
+                                    className="material-icons"
+                                    style={{ fontSize: 13 }}
+                                  >
+                                    {tipoBadgeIcon}
+                                  </span>
+                                  {tipoBadgeText}
+                                </span>
+                              </div>
+                              <div
+                                style={{
+                                  fontSize: 11.5,
+                                  color: "#64748B",
+                                  fontWeight: 550,
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  gap: 4,
+                                  marginTop: 6,
+                                }}
+                              >
+                                <span
+                                  className="material-icons"
+                                  style={{ fontSize: 15, color: "#94A3B8" }}
+                                >
+                                  {t.formatoInspeccion === "VIRTUAL"
+                                    ? "devices"
+                                    : "business"}
+                                </span>
+                                {t.formatoInspeccion === "VIRTUAL"
+                                  ? "Virtual"
+                                  : "Presencial"}
+                              </div>
+                            </>
+                          );
+                        })()}
                       </td>
 
                       {/* Fecha última inspección */}
