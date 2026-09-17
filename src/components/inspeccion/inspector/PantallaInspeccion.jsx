@@ -24,6 +24,7 @@ import {
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import DomainIcon from "@mui/icons-material/Domain";
+import ApartmentIcon from "@mui/icons-material/Apartment";
 import PeopleIcon from "@mui/icons-material/People";
 import MedicalServicesIcon from "@mui/icons-material/MedicalServices";
 import BedIcon from "@mui/icons-material/Bed";
@@ -46,6 +47,8 @@ import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import { useApp } from "../../../context/AppContext";
 import { useAuth } from "../../../context/AuthContext";
 import { getMasterConfig, DEFAULT_EFECTOR_DATA } from "../../../data/masterConfig";
+import ModalRadiofisicaServicios from "../../../components/ModalRadiofisicaServicios";
+import { getRadiofisicaConfig } from "../../../data/radiofisicaConfig";
 
 import {
   normalize,
@@ -64,6 +67,7 @@ import FileViewerModal from "./components/FileViewerModal";
 import PhotoViewer from "./components/PhotoViewer";
 import RevisionActaView from "./components/RevisionActaView";
 import SignatureModal from "./components/SignatureModal";
+import DatosTramiteRadiofisica from "./components/DatosTramiteRadiofisica";
 
 const PantallaInspeccion = ({
   serviciosEfector: propsServicios = null,
@@ -74,13 +78,28 @@ const PantallaInspeccion = ({
 } = {}) => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { tramites, finalizarInspeccion, actualizarInspeccion, responderEmplazamiento, solicitarReInspeccion, emplazarTramite, actualizarEstadoTramite } = useApp();
   const { user } = useAuth();
 
   const tramiteActual = React.useMemo(() => {
     return tramites.find(t => t.id === id) || null;
   }, [tramites, id]);
+
+  const isRadiofisica =
+    tramiteActual?.tipologia?.toUpperCase().includes("RADIOFÍSICA") ||
+    tramiteActual?.tipologia?.toUpperCase().includes("RADIOFISICA") ||
+    tramiteActual?.denominacion?.toUpperCase().includes("RADIOFÍSICA") ||
+    tramiteActual?.denominacion?.toUpperCase().includes("RADIOFISICA") ||
+    Boolean(searchParams.get("tipoServicio"));
+
+  const [tipoServicio, setTipoServicio] = useState(
+    searchParams.get("tipoServicio") || "Rayos X"
+  );
+  const [subservicio, setSubservicio] = useState(
+    searchParams.get("subservicio") || "Radiología Convencional Simple"
+  );
+  const [modalRadioOpen, setModalRadioOpen] = useState(false);
 
   const isAgentEvaluation = user?.rol === 'ARQUITECTO' || user?.rol === 'AUDITOR';
   const isDescargo = tramiteActual?.estado === 'DESCARGO_INSP' || isAgentEvaluation;
@@ -89,8 +108,20 @@ const PantallaInspeccion = ({
   const paramView = searchParams.get('view');
 
   const [loading, setLoading] = useState(false);
-  const [tipologia, setTipologia] = useState(tramiteActual?.tipologia || "CLÍNICAS, SANATORIOS Y HOSPITALES");
-  const [config, setConfig] = useState(() => getMasterConfig(tramiteActual?.tipologia || "CLÍNICAS, SANATORIOS Y HOSPITALES"));
+  const initialTipologia = isRadiofisica
+    ? "RADIOFÍSICA"
+    : tramiteActual?.tipologia || "CLÍNICAS, SANATORIOS Y HOSPITALES";
+  const [tipologia, setTipologia] = useState(initialTipologia);
+
+  const [config, setConfig] = useState(() => {
+    if (isRadiofisica) {
+      return getRadiofisicaConfig(
+        searchParams.get("tipoServicio") || "Rayos X",
+        searchParams.get("subservicio") || "Radiología Convencional Simple"
+      );
+    }
+    return getMasterConfig(tramiteActual?.tipologia || "CLÍNICAS, SANATORIOS Y HOSPITALES");
+  });
   const [inspectorData, setInspectorData] = useState({});
   const [viewerFile, setViewerFile] = useState(null);
   const [obsDatosGenerales, setObsDatosGenerales] = useState([]);
@@ -315,6 +346,46 @@ const PantallaInspeccion = ({
 
     if (savedData) {
       setInspectorData(JSON.parse(savedData));
+    } else if (isRadiofisica) {
+      setInspectorData({
+        "f-rad-exp": tramiteActual?.nroExpediente || "EX-2026-0089100-APN-MS#CBA",
+        "f-rad-denominacion": tramiteActual?.denominacion || "HABILITACION - RADIOFÍSICA",
+        "f-rad-tipologia": "RADIOFÍSICA",
+        "f-rad-tipo-tramite": "HABILITACIÓN",
+        "f-rad-tipo-servicio": tipoServicio,
+        "f-rad-subservicio": subservicio,
+        "f-rad-formato": tramiteActual?.formatoInspeccion || "PRESENCIAL",
+        "f-rad-domicilio": tramiteActual?.domicilio || "Av. Vélez Sarsfield 1450",
+        "f-rad-localidad": tramiteActual?.localidad || "Córdoba",
+        "f-rad-email": "radiofisica.salud@cordoba.gob.ar",
+        "f-rad-resp-nombre": "Lic. Martín S. Benítez (Físico Médico)",
+        "f-rad-resp-matricula": "MP-5892 / Especialista en Radiofísica",
+        "f-rad-permiso-arn": true,
+        "f-rad-dosimetria": true,
+        "f-rad-memoria-blindaje": true,
+        "f-rad-garantia-calidad": true,
+        "f-rad-senales-iram": true,
+        "f-rad-luces-emergencia": true,
+        "f-rad-extintores": true,
+        "f-rad-residuos": true,
+        "f-rad-botiquin": true,
+        "rf-rx-blindaje-sala": true,
+        "rf-rx-senal-luminosa": true,
+        "rf-rx-epp-plomados": true,
+        "rf-rx-calibracion-haz": true,
+        "rf-las-gafas-certificadas": true,
+        "rf-las-aviso-puerta": true,
+        "rf-las-llave-seguridad": true,
+        "rf-las-ventilacion-humos": true,
+        "rf-rm-jaula-faraday": true,
+        "rf-rm-zonas-seguridad": true,
+        "rf-rm-linea-5gauss": true,
+        "rf-rm-quench-linea": true,
+        "rf-uv-corte-automatico": true,
+        "rf-uv-parada-emergencia": true,
+        "rf-uv-prohibicion-menores": true,
+        "rf-uv-gafas-uv": true,
+      });
     } else {
       setInspectorData({
         "f-fecqs7p6": new Date().toISOString().split("T")[0],
@@ -523,6 +594,13 @@ const PantallaInspeccion = ({
     const fetchData = async () => {
       try {
         setLoading(true);
+        if (isRadiofisica) {
+          const cfg = getRadiofisicaConfig(tipoServicio, subservicio);
+          setConfig(cfg);
+          localStorage.setItem("master_config", JSON.stringify(cfg));
+          return;
+        }
+
         // 1. Cargar localmente primero
         const localCfg = getMasterConfig(tipologia);
         if (localCfg) {
@@ -554,7 +632,21 @@ const PantallaInspeccion = ({
       }
     };
     fetchData();
-  }, [tipologia]);
+  }, [tipologia, isRadiofisica, tipoServicio, subservicio]);
+
+  const handleConfirmRadiofisica = (newTipo, newSub) => {
+    setTipoServicio(newTipo);
+    setSubservicio(newSub);
+    setSearchParams((prev) => {
+      const sp = new URLSearchParams(prev);
+      sp.set("tipoServicio", newTipo);
+      sp.set("subservicio", newSub);
+      return sp;
+    });
+    const newCfg = getRadiofisicaConfig(newTipo, newSub);
+    setConfig(newCfg);
+    setModalRadioOpen(false);
+  };
 
   const handleFieldChange = (fieldId, newValue) => {
     setInspectorData((prev) => {
@@ -639,6 +731,41 @@ const PantallaInspeccion = ({
       icon: <DescriptionIcon sx={{ fontSize: 28 }} />,
     },
   ];
+
+  const PESTAÑAS_RADIOFISICA = [
+    {
+      id: "ARQUITECTURA",
+      label: "ARQUITECTURA",
+      icon: <DomainIcon sx={{ fontSize: 28 }} />,
+    },
+    {
+      id: "ESTABLECIMIENTO",
+      label: "ESTABLECIMIENTO",
+      icon: <ApartmentIcon sx={{ fontSize: 28 }} />,
+    },
+    {
+      id: "SERVICIOS",
+      label: "SERVICIOS",
+      icon: <LocalHospitalIcon sx={{ fontSize: 28 }} />,
+    },
+    {
+      id: "PERSONAL",
+      label: "PERSONAL",
+      icon: <PeopleIcon sx={{ fontSize: 28 }} />,
+    },
+    {
+      id: "EQUIPAMIENTO",
+      label: "EQUIPAMIENTO",
+      icon: <MedicalServicesIcon sx={{ fontSize: 28 }} />,
+    },
+    {
+      id: "DOCUMENTACION",
+      label: "DOCUMENTOS ADJUNTOS",
+      icon: <DescriptionIcon sx={{ fontSize: 28 }} />,
+    },
+  ];
+
+  const pestañasActivas = isRadiofisica ? PESTAÑAS_RADIOFISICA : PESTAÑAS;
 
   const renderProgressBar = (stats) => {
     return (
@@ -949,6 +1076,76 @@ const PantallaInspeccion = ({
             </Button>
           </Box>
         </Box>
+
+        {/* Banner Informativo y Selector para Radiofísica */}
+        {isRadiofisica && (
+          <Box
+            sx={{
+              mt: 2.5,
+              pt: 2,
+              borderTop: "1px dashed #cbd5e1",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              flexWrap: "wrap",
+              gap: 2,
+              bgcolor: "#F8FAFC",
+              p: 2,
+              borderRadius: 3,
+            }}
+          >
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, flexWrap: "wrap" }}>
+              <Chip
+                icon={<span className="material-icons" style={{ fontSize: 16 }}>health_and_safety</span>}
+                label="HABILITACIÓN - RADIOFÍSICA"
+                sx={{
+                  bgcolor: "#004B87",
+                  color: "#FFFFFF",
+                  fontWeight: 800,
+                  fontSize: "0.75rem",
+                  "& .MuiChip-icon": { color: "#FFFFFF" },
+                }}
+              />
+              <Chip
+                label={`Tipo: ${tipoServicio}`}
+                sx={{
+                  bgcolor: "#E0F2FE",
+                  color: "#0369A1",
+                  fontWeight: 800,
+                  fontSize: "0.75rem",
+                  border: "1px solid #BAE6FD",
+                }}
+              />
+              <Chip
+                label={`Servicio: ${subservicio}`}
+                sx={{
+                  bgcolor: "#DCFCE7",
+                  color: "#15803D",
+                  fontWeight: 800,
+                  fontSize: "0.75rem",
+                  border: "1px solid #BBF7D0",
+                }}
+              />
+            </Box>
+            <Button
+              variant="contained"
+              size="small"
+              onClick={() => setModalRadioOpen(true)}
+              startIcon={<span className="material-icons" style={{ fontSize: 18 }}>tune</span>}
+              sx={{
+                bgcolor: "#004B87",
+                color: "#FFFFFF",
+                fontWeight: 750,
+                textTransform: "none",
+                borderRadius: 2,
+                boxShadow: "0 2px 6px rgba(0, 75, 135, 0.25)",
+                "&:hover": { bgcolor: "#003865" },
+              }}
+            >
+              Cambiar Tipo / Subservicio
+            </Button>
+          </Box>
+        )}
       </Paper>
 
       {/* Selector de Acta / Revisión / Historial */}
@@ -1188,6 +1385,7 @@ const PantallaInspeccion = ({
                                     key={field.id}
                                     field={field}
                                     value={inspectorData[field.id]}
+                                    allData={inspectorData}
                                     onChange={handleFieldChange}
                                     onOpenObs={(fid, lbl, val) => handleOpenObsDialog(fid, lbl, val, "GENERAL")}
                                     infraEfector={infraEfector}
@@ -1247,6 +1445,7 @@ const PantallaInspeccion = ({
                                   key={field.id}
                                   field={field}
                                   value={inspectorData[field.id]}
+                                  allData={inspectorData}
                                   onChange={handleFieldChange}
                                   onOpenObs={(fid, lbl, val) => handleOpenObsDialog(fid, lbl, val, "GENERAL")}
                                   infraEfector={infraEfector}
@@ -1271,6 +1470,7 @@ const PantallaInspeccion = ({
                             key={field.id}
                             field={field}
                             value={inspectorData[field.id]}
+                            allData={inspectorData}
                             onChange={handleFieldChange}
                             onOpenObs={(fid, lbl, val) => handleOpenObsDialog(fid, lbl, val, "GENERAL")}
                             infraEfector={infraEfector}
@@ -1365,7 +1565,7 @@ const PantallaInspeccion = ({
                   }}
                 />
 
-                {PESTAÑAS.map((tab) => {
+                {pestañasActivas.map((tab) => {
                   const isSelected = selectedCategory === tab.id;
                   return (
                     <Box
@@ -1419,212 +1619,227 @@ const PantallaInspeccion = ({
               </Box>
 
               <Box sx={{ display: "flex", flexDirection: "column", gap: 2, flexGrow: 1 }}>
-                {selectedCategory === "ARQUITECTURA" && (
-                  <Box sx={{ mb: 4 }}>
-                    <PlansTable
-                      inspectorData={inspectorData}
-                      onChange={handleFieldChange}
-                      onOpenObs={handleOpenObsDialog}
-                      onOpenViewer={setViewerFile}
-                    />
-                  </Box>
-                )}
+                {isRadiofisica ? (
+                  <DatosTramiteRadiofisica
+                    category={selectedCategory}
+                    subservicio={subservicio}
+                    tipoServicio={tipoServicio}
+                    inspectorData={inspectorData}
+                    onChange={handleFieldChange}
+                    onOpenObs={handleOpenObsDialog}
+                    onOpenViewer={setViewerFile}
+                  />
+                ) : (
+                  <>
+                    {selectedCategory === "ARQUITECTURA" && (
+                      <Box sx={{ mb: 4 }}>
+                        <PlansTable
+                          inspectorData={inspectorData}
+                          onChange={handleFieldChange}
+                          onOpenObs={handleOpenObsDialog}
+                          onOpenViewer={setViewerFile}
+                        />
+                      </Box>
+                    )}
 
-                {selectedCategory === "DOCUMENTACION" && (
-                  <Box sx={{ mb: 4 }}>
-                    <DocumentsTable
-                      inspectorData={inspectorData}
-                      onChange={handleFieldChange}
-                      onOpenObs={handleOpenObsDialog}
-                      onOpenViewer={setViewerFile}
-                    />
-                  </Box>
-                )}
+                    {selectedCategory === "DOCUMENTACION" && (
+                      <Box sx={{ mb: 4 }}>
+                        <DocumentsTable
+                          inspectorData={inspectorData}
+                          onChange={handleFieldChange}
+                          onOpenObs={handleOpenObsDialog}
+                          onOpenViewer={setViewerFile}
+                        />
+                      </Box>
+                    )}
 
-                {selectedCategory === "SERVICIOS" && (
-                  <Box sx={{ mb: 4 }}>
-                    <ServicesTable
-                      inspectorData={inspectorData}
-                      onChange={handleFieldChange}
-                      onOpenObs={handleOpenObsDialog}
-                      serviciosEfector={serviciosEfector}
-                    />
-                  </Box>
-                )}
+                    {selectedCategory === "SERVICIOS" && (
+                      <Box sx={{ mb: 4 }}>
+                        <ServicesTable
+                          inspectorData={inspectorData}
+                          onChange={handleFieldChange}
+                          onOpenObs={handleOpenObsDialog}
+                          serviciosEfector={serviciosEfector}
+                        />
+                      </Box>
+                    )}
 
-                {(selectedCategory === "EQUIPAMIENTO" || selectedCategory === "SALAS Y CAMAS" || selectedCategory === "RECURSOS HUMANOS") && (
-                  <Box sx={{ mb: 4 }}>
-                    <AggregatedInspectionTable
-                      category={selectedCategory}
-                      services={otherServices}
-                      inspectorData={inspectorData}
-                      infraEfector={infraEfector}
-                      equiposEfector={equiposEfector}
-                      rrhhEfector={rrhhEfector}
-                      onChange={handleFieldChange}
-                      onOpenObs={handleOpenObsDialog}
-                    />
-                  </Box>
+                    {(selectedCategory === "EQUIPAMIENTO" || selectedCategory === "SALAS Y CAMAS" || selectedCategory === "RECURSOS HUMANOS") && (
+                      <Box sx={{ mb: 4 }}>
+                        <AggregatedInspectionTable
+                          category={selectedCategory}
+                          services={otherServices}
+                          inspectorData={inspectorData}
+                          infraEfector={infraEfector}
+                          equiposEfector={equiposEfector}
+                          rrhhEfector={rrhhEfector}
+                          onChange={handleFieldChange}
+                          onOpenObs={handleOpenObsDialog}
+                        />
+                      </Box>
+                    )}
+
+                    {otherServices.map((srv, index) => {
+                      let matchedSections = [];
+
+                      if (selectedCategory === "SERVICIOS") {
+                        if (srv.sections) {
+                          matchedSections = srv.sections.filter((sec) => {
+                            const n = sec.name.toUpperCase();
+                            return (
+                              !n.includes("ARQUITECTURA") &&
+                              !n.includes("EQUIPAMIENTO") &&
+                              !n.includes("RECURSOS") &&
+                              !n.includes("RRHH") &&
+                              !n.includes("JEFE")
+                            );
+                          });
+                        }
+                      } else {
+                        if (srv.sections) {
+                          const keyword =
+                            selectedCategory === "RECURSOS HUMANOS"
+                              ? "RECURSOS"
+                              : selectedCategory === "SALAS Y CAMAS"
+                                ? "SALA"
+                                : selectedCategory === "DOCUMENTACION"
+                                  ? "DOCUMENTO"
+                                  : selectedCategory;
+                          
+                          matchedSections = srv.sections.filter((sec) => {
+                            const n = sec.name.toUpperCase();
+                            const isMatch =
+                              n.includes(keyword) ||
+                              (selectedCategory === "DOCUMENTACION" && n.includes("DOCUMENTA")) ||
+                              (selectedCategory === "RECURSOS HUMANOS" && n.includes("JEFE")) ||
+                              (selectedCategory === "SALAS Y CAMAS" && n.includes("CAMA"));
+
+                            if (!isMatch || ["DOCUMENTACION", "EQUIPAMIENTO", "SALAS Y CAMAS", "RECURSOS HUMANOS"].includes(selectedCategory)) return false;
+                            return sec.fields && sec.fields.length > 0;
+                          });
+                        }
+                      }
+
+                      if (!matchedSections || matchedSections.length === 0) return null;
+
+                      const sectionKey = srv.id || `other_sec_${index}`;
+                      return (
+                        <Accordion
+                          key={sectionKey}
+                          expanded={isTramiteExpanded(sectionKey)}
+                          onChange={() => setExpandedSectionsTramite(prev => ({ ...prev, [sectionKey]: !isTramiteExpanded(sectionKey) }))}
+                          sx={{
+                            mb: 1,
+                            boxShadow: "none",
+                            borderRadius: "12px !important",
+                            border: "1px solid #e2e8f0",
+                            "&:before": { display: "none" },
+                          }}
+                        >
+                          <AccordionSummary
+                            expandIcon={<ExpandMoreIcon sx={{ color: "#475569" }} />}
+                            sx={{
+                              bgcolor: "#f8fafc",
+                              px: 3,
+                              "&.Mui-expanded": {
+                                borderBottom: "1px solid #e2e8f0",
+                              },
+                              "& .MuiAccordionSummary-content": {
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                                width: '100%',
+                                pr: 2
+                              }
+                            }}
+                          >
+                            <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                              <LocalHospitalIcon sx={{ color: "#64748b", fontSize: 20 }} />
+                              <Typography
+                                variant="h6"
+                                sx={{
+                                  fontWeight: 900,
+                                  color: "#1e293b",
+                                  fontSize: "1rem",
+                                  textTransform: "uppercase"
+                                }}
+                              >
+                                {srv.name}
+                              </Typography>
+                            </Box>
+                            {renderProgressBar(getCompletionStats(getFlatFields(matchedSections), inspectorData))}
+                          </AccordionSummary>
+                          <AccordionDetails sx={{ p: 3 }}>
+                            {matchedSections.map((section) => {
+                              const sectionFields = section.fields.filter((f) => {
+                                if (section.name.toUpperCase().includes("SALA") || section.name.toUpperCase().includes("CAMA")) {
+                                  const label = f.label || f.name;
+                                  const uLabel = label.toUpperCase();
+                                  const isGenericLabel = uLabel.includes("CAMAS") || uLabel.includes("SALAS") || uLabel.includes("HABITACION") || (uLabel.includes("N") && uLabel.includes("DE"));
+                                  if (isGenericLabel && infraEfector && (infraEfector[srv.name] || infraEfector[srv.id])) return true;
+                                  return infraEfector && (infraEfector[label] > 0);
+                                }
+                                return true;
+                              });
+                              const sectionStats = getCompletionStats(sectionFields, inspectorData);
+
+                              return (
+                                <Box key={section.id} sx={{ mb: 4 }}>
+                                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, borderBottom: "1px solid #f1f5f9", pb: 1 }}>
+                                    <Typography variant="subtitle2" sx={{ fontWeight: 800, color: "#64748b", textTransform: "uppercase" }}>
+                                      {section.name}
+                                    </Typography>
+                                    {renderProgressBar(sectionStats)}
+                                  </Box>
+
+                                  {(section.name.includes("EQUIPAMIENTO") ||
+                                    section.name.includes("RECURSOS") ||
+                                    section.name.includes("RRHH") ||
+                                    section.name.includes("SALA") ||
+                                    section.name.includes("CAMA")) ? (
+                                    <VerificationTable
+                                      fields={sectionFields}
+                                      inspectorData={inspectorData}
+                                      onChange={handleFieldChange}
+                                      onOpenObs={handleOpenObsDialog}
+                                      infraEfector={infraEfector}
+                                      rrhhEfector={rrhhEfector}
+                                      equiposEfector={equiposEfector}
+                                      currentSrvName={srv.name}
+                                      serviciosEfector={serviciosEfector}
+                                    />
+                                  ) : (
+                                    <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)" }, gap: 3 }}>
+                                      {section.fields?.map((field) => (
+                                        <FieldItem
+                                          key={field.id}
+                                          field={field}
+                                          value={inspectorData[field.id]}
+                                          allData={inspectorData}
+                                          onChange={handleFieldChange}
+                                          infraEfector={infraEfector}
+                                          serviciosEfector={serviciosEfector}
+                                        />
+                                      ))}
+                                    </Box>
+                                  )}
+                                </Box>
+                              );
+                            })}
+                          </AccordionDetails>
+                        </Accordion>
+                      );
+                    })}
+                  </>
                 )}
 
                 <FileViewerModal
                   file={viewerFile}
                   onClose={() => setViewerFile(null)}
                 />
-
-                {otherServices.map((srv, index) => {
-                  let matchedSections = [];
-
-                  if (selectedCategory === "SERVICIOS") {
-                    if (srv.sections) {
-                      matchedSections = srv.sections.filter((sec) => {
-                        const n = sec.name.toUpperCase();
-                        return (
-                          !n.includes("ARQUITECTURA") &&
-                          !n.includes("EQUIPAMIENTO") &&
-                          !n.includes("RECURSOS") &&
-                          !n.includes("RRHH") &&
-                          !n.includes("JEFE")
-                        );
-                      });
-                    }
-                  } else {
-                    if (srv.sections) {
-                      const keyword =
-                        selectedCategory === "RECURSOS HUMANOS"
-                          ? "RECURSOS"
-                          : selectedCategory === "SALAS Y CAMAS"
-                            ? "SALA"
-                            : selectedCategory === "DOCUMENTACION"
-                              ? "DOCUMENTO"
-                              : selectedCategory;
-                      
-                      matchedSections = srv.sections.filter((sec) => {
-                        const n = sec.name.toUpperCase();
-                        const isMatch =
-                          n.includes(keyword) ||
-                          (selectedCategory === "DOCUMENTACION" && n.includes("DOCUMENTA")) ||
-                          (selectedCategory === "RECURSOS HUMANOS" && n.includes("JEFE")) ||
-                          (selectedCategory === "SALAS Y CAMAS" && n.includes("CAMA"));
-
-                        if (!isMatch || ["DOCUMENTACION", "EQUIPAMIENTO", "SALAS Y CAMAS", "RECURSOS HUMANOS"].includes(selectedCategory)) return false;
-                        return sec.fields && sec.fields.length > 0;
-                      });
-                    }
-                  }
-
-                  if (!matchedSections || matchedSections.length === 0) return null;
-
-                  const sectionKey = srv.id || `other_sec_${index}`;
-                  return (
-                    <Accordion
-                      key={sectionKey}
-                      expanded={isTramiteExpanded(sectionKey)}
-                      onChange={() => setExpandedSectionsTramite(prev => ({ ...prev, [sectionKey]: !isTramiteExpanded(sectionKey) }))}
-                      sx={{
-                        mb: 1,
-                        boxShadow: "none",
-                        borderRadius: "12px !important",
-                        border: "1px solid #e2e8f0",
-                        "&:before": { display: "none" },
-                      }}
-                    >
-                      <AccordionSummary
-                        expandIcon={<ExpandMoreIcon sx={{ color: "#475569" }} />}
-                        sx={{
-                          bgcolor: "#f8fafc",
-                          px: 3,
-                          "&.Mui-expanded": {
-                            borderBottom: "1px solid #e2e8f0",
-                          },
-                          "& .MuiAccordionSummary-content": {
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center',
-                            width: '100%',
-                            pr: 2
-                          }
-                        }}
-                      >
-                        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-                          <LocalHospitalIcon sx={{ color: "#64748b", fontSize: 20 }} />
-                          <Typography
-                            variant="h6"
-                            sx={{
-                              fontWeight: 900,
-                              color: "#1e293b",
-                              fontSize: "1rem",
-                              textTransform: "uppercase"
-                            }}
-                          >
-                            {srv.name}
-                          </Typography>
-                        </Box>
-                        {renderProgressBar(getCompletionStats(getFlatFields(matchedSections), inspectorData))}
-                      </AccordionSummary>
-                      <AccordionDetails sx={{ p: 3 }}>
-                        {matchedSections.map((section) => {
-                          const sectionFields = section.fields.filter((f) => {
-                            if (section.name.toUpperCase().includes("SALA") || section.name.toUpperCase().includes("CAMA")) {
-                              const label = f.label || f.name;
-                              const uLabel = label.toUpperCase();
-                              const isGenericLabel = uLabel.includes("CAMAS") || uLabel.includes("SALAS") || uLabel.includes("HABITACION") || (uLabel.includes("N") && uLabel.includes("DE"));
-                              if (isGenericLabel && infraEfector && (infraEfector[srv.name] || infraEfector[srv.id])) return true;
-                              return infraEfector && (infraEfector[label] > 0);
-                            }
-                            return true;
-                          });
-                          const sectionStats = getCompletionStats(sectionFields, inspectorData);
-
-                          return (
-                            <Box key={section.id} sx={{ mb: 4 }}>
-                              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, borderBottom: "1px solid #f1f5f9", pb: 1 }}>
-                                <Typography variant="subtitle2" sx={{ fontWeight: 800, color: "#64748b", textTransform: "uppercase" }}>
-                                  {section.name}
-                                </Typography>
-                                {renderProgressBar(sectionStats)}
-                              </Box>
-
-                              {(section.name.includes("EQUIPAMIENTO") ||
-                                section.name.includes("RECURSOS") ||
-                                section.name.includes("RRHH") ||
-                                section.name.includes("SALA") ||
-                                section.name.includes("CAMA")) ? (
-                                <VerificationTable
-                                  fields={sectionFields}
-                                  inspectorData={inspectorData}
-                                  onChange={handleFieldChange}
-                                  onOpenObs={handleOpenObsDialog}
-                                  infraEfector={infraEfector}
-                                  rrhhEfector={rrhhEfector}
-                                  equiposEfector={equiposEfector}
-                                  currentSrvName={srv.name}
-                                  serviciosEfector={serviciosEfector}
-                                />
-                              ) : (
-                                <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)" }, gap: 3 }}>
-                                  {section.fields?.map((field) => (
-                                    <FieldItem
-                                      key={field.id}
-                                      field={field}
-                                      value={inspectorData[field.id]}
-                                      onChange={handleFieldChange}
-                                      infraEfector={infraEfector}
-                                      serviciosEfector={serviciosEfector}
-                                    />
-                                  ))}
-                                </Box>
-                              )}
-                            </Box>
-                          );
-                        })}
-                      </AccordionDetails>
-                    </Accordion>
-                  );
-                })}
-              </Box>
-            </AccordionDetails>
-          </Accordion>
+                </Box>
+              </AccordionDetails>
+            </Accordion>
 
           <ObservationDialog
             open={obsDialog.open}
@@ -2236,6 +2451,16 @@ const PantallaInspeccion = ({
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Modal Selección Radiofísica */}
+      <ModalRadiofisicaServicios
+        open={modalRadioOpen}
+        onClose={() => setModalRadioOpen(false)}
+        tramite={tramiteActual}
+        initialTipo={tipoServicio}
+        initialSubservicio={subservicio}
+        onConfirm={handleConfirmRadiofisica}
+      />
     </Box>
   );
 };

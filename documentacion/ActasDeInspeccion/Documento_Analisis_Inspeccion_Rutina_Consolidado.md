@@ -1,8 +1,8 @@
 # 📋 Documento de Análisis Funcional y Arquitectura Técnica
-## Trámite: Inspección por Rutina (Periódica) — ClicSalud / RUGEPRESA
+## Trámite: Inspección por Rutina (Periódica) — ClicSalud
 
 > [!NOTE]
-> - **Sistema:** ClicSalud / RUGEPRESA — Ministerio de Salud de la Provincia de Córdoba  
+> - **Sistema:** ClicSalud — Ministerio de Salud de la Provincia de Córdoba  
 > - **Alcance:** Trámite autónomo de Inspección por Rutina (Programada / Periódica) para Establecimientos Habilitados  
 > - **Estado:** `LÍNEA BASE REVISADA Y APROBADA C/ INNOVACIONES DE DESARROLLO`
 

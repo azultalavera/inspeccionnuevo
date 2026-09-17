@@ -383,13 +383,14 @@ export default function DesktopLayout() {
             shortLabel: 'Recursos',
             subItems: [
               { to: '/admin/gestion-recursos', icon: 'dashboard_customize', label: 'Panel General' },
-              { to: '/admin/gestion-recursos/tipos-equipos', icon: 'precision_manufacturing', label: 'Tipo de Equipos' },
-              { to: '/admin/gestion-recursos/requerimientos-equipos', icon: 'tune', label: 'Características por Equipos' },
               { to: '/admin/gestion-recursos/infraestructura', icon: 'business', label: 'Infraestructura' },
               { to: '/admin/gestion-recursos/equipamientos', icon: 'home_repair_service', label: 'Equipamientos' },
+              { to: '/admin/gestion-recursos/requerimientos-equipos', icon: 'tune', label: 'Características por Equipos (Radiofísica)' },
+              { to: '/admin/gestion-recursos/equipamientos?tipologia=RADIOF%C3%8DSICA', icon: 'sensors', label: 'Equipamientos Radiofísica' },
               { to: '/admin/gestion-recursos/recursos-humanos', icon: 'groups', label: 'Recursos Humanos' },
               { to: '/admin/gestion-recursos/jefe-servicio', icon: 'supervisor_account', label: 'Jefe de Servicio' },
               { to: '/admin/gestion-recursos/servicios', icon: 'medical_services', label: 'Servicios' },
+              { to: '/admin/gestion-recursos/tipos-equipos', icon: 'precision_manufacturing', label: 'Tipo de Equipos' },
             ]
           },
         ];
