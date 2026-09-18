@@ -386,7 +386,7 @@ export default function DesktopLayout() {
               { to: '/admin/gestion-recursos/infraestructura', icon: 'business', label: 'Infraestructura' },
               { to: '/admin/gestion-recursos/equipamientos', icon: 'home_repair_service', label: 'Equipamientos' },
               { to: '/admin/gestion-recursos/requerimientos-equipos', icon: 'tune', label: 'Características por Equipos (Radiofísica)' },
-              { to: '/admin/gestion-recursos/equipamientos?tipologia=RADIOF%C3%8DSICA', icon: 'sensors', label: 'Equipamientos Radiofísica' },
+              { to: '/admin/gestion-recursos/equipamientos-radiofisica', icon: 'sensors', label: 'Equipamientos Radiofísica' },
               { to: '/admin/gestion-recursos/recursos-humanos', icon: 'groups', label: 'Recursos Humanos' },
               { to: '/admin/gestion-recursos/jefe-servicio', icon: 'supervisor_account', label: 'Jefe de Servicio' },
               { to: '/admin/gestion-recursos/servicios', icon: 'medical_services', label: 'Servicios' },

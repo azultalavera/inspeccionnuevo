@@ -496,7 +496,7 @@ const GestionRecursos = () => {
 
                   {/* Subitem 2: Equipamientos Radiofísica */}
                   <Box
-                    onClick={() => navigate("/clicsalud-backoffice/gestion-recursos/equipamientos?tipologia=RADIOF%C3%8DSICA")}
+                    onClick={() => navigate("/admin/gestion-recursos/equipamientos-radiofisica")}
                     sx={{
                       p: 1.6,
                       borderRadius: "12px",

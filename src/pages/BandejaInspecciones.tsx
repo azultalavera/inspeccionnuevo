@@ -13,6 +13,7 @@ import TableActionsMenu from "../components/TableActionsMenu";
 import MiPagination from "../components/MiPagination";
 import ModalEmitirOrdenRutina from "../components/ModalEmitirOrdenRutina";
 import ModalRadiofisicaServicios from "../components/ModalRadiofisicaServicios";
+import ModalTramiteEnCursoDetectado from "../components/ModalTramiteEnCursoDetectado";
 
 export default function BandejaInspecciones() {
   const { user } = useAuth();
@@ -79,12 +80,26 @@ export default function BandejaInspecciones() {
   const [tramiteEmitirOrden, setTramiteEmitirOrden] = useState<Tramite | null>(
     null,
   );
+  const [tramiteSolapamientoDetectado, setTramiteSolapamientoDetectado] =
+    useState<Tramite | null>(null);
+
+  const handleSolicitarEmitirOrden = (t: Tramite) => {
+    if (
+      t.nroExpediente === "0425-014523/2026" ||
+      t.tramiteActivoEnCurso ||
+      t.solapamientoTramiteId
+    ) {
+      setTramiteSolapamientoDetectado(t);
+    } else {
+      setTramiteEmitirOrden(t);
+    }
+  };
 
   // Radiofísica Modal States
   const [modalRadiofisicaOpen, setModalRadiofisicaOpen] = useState(false);
   const [tramiteRadiofisica, setTramiteRadiofisica] = useState<Tramite | null>(null);
 
-  const handleIniciarOContinuar = (t: Tramite) => {
+  const handleIniciar = (t: Tramite) => {
     const isRadiofisica =
       t.tipologia?.toUpperCase().includes("RADIOFÍSICA") ||
       t.tipologia?.toUpperCase().includes("RADIOFISICA") ||
@@ -97,13 +112,47 @@ export default function BandejaInspecciones() {
       return;
     }
 
-    if (t.estado === "ACEPTADO_DOC_AUD") {
-      iniciarInspeccion(t.id);
+    iniciarInspeccion(t.id);
+    const basePath = isCoordinador ? "/coordinador/inspeccion" : "/inspector/inspeccion";
+    navigate(`${basePath}/${t.id}`);
+  };
+
+  const handleContinuar = (t: Tramite) => {
+    const isRadiofisica =
+      t.tipologia?.toUpperCase().includes("RADIOFÍSICA") ||
+      t.tipologia?.toUpperCase().includes("RADIOFISICA") ||
+      t.denominacion?.toUpperCase().includes("RADIOFÍSICA") ||
+      t.denominacion?.toUpperCase().includes("RADIOFISICA");
+
+    if (isRadiofisica) {
+      setTramiteRadiofisica(t);
+      setModalRadiofisicaOpen(true);
+      return;
     }
-    if (isCoordinador) {
-      navigate(`/coordinador/inspeccion/${t.id}`);
+
+    const basePath = isCoordinador ? "/coordinador/inspeccion" : "/inspector/inspeccion";
+    navigate(`${basePath}/${t.id}`);
+  };
+
+  const handleRevisar = (t: Tramite) => {
+    const basePath = isCoordinador ? "/coordinador/validacion" : "/inspector/validacion";
+    navigate(`${basePath}/${t.id}`);
+  };
+
+  const handleVisualizar = (t: Tramite) => {
+    const basePath = isCoordinador ? "/coordinador/ver-tramite" : "/inspector/ver-tramite";
+    navigate(`${basePath}/${t.id}`);
+  };
+
+  const handleIniciarOContinuar = (t: Tramite) => {
+    if (t.estado === "ACEPTADO_DOC_AUD") {
+      handleIniciar(t);
+    } else if (t.estado === "DESCARGO_INSP") {
+      handleRevisar(t);
+    } else if (t.estado === "EN_ANALISIS_AUD" || t.estado === "RE_INSP_SOLICITADA") {
+      handleContinuar(t);
     } else {
-      navigate(`/inspector/inspeccion/${t.id}`);
+      handleVisualizar(t);
     }
   };
 
@@ -1633,6 +1682,11 @@ export default function BandejaInspecciones() {
                     .join("")
                     .slice(0, 2)
                     .toUpperCase();
+                  const isHabilitacion =
+                    tipoFiltro === "HABILITACION" ||
+                    t.tipoInspeccion === "HABILITACION" ||
+                    t.tipoInspeccion === "INICIAL" ||
+                    t.tipoTramite === "HABILITACION";
                   const fechaRaw =
                     t.fechaUltimaInspeccion ||
                     t.ultimaInspeccionFecha ||
@@ -1800,40 +1854,99 @@ export default function BandejaInspecciones() {
                           verticalAlign: "top",
                         }}
                       >
-                        <div
-                          style={{
-                            display: "inline-flex",
-                            alignItems: "center",
-                            gap: 5,
-                            fontSize: 12,
-                            fontWeight: 700,
-                            color: "#334155",
-                          }}
-                        >
-                          <span
-                            className="material-icons"
-                            style={{ fontSize: 14, color: "#64748B" }}
-                          >
-                            calendar_today
-                          </span>
-                          <span>{fechaFormatted}</span>
-                        </div>
-                        <div style={{ marginTop: 4 }}>
-                          <span
+                        {isHabilitacion ? (
+                          <div
                             style={{
-                              background: "#FEE2E2",
-                              border: "1px solid #FCA5A5",
-                              color: "#DC2626",
-                              fontWeight: 750,
-                              fontSize: 10,
-                              padding: "1px 7px",
-                              borderRadius: 12,
-                              display: "inline-block",
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: 6,
+                              fontSize: 12,
+                              fontWeight: 500,
+                              color: "#64748B",
                             }}
                           >
-                            Vencida
-                          </span>
-                        </div>
+                            <span
+                              className="material-icons"
+                              style={{ fontSize: 15, color: "#94A3B8" }}
+                            >
+                              event_busy
+                            </span>
+                            <span>No existe última inspección</span>
+                          </div>
+                        ) : (
+                          <>
+                            <div
+                              style={{
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: 5,
+                                fontSize: 12,
+                                fontWeight: 700,
+                                color: "#334155",
+                              }}
+                            >
+                              <span
+                                className="material-icons"
+                                style={{ fontSize: 14, color: "#64748B" }}
+                              >
+                                calendar_today
+                              </span>
+                              <span>{fechaFormatted}</span>
+                            </div>
+                            <div style={{ marginTop: 4 }}>
+                              {(() => {
+                                const badge = (() => {
+                                  if (t.alertaRutina === "CRITICO_VENCIDO") {
+                                    return {
+                                      label: "Vencida",
+                                      bg: "#FEE2E2",
+                                      border: "#FCA5A5",
+                                      color: "#DC2626",
+                                    };
+                                  }
+                                  if (t.alertaRutina === "ALERTA_T15") {
+                                    return {
+                                      label: "< 15 días",
+                                      bg: "#FEF3C7",
+                                      border: "#FCD34D",
+                                      color: "#B45309",
+                                    };
+                                  }
+                                  if (t.alertaRutina === "ALERTA_T30") {
+                                    return {
+                                      label: "< 30 días",
+                                      bg: "#FEF9C3",
+                                      border: "#FDE047",
+                                      color: "#A16207",
+                                    };
+                                  }
+                                  return {
+                                    label: "En plazo",
+                                    bg: "#DCFCE7",
+                                    border: "#86EFAC",
+                                    color: "#15803D",
+                                  };
+                                })();
+                                return (
+                                  <span
+                                    style={{
+                                      background: badge.bg,
+                                      border: `1px solid ${badge.border}`,
+                                      color: badge.color,
+                                      fontWeight: 750,
+                                      fontSize: 10,
+                                      padding: "1px 7px",
+                                      borderRadius: 12,
+                                      display: "inline-block",
+                                    }}
+                                  >
+                                    {badge.label}
+                                  </span>
+                                );
+                              })()}
+                            </div>
+                          </>
+                        )}
                       </td>
 
                       {/* 4. Inspector Responsable */}
@@ -2107,76 +2220,294 @@ export default function BandejaInspecciones() {
                           textAlign: "center",
                         }}
                       >
-                        {t.tipologia?.includes("RADIOFÍSICA") || t.denominacion?.includes("RADIOFÍSICA") ? (
-                          <button
-                            type="button"
-                            onClick={() => handleIniciarOContinuar(t)}
-                            style={{
-                              display: "inline-flex",
-                              alignItems: "center",
-                              gap: 6,
-                              background: "#004B87",
-                              color: "#FFFFFF",
-                              border: "none",
-                              borderRadius: 8,
-                              padding: "7px 14px",
-                              fontSize: 12,
-                              fontWeight: 750,
-                              cursor: "pointer",
-                              boxShadow: "0 2px 6px rgba(0, 75, 135, 0.25)",
-                              transition: "all 0.15s ease",
-                              whiteSpace: "nowrap",
-                            }}
-                            onMouseEnter={(e) =>
-                              (e.currentTarget.style.transform = "scale(1.05)")
-                            }
-                            onMouseLeave={(e) =>
-                              (e.currentTarget.style.transform = "scale(1)")
-                            }
-                            title="Iniciar Inspección - Radiofísica"
-                          >
-                            <span
-                              className="material-icons"
-                              style={{ fontSize: 16, color: "#FFFFFF" }}
-                            >
-                              play_circle
-                            </span>
-                            Iniciar Inspección
-                          </button>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() => handleIniciarOContinuar(t)}
-                            style={{
-                              width: 32,
-                              height: 32,
-                              borderRadius: "50%",
-                              background: "#004B87",
-                              border: "none",
-                              color: "#FFFFFF",
-                              display: "inline-flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              cursor: "pointer",
-                              boxShadow: "0 2px 5px rgba(0, 75, 135, 0.25)",
-                              transition: "all 0.15s ease",
-                            }}
-                            onMouseEnter={(e) =>
-                              (e.currentTarget.style.transform = "scale(1.08)")
-                            }
-                            onMouseLeave={(e) =>
-                              (e.currentTarget.style.transform = "scale(1)")
-                            }
-                            title="Gestionar inspección"
-                          >
-                            <span
-                              className="material-icons"
-                              style={{ fontSize: 17, color: "#FFFFFF" }}
-                            >
-                              policy
-                            </span>
-                          </button>
-                        )}
+                        <div
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            gap: 6,
+                          }}
+                        >
+                          {isCoordinador ? (
+                            /* COORDINADOR: No interviene en el acta, solo emite órdenes de inspección */
+                            t.estado === "ACEPTADO_DOC_AUD" ||
+                            t.estado === "EN_ANALISIS_AUD" ? (
+                              <button
+                                type="button"
+                                disabled
+                                style={{
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  gap: 5,
+                                  background: "#F1F5F9",
+                                  color: "#94A3B8",
+                                  border: "1px solid #CBD5E1",
+                                  borderRadius: 6,
+                                  padding: "6px 12px",
+                                  fontSize: 12,
+                                  fontWeight: 750,
+                                  cursor: "not-allowed",
+                                  boxShadow: "none",
+                                  whiteSpace: "nowrap",
+                                  opacity: 0.75,
+                                }}
+                                title="La orden de inspección ya se encuentra emitida"
+                              >
+                                <span
+                                  className="material-icons"
+                                  style={{ fontSize: 16, color: "#94A3B8" }}
+                                >
+                                  schedule_send
+                                </span>
+                                Emitir Orden
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => handleSolicitarEmitirOrden(t)}
+                                style={{
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  gap: 5,
+                                  background: "#004B87",
+                                  color: "#FFFFFF",
+                                  border: "none",
+                                  borderRadius: 6,
+                                  padding: "6px 12px",
+                                  fontSize: 12,
+                                  fontWeight: 750,
+                                  cursor: "pointer",
+                                  boxShadow:
+                                    "0 1px 3px rgba(0, 75, 135, 0.25)",
+                                  transition: "all 0.15s ease",
+                                  whiteSpace: "nowrap",
+                                }}
+                                onMouseEnter={(e) =>
+                                  (e.currentTarget.style.transform =
+                                    "translateY(-1px)")
+                                }
+                                onMouseLeave={(e) =>
+                                  (e.currentTarget.style.transform =
+                                    "translateY(0)")
+                                }
+                                title="Emitir Orden de Inspección"
+                              >
+                                <span
+                                  className="material-icons"
+                                  style={{ fontSize: 16 }}
+                                >
+                                  schedule_send
+                                </span>
+                                Emitir Orden
+                              </button>
+                            )
+                          ) : (
+                            /* INSPECTOR: Gestiona el acta según su estado (Iniciar, Continuar, Revisar, Visualizar) */
+                            (() => {
+                              if (t.estado === "ACEPTADO_DOC_AUD") {
+                                return (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleIniciar(t)}
+                                    style={{
+                                      display: "inline-flex",
+                                      alignItems: "center",
+                                      gap: 5,
+                                      background: "#10B981",
+                                      color: "#FFFFFF",
+                                      border: "none",
+                                      borderRadius: 6,
+                                      padding: "6px 12px",
+                                      fontSize: 12,
+                                      fontWeight: 750,
+                                      cursor: "pointer",
+                                      boxShadow:
+                                        "0 1px 3px rgba(16, 185, 129, 0.25)",
+                                      transition: "all 0.15s ease",
+                                      whiteSpace: "nowrap",
+                                    }}
+                                    onMouseEnter={(e) =>
+                                      (e.currentTarget.style.transform =
+                                        "translateY(-1px)")
+                                    }
+                                    onMouseLeave={(e) =>
+                                      (e.currentTarget.style.transform =
+                                        "translateY(0)")
+                                    }
+                                    title="Iniciar Inspección"
+                                  >
+                                    <span
+                                      className="material-icons"
+                                      style={{ fontSize: 16 }}
+                                    >
+                                      play_arrow
+                                    </span>
+                                    Iniciar
+                                  </button>
+                                );
+                              }
+
+                              if (
+                                t.estado === "EN_ANALISIS_AUD" ||
+                                t.estado === "RE_INSP_SOLICITADA"
+                              ) {
+                                return (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleContinuar(t)}
+                                    style={{
+                                      display: "inline-flex",
+                                      alignItems: "center",
+                                      gap: 5,
+                                      background: "#004B87",
+                                      color: "#FFFFFF",
+                                      border: "none",
+                                      borderRadius: 6,
+                                      padding: "6px 12px",
+                                      fontSize: 12,
+                                      fontWeight: 750,
+                                      cursor: "pointer",
+                                      boxShadow:
+                                        "0 1px 3px rgba(0, 75, 135, 0.25)",
+                                      transition: "all 0.15s ease",
+                                      whiteSpace: "nowrap",
+                                    }}
+                                    onMouseEnter={(e) =>
+                                      (e.currentTarget.style.transform =
+                                        "translateY(-1px)")
+                                    }
+                                    onMouseLeave={(e) =>
+                                      (e.currentTarget.style.transform =
+                                        "translateY(0)")
+                                    }
+                                    title="Continuar Inspección"
+                                  >
+                                    <span
+                                      className="material-icons"
+                                      style={{ fontSize: 16 }}
+                                    >
+                                      edit
+                                    </span>
+                                    Continuar
+                                  </button>
+                                );
+                              }
+
+                              if (t.estado === "DESCARGO_INSP") {
+                                return (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleRevisar(t)}
+                                    style={{
+                                      display: "inline-flex",
+                                      alignItems: "center",
+                                      gap: 5,
+                                      background: "#EA580C",
+                                      color: "#FFFFFF",
+                                      border: "none",
+                                      borderRadius: 6,
+                                      padding: "6px 12px",
+                                      fontSize: 12,
+                                      fontWeight: 750,
+                                      cursor: "pointer",
+                                      boxShadow:
+                                        "0 1px 3px rgba(234, 88, 12, 0.25)",
+                                      transition: "all 0.15s ease",
+                                      whiteSpace: "nowrap",
+                                    }}
+                                    onMouseEnter={(e) =>
+                                      (e.currentTarget.style.transform =
+                                        "translateY(-1px)")
+                                    }
+                                    onMouseLeave={(e) =>
+                                      (e.currentTarget.style.transform =
+                                        "translateY(0)")
+                                    }
+                                    title="Revisar Respuestas de Emplazamiento"
+                                  >
+                                    <span
+                                      className="material-icons"
+                                      style={{ fontSize: 16 }}
+                                    >
+                                      rate_review
+                                    </span>
+                                    Revisar
+                                  </button>
+                                );
+                              }
+
+                              // Visualizar para actas concluidas, observadas, finalizadas o en protocolización
+                              return (
+                                <button
+                                  type="button"
+                                  onClick={() => handleVisualizar(t)}
+                                  style={{
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    gap: 5,
+                                    background: "#F8FAFC",
+                                    color: "#334155",
+                                    border: "1px solid #CBD5E1",
+                                    borderRadius: 6,
+                                    padding: "6px 12px",
+                                    fontSize: 12,
+                                    fontWeight: 750,
+                                    cursor: "pointer",
+                                    transition: "all 0.15s ease",
+                                    whiteSpace: "nowrap",
+                                  }}
+                                  onMouseEnter={(e) =>
+                                    (e.currentTarget.style.background =
+                                      "#F1F5F9")
+                                  }
+                                  onMouseLeave={(e) =>
+                                    (e.currentTarget.style.background =
+                                      "#F8FAFC")
+                                  }
+                                  title="Visualizar Trámite / Acta"
+                                >
+                                  <span
+                                    className="material-icons"
+                                    style={{ fontSize: 16, color: "#64748B" }}
+                                  >
+                                    visibility
+                                  </span>
+                                  Visualizar
+                                </button>
+                              );
+                            })()
+                          )}
+
+                          <TableActionsMenu
+                            options={[
+                              {
+                                label: "Ver trámite",
+                                icon: "visibility",
+                                onClick: () => handleVisualizar(t),
+                              },
+                              ...(isCoordinador &&
+                              t.estado !== "ACEPTADO_DOC_AUD" &&
+                              t.estado !== "EN_ANALISIS_AUD"
+                                ? [
+                                    {
+                                      label: "Emitir Orden de Rutina",
+                                      icon: "schedule_send",
+                                      onClick: () =>
+                                        handleSolicitarEmitirOrden(t),
+                                    },
+                                  ]
+                                : []),
+                              {
+                                label: "Descargar Acta (PDF)",
+                                icon: "download",
+                                onClick: () =>
+                                  alert(
+                                    `Descargando Acta del Trámite ${t.nroTramite}...`,
+                                  ),
+                              },
+                            ]}
+                          />
+                        </div>
                       </td>
                     </tr>
                   );
@@ -2233,6 +2564,19 @@ export default function BandejaInspecciones() {
           )}
         </div>
       </div>
+
+      {/* Modal Trámite en Curso Detectado (Anti-Collision Guard) */}
+      {tramiteSolapamientoDetectado && (
+        <ModalTramiteEnCursoDetectado
+          tramite={tramiteSolapamientoDetectado}
+          onClose={() => setTramiteSolapamientoDetectado(null)}
+          onEmitirDeTodasFormas={() => {
+            const target = tramiteSolapamientoDetectado;
+            setTramiteSolapamientoDetectado(null);
+            setTramiteEmitirOrden(target);
+          }}
+        />
+      )}
 
       {/* Modal Emitir Orden Rutina */}
       {tramiteEmitirOrden && (

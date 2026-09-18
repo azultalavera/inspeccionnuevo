@@ -87,6 +87,38 @@ export default function ModalEmitirOrdenRutina({
           <span style={{ color: '#94A3B8', marginLeft: 8 }}>{localidad} · {tipologia}</span>
         </div>
 
+        {/* ─── WARNING BANNER: Trámite Simultáneo Detectado ─── */}
+        {(() => {
+          const simultaneo = tramite?.tramiteActivoEnCurso || (tramite?.nroExpediente === '0425-014523/2026' ? {
+            id: 'TRM-2026-08812',
+            nroTramite: '2026-08812',
+            tipo: 'RENOVACION',
+            estado: 'ENVIADO',
+            fechaEstado: '10/08/2026'
+          } : null);
+
+          if (!simultaneo) return null;
+
+          return (
+            <div style={{
+              borderRadius: 8,
+              border: '1.5px solid #F97316',
+              background: '#FFF7ED',
+              padding: '10px 14px',
+              display: 'flex',
+              gap: 10,
+              alignItems: 'center'
+            }}>
+              <span className="material-icons" style={{ fontSize: 20, color: '#EA580C', flexShrink: 0 }}>
+                warning
+              </span>
+              <span style={{ fontSize: 13, color: '#9A3412', lineHeight: 1.4 }}>
+                <strong>Trámite en curso detectado:</strong> Tiene un trámite de <strong>{simultaneo.tipo === 'RENOVACION' ? 'renovación' : 'modificación'}</strong> en curso (N° {simultaneo.nroTramite}) enviado el <strong>{simultaneo.fechaEstado || '10/08/2026'}</strong>.
+              </span>
+            </div>
+          );
+        })()}
+
         {/* Inspector Asignado */}
         <div>
           <label style={{ fontSize: 12, fontWeight: 700, color: '#334155', display: 'block', marginBottom: 6 }}>
@@ -152,13 +184,15 @@ export default function ModalEmitirOrdenRutina({
             onClick={handleEmitirOrden}
             style={{
               padding: '9px 20px', borderRadius: 6, border: 'none',
-              background: '#0055A5',
+              background: (tramite?.tramiteActivoEnCurso || tramite?.nroExpediente === '0425-014523/2026') ? '#D97706' : '#0055A5',
               color: 'white', fontWeight: 700, cursor: 'pointer', fontSize: 12.5,
               display: 'inline-flex', alignItems: 'center', gap: 6
             }}
           >
-            <span className="material-icons" style={{ fontSize: 17 }}>check</span>
-            Confirmar Orden
+            <span className="material-icons" style={{ fontSize: 17 }}>
+              {(tramite?.tramiteActivoEnCurso || tramite?.nroExpediente === '0425-014523/2026') ? 'warning' : 'check'}
+            </span>
+            {(tramite?.tramiteActivoEnCurso || tramite?.nroExpediente === '0425-014523/2026') ? 'Emitir de todas formas' : 'Confirmar Orden'}
           </button>
         </div>
       </div>

@@ -472,7 +472,7 @@ export default function TiposEquiposConfig() {
             <ArrowBackIcon fontSize="small" />
           </IconButton>
           <Typography variant="h5" sx={{ fontWeight: 500 }}>
-            Gestión de Requerimientos de Equipos
+            Gestión de Características por Equipo
           </Typography>
         </Box>
 
@@ -490,7 +490,7 @@ export default function TiposEquiposConfig() {
             </Typography>
 
             <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
-              <Box sx={{ display: "flex", gap: 4, width: "100%" }}>
+              <Box sx={{ display: "flex", gap: 4, width: "50%" }}>
                 <Box sx={{ flex: "1 1 50%" }}>
                   <Autocomplete
                     options={opcionesTipologia}
@@ -499,28 +499,14 @@ export default function TiposEquiposConfig() {
                     renderInput={(params) => (
                       <TextField
                         {...params}
-                        label="Tipología"
+                        label="Tipo de Servicio"
                         variant="standard"
                         fullWidth
                       />
                     )}
                   />
                 </Box>
-                <Box sx={{ flex: "1 1 50%" }}>
-                  <Autocomplete
-                    options={opcionesServicio}
-                    value={filtroServicio}
-                    onChange={(_, v) => setFiltroServicio(v)}
-                    renderInput={(params) => (
-                      <TextField
-                        {...params}
-                        label="Tipo de Servicio / Equipo"
-                        variant="standard"
-                        fullWidth
-                      />
-                    )}
-                  />
-                </Box>
+
               </Box>
 
               <Box
@@ -572,19 +558,6 @@ export default function TiposEquiposConfig() {
               REQUERIMIENTOS POR TIPO DE SERVICIO
             </Typography>
             <Box sx={{ display: "flex", gap: 1.5 }}>
-              <Button
-                variant="outlined"
-                startIcon={<RestartAltIcon />}
-                onClick={handleResetDefaults}
-                sx={{
-                  color: "#64748b",
-                  borderColor: "#cbd5e1",
-                  fontWeight: "bold",
-                  textTransform: "none",
-                }}
-              >
-                RESTABLECER VALORES
-              </Button>
               <Button
                 variant="contained"
                 startIcon={<AddIcon />}
@@ -770,7 +743,7 @@ export default function TiposEquiposConfig() {
             <Typography variant="h6" sx={{ fontWeight: "bold", fontSize: "1.1rem" }}>
               {isEditing
                 ? `CONFIGURACIÓN DE CARACTERÍSTICAS: ${formData.nombre}`
-                : "NUEVO TIPO DE SERVICIO / EQUIPAMIENTO"}
+                : "NUEVO TIPO DE SERVICIO"}
             </Typography>
             <IconButton
               size="small"
@@ -830,7 +803,7 @@ export default function TiposEquiposConfig() {
               </FormControl>
 
               <TextField
-                label="Nombre de Servicio / Equipo"
+                label="Nombre de Servicio"
                 variant="standard"
                 value={formData.nombre}
                 onChange={(e) =>
@@ -865,41 +838,9 @@ export default function TiposEquiposConfig() {
                   textTransform: "uppercase",
                 }}
               >
-                2. Requerimientos de Datos (Todos los Switches)
+                2. Requerimientos de Datos
               </Typography>
 
-              <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
-                <Button
-                  size="small"
-                  variant="outlined"
-                  startIcon={<DoneAllIcon />}
-                  onClick={() => handleMarcarTodosBooleanos(true)}
-                  sx={{
-                    textTransform: "none",
-                    fontSize: "0.75rem",
-                    fontWeight: "bold",
-                    color: "#005596",
-                    borderColor: "#005596",
-                  }}
-                >
-                  Marcar Todos
-                </Button>
-                <Button
-                  size="small"
-                  variant="outlined"
-                  color="inherit"
-                  startIcon={<RemoveDoneIcon />}
-                  onClick={() => handleMarcarTodosBooleanos(false)}
-                  sx={{
-                    textTransform: "none",
-                    fontSize: "0.75rem",
-                    fontWeight: "bold",
-                    color: "#64748b",
-                  }}
-                >
-                  Desmarcar Todos
-                </Button>
-              </Box>
             </Box>
 
             {/* Grupos de características con todos sus switches */}

@@ -59,6 +59,16 @@ export interface Tramite {
   alertaRutina?: 'ALERTA_T30' | 'ALERTA_T15' | 'CRITICO_VENCIDO' | 'AL_DIA';
   solapamientoTramiteId?: string;
   solapamientoTramiteNro?: string;
+  tramiteActivoEnCurso?: {
+    id: string;
+    nroTramite: string;
+    nroExpediente?: string;
+    tipo: 'RENOVACION' | 'MODIFICACION' | 'HABILITACION' | 'ADECUACION';
+    estado: string;
+    estadoSimultaneo?: 'INICIADO' | 'ENVIADO';
+    fechaEstado?: string;
+    descripcion?: string;
+  };
   emplazamiento?: EmplazamientoRutina;
   actaPadreId?: string;
   /** Fecha límite asignada por el coordinador para la re-inspección (DD/MM/AAAA) */
@@ -236,6 +246,18 @@ export const TRAMITES: Tramite[] = [
     formatoInspeccion: 'PRESENCIAL',
     tipoTramite: 'HABILITACION',
     nroActa: 108,
+    tramiteActivoEnCurso: {
+      id: 'TRM-2026-08812',
+      nroTramite: '2026-08812',
+      nroExpediente: '0425-014523/2026',
+      tipo: 'RENOVACION',
+      estado: 'ENVIADO',
+      estadoSimultaneo: 'ENVIADO',
+      fechaEstado: '10/08/2026',
+      descripcion: 'Renovación de Habilitación en proceso de evaluación técnica',
+    },
+    solapamientoTramiteId: 'TRM-2026-08812',
+    solapamientoTramiteNro: '2026-08812',
   },
   {
     id: 'TRM-1429',
