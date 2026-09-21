@@ -35,6 +35,7 @@ const FieldItem = ({ field, value, onChange, onOpenObs, infraEfector, serviciosE
       isConditionallyDisabled = true;
     }
   }
+  const disabledLabel = disableRule?.label ? `Deshabilitado (${disableRule.label})` : "Deshabilitado";
 
   // 2. Verificación de ocultamiento condicional (si aplica y no es disable)
   if (field.dependsOn && field.dependsOn.action !== "disable" && !field.disabledWhen && allData) {
@@ -257,6 +258,7 @@ const FieldItem = ({ field, value, onChange, onOpenObs, infraEfector, serviciosE
                   flex: 1,
                   fontSize: "13px",
                   fontWeight: 700,
+                  textTransform: "none",
                   "&.Mui-selected": {
                     bgcolor: "#e0f2fe",
                     color: "#0369a1",
@@ -342,7 +344,7 @@ const FieldItem = ({ field, value, onChange, onOpenObs, infraEfector, serviciosE
             fullWidth
             variant="outlined"
             size="small"
-            placeholder={isConditionallyDisabled ? "Deshabilitado (Revelado Digital = NO)" : "Escriba aquí..."}
+            placeholder={isConditionallyDisabled ? disabledLabel : "Escriba aquí..."}
             disabled={isEffectiveDisabled}
             value={hasRealValue ? realValue : (specialValue !== undefined ? specialValue : (isTramite ? tramiteVal : ""))}
             multiline={field.type === "textarea"}
@@ -384,7 +386,7 @@ const FieldItem = ({ field, value, onChange, onOpenObs, infraEfector, serviciosE
               color: isEffectiveDisabled ? "#64748b" : "#334155",
               lineHeight: 1.2,
               fontSize: "13px",
-              textTransform: "uppercase",
+              textTransform: "none",
               display: 'flex',
               alignItems: 'center',
               gap: 0.5
@@ -405,7 +407,7 @@ const FieldItem = ({ field, value, onChange, onOpenObs, infraEfector, serviciosE
           {isConditionallyDisabled && (
             <Chip
               size="small"
-              label="Deshabilitado (Revelado Digital = NO)"
+              label={disabledLabel}
               sx={{
                 height: 20,
                 fontSize: "10.5px",

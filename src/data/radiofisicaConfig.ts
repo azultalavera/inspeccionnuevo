@@ -319,21 +319,21 @@ function getRadiologiaConvencionalSimpleSections(): MasterConfigSection[] {
           label: "Revelado por película",
           type: "sino_na",
           options: "SI, NO, NO APLICA",
-          disabledWhen: { fieldId: "f-rx-rev-digital", value: "NO", label: "Revelado digital = NO" },
+          disabledWhen: { fieldId: "f-rx-rev-digital", value: "SI", label: "Revelado digital = SI" },
           valorTramiteMock: "SI"
         },
         {
           id: "f-rx-marca",
           label: "Marca",
           type: "text",
-          disabledWhen: { fieldId: "f-rx-rev-digital", value: "NO", label: "Revelado digital = NO" },
+          disabledWhen: { fieldId: "f-rx-rev-digital", value: "SI", label: "Revelado digital = SI" },
           valorTramiteMock: "Kodak Medical"
         },
         {
           id: "f-rx-modelo",
           label: "Modelo",
           type: "text",
-          disabledWhen: { fieldId: "f-rx-rev-digital", value: "NO", label: "Revelado digital = NO" },
+          disabledWhen: { fieldId: "f-rx-rev-digital", value: "SI", label: "Revelado digital = SI" },
           valorTramiteMock: "M35-X OMAT"
         },
         {
@@ -341,7 +341,7 @@ function getRadiologiaConvencionalSimpleSections(): MasterConfigSection[] {
           label: "Cuarto de revelado",
           type: "sino_na",
           options: "SI, NO, NO APLICA",
-          disabledWhen: { fieldId: "f-rx-rev-digital", value: "NO", label: "Revelado digital = NO" },
+          disabledWhen: { fieldId: "f-rx-rev-digital", value: "SI", label: "Revelado digital = SI" },
           valorTramiteMock: "SI"
         },
         {
@@ -349,14 +349,14 @@ function getRadiologiaConvencionalSimpleSections(): MasterConfigSection[] {
           label: "Contrato de recolección de líquidos peligrosos",
           type: "sino_na",
           options: "SI, NO, NO APLICA",
-          disabledWhen: { fieldId: "f-rx-rev-digital", value: "NO", label: "Revelado digital = NO" },
+          disabledWhen: { fieldId: "f-rx-rev-digital", value: "SI", label: "Revelado digital = SI" },
           valorTramiteMock: "SI"
         },
         {
           id: "f-rx-emp-residuos",
           label: "Empresa residuos",
           type: "text",
-          disabledWhen: { fieldId: "f-rx-rev-digital", value: "NO", label: "Revelado digital = NO" },
+          disabledWhen: { fieldId: "f-rx-rev-digital", value: "SI", label: "Revelado digital = SI" },
           valorTramiteMock: "Hábitat Ecológico S.A."
         }
       ]
@@ -414,7 +414,8 @@ function getRadiologiaConvencionalSimpleSections(): MasterConfigSection[] {
         { id: "f-fuga-ma", label: "Condiciones de la prueba - mA", type: "text", valorTramiteMock: "150 mA" },
         { id: "f-fuga-kv", label: "Condiciones de la prueba - kV", type: "text", valorTramiteMock: "120 kV" },
         { id: "f-fuga-t", label: "Condiciones de la prueba - T", type: "text", valorTramiteMock: "1.0 Seg" },
-        { id: "f-fuga-fondo", label: "Condiciones de la prueba - Radiación de fondo (µSv/h)", type: "number", valorTramiteMock: 0.12 },
+        { id: "f-fuga-fondo", label: "Condiciones de la prueba - Radiación de fondo", type: "number", valorTramiteMock: 0.12 },
+        { id: "f-fuga-fondo-unit", label: "Condiciones de la prueba - Radiación de fondo - Unidad", type: "button_group", options: "µSv/h, mSv/h", valorTramiteMock: "µSv/h" },
         { id: "f-fuga-front-med", label: "Fuga frontal a 1mt - Valor medido", type: "number", valorTramiteMock: 0.45 },
         { id: "f-fuga-front-corr", label: "Fuga frontal a 1mt - Valor corregido", type: "number", valorTramiteMock: 0.33 },
         { id: "f-fuga-front-unit", label: "Fuga frontal a 1mt - Unidad", type: "button_group", options: "µSv/h, mSv/h", valorTramiteMock: "µSv/h" },
@@ -438,7 +439,8 @@ function getRadiologiaConvencionalSimpleSections(): MasterConfigSection[] {
         { id: "f-disp-ma", label: "Condiciones de la prueba - mA", type: "text", valorTramiteMock: "100 mA" },
         { id: "f-disp-kv", label: "Condiciones de la prueba - kV", type: "text", valorTramiteMock: "80 kV" },
         { id: "f-disp-t", label: "Condiciones de la prueba - T", type: "text", valorTramiteMock: "0.2 Seg" },
-        { id: "f-disp-fondo", label: "Condiciones de la prueba - Radiación de fondo (µSv/h)", type: "number", valorTramiteMock: 0.10 }
+        { id: "f-disp-fondo", label: "Condiciones de la prueba - Radiación de fondo", type: "number", valorTramiteMock: 0.10 },
+        { id: "f-disp-fondo-unit", label: "Condiciones de la prueba - Radiación de fondo - Unidad", type: "button_group", options: "µSv/h, mSv/h", valorTramiteMock: "µSv/h" }
       ]
     },
 

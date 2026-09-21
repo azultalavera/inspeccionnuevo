@@ -25,6 +25,7 @@ import {
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import DomainIcon from "@mui/icons-material/Domain";
 import ApartmentIcon from "@mui/icons-material/Apartment";
+import PersonIcon from "@mui/icons-material/Person";
 import PeopleIcon from "@mui/icons-material/People";
 import MedicalServicesIcon from "@mui/icons-material/MedicalServices";
 import BedIcon from "@mui/icons-material/Bed";
@@ -284,7 +285,13 @@ const PantallaInspeccion = ({
   };
 
   const [expandedEstablecimiento, setExpandedEstablecimiento] = useState(true);
-  const [selectedCategory, setSelectedCategory] = useState("ARQUITECTURA");
+  const [selectedCategory, setSelectedCategory] = useState(isRadiofisica ? "ESTABLECIMIENTO" : "ARQUITECTURA");
+
+  useEffect(() => {
+    if (isRadiofisica && (selectedCategory === "ARQUITECTURA" || selectedCategory === "SERVICIOS")) {
+      setSelectedCategory("ESTABLECIMIENTO");
+    }
+  }, [isRadiofisica, selectedCategory]);
   const [serviciosEfector, setServiciosEfector] = useState(DEFAULT_EFECTOR_DATA.servicios);
   const [infraEfector, setInfraEfector] = useState(DEFAULT_EFECTOR_DATA.infraestructura);
   const [rrhhEfector, setRrhhEfector] = useState([
@@ -734,19 +741,14 @@ const PantallaInspeccion = ({
 
   const PESTAÑAS_RADIOFISICA = [
     {
-      id: "ARQUITECTURA",
-      label: "ARQUITECTURA",
-      icon: <DomainIcon sx={{ fontSize: 28 }} />,
-    },
-    {
       id: "ESTABLECIMIENTO",
       label: "ESTABLECIMIENTO",
       icon: <ApartmentIcon sx={{ fontSize: 28 }} />,
     },
     {
-      id: "SERVICIOS",
-      label: "SERVICIOS",
-      icon: <LocalHospitalIcon sx={{ fontSize: 28 }} />,
+      id: "DIRECTOR_TECNICO",
+      label: "DIRECTOR TÉCNICO",
+      icon: <PersonIcon sx={{ fontSize: 28 }} />,
     },
     {
       id: "PERSONAL",
