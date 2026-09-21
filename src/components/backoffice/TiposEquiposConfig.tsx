@@ -26,6 +26,7 @@ import {
   Autocomplete,
   Snackbar,
   Alert,
+  Checkbox,
 } from "@mui/material";
 import {
   Add as AddIcon,
@@ -66,7 +67,6 @@ export const GRUPOS_CARACTERISTICAS = [
 
 export const CAMPOS_BOOLEANOS_CONFIG: CampoBooleanoDef[] = [
   // 1. Identificación y Trazabilidad
-  { key: "unidad", label: "Unidad", shortLabel: "UNIDAD", categoria: "IDENTIFICACION" },
   { key: "cargaMarca", label: "Marca", shortLabel: "MARCA", categoria: "IDENTIFICACION" },
   { key: "cargaModelo", label: "Modelo", shortLabel: "MODELO", categoria: "IDENTIFICACION" },
   { key: "cargaSerie", label: "Serie", shortLabel: "SERIE", categoria: "IDENTIFICACION" },
@@ -168,7 +168,9 @@ export default function TiposEquiposConfig() {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
           const baseKeys = CAMPOS_BOOLEANOS_CONFIG.map((b) => b.key);
-          const customOnly = parsed.filter((p: CampoBooleanoDef) => !baseKeys.includes(p.key));
+          const customOnly = parsed.filter(
+            (p: CampoBooleanoDef) => !baseKeys.includes(p.key) && p.key !== "unidad"
+          );
           return [...CAMPOS_BOOLEANOS_CONFIG, ...customOnly];
         }
       }
@@ -181,12 +183,19 @@ export default function TiposEquiposConfig() {
   // Filtros de búsqueda estilo EquipamientosConfig
   const [filtroTipologia, setFiltroTipologia] = useState<string | null>(null);
   const [filtroServicio, setFiltroServicio] = useState<string | null>(null);
+  const [filtroCaracteristicas, setFiltroCaracteristicas] = useState<CampoBooleanoDef[]>([]);
+  const [criterioCaract, setCriterioCaract] = useState<"todas" | "alguna">("todas");
+
   const [filtrosAplicados, setFiltrosAplicados] = useState<{
     tipologia: string | null;
     servicio: string | null;
+    caracteristicas: CampoBooleanoDef[];
+    criterioCaract: "todas" | "alguna";
   }>({
     tipologia: null,
     servicio: null,
+    caracteristicas: [],
+    criterioCaract: "todas",
   });
 
   // Modal State
@@ -216,7 +225,16 @@ export default function TiposEquiposConfig() {
       const matchServicio =
         !filtrosAplicados.servicio ||
         item.nombre.toUpperCase().includes(filtrosAplicados.servicio.toUpperCase());
-      return matchTipologia && matchServicio;
+      const matchCaracteristicas =
+        filtrosAplicados.caracteristicas.length === 0 ||
+        (filtrosAplicados.criterioCaract === "alguna"
+          ? filtrosAplicados.caracteristicas.some(
+            (c) => Boolean(item.booleanos && item.booleanos[c.key])
+          )
+          : filtrosAplicados.caracteristicas.every(
+            (c) => Boolean(item.booleanos && item.booleanos[c.key])
+          ));
+      return matchTipologia && matchServicio && matchCaracteristicas;
     });
   }, [data, filtrosAplicados]);
 
@@ -224,13 +242,22 @@ export default function TiposEquiposConfig() {
   const handleLimpiarFiltros = () => {
     setFiltroTipologia(null);
     setFiltroServicio(null);
-    setFiltrosAplicados({ tipologia: null, servicio: null });
+    setFiltroCaracteristicas([]);
+    setCriterioCaract("todas");
+    setFiltrosAplicados({
+      tipologia: null,
+      servicio: null,
+      caracteristicas: [],
+      criterioCaract: "todas",
+    });
   };
 
   const handleConsultar = () => {
     setFiltrosAplicados({
       tipologia: filtroTipologia,
       servicio: filtroServicio,
+      caracteristicas: filtroCaracteristicas,
+      criterioCaract: criterioCaract,
     });
   };
 
@@ -386,9 +413,9 @@ export default function TiposEquiposConfig() {
 
   const validateForm = (): boolean => {
     const errors: Record<string, string> = {};
-    if (!formData.tipologia) errors.tipologia = "La tipología es obligatoria.";
+    if (!formData.tipologia) errors.tipologia = "El servicio externo es obligatorio.";
     if (!formData.nombre.trim())
-      errors.nombre = "El nombre del tipo de servicio / equipo es obligatorio.";
+      errors.nombre = "El nombre del servicio es obligatorio.";
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -423,7 +450,7 @@ export default function TiposEquiposConfig() {
     });
   };
 
-  // Opciones únicas para filtros
+  // Opciones únicas para filtros y combos
   const opcionesTipologia = useMemo(
     () => [...new Set(data.map((i) => i.tipologia))].filter(Boolean).sort(),
     [data]
@@ -432,6 +459,19 @@ export default function TiposEquiposConfig() {
     () => [...new Set(data.map((i) => i.nombre))].filter(Boolean).sort(),
     [data]
   );
+  const opcionesNombresServicio = useMemo(() => {
+    const base = [
+      "RESONANCIA MAGNÉTICA",
+      "RAYOS X",
+      "LÁSER",
+      "LÁSER / IPL",
+      "ULTRAVIOLETA",
+      "ELEMENTOS DE PROTECCIÓN PERSONAL",
+      "TODOS LOS SERVICIOS",
+    ];
+    const fromData = data.map((d) => d.nombre.trim().toUpperCase()).filter(Boolean);
+    return [...new Set([...base, ...fromData])].sort();
+  }, [data]);
 
   return (
     <Layout>
@@ -490,8 +530,16 @@ export default function TiposEquiposConfig() {
             </Typography>
 
             <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
-              <Box sx={{ display: "flex", gap: 4, width: "50%" }}>
-                <Box sx={{ flex: "1 1 50%" }}>
+              <Box
+                sx={{
+                  display: "flex",
+                  gap: 4,
+                  width: "100%",
+                  flexDirection: { xs: "column", md: "row" },
+                  alignItems: "flex-start",
+                }}
+              >
+                <Box sx={{ flex: "1 1 50%", width: "100%" }}>
                   <Autocomplete
                     options={opcionesTipologia}
                     value={filtroTipologia}
@@ -499,7 +547,7 @@ export default function TiposEquiposConfig() {
                     renderInput={(params) => (
                       <TextField
                         {...params}
-                        label="Tipo de Servicio"
+                        label="Servicio Externo"
                         variant="standard"
                         fullWidth
                       />
@@ -507,6 +555,135 @@ export default function TiposEquiposConfig() {
                   />
                 </Box>
 
+                <Box sx={{ flex: "1 1 50%", width: "100%" }}>
+                  <Autocomplete
+                    multiple
+                    disableCloseOnSelect
+                    options={caracteristicas}
+                    getOptionLabel={(option) => option.label}
+                    isOptionEqualToValue={(option, value) => option.key === value.key}
+                    value={filtroCaracteristicas}
+                    onChange={(_, v) => setFiltroCaracteristicas(v)}
+                    renderOption={(props, option, { selected }) => {
+                      const { key, ...optionProps } = props;
+                      return (
+                        <li key={key} {...optionProps}>
+                          <Checkbox
+                            size="small"
+                            style={{ marginRight: 8 }}
+                            checked={selected}
+                          />
+                          <Box
+                            sx={{
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "space-between",
+                              width: "100%",
+                              gap: 1,
+                            }}
+                          >
+                            <Typography variant="body2">{option.label}</Typography>
+                            <Chip
+                              label={
+                                option.categoria === "IDENTIFICACION"
+                                  ? "Identificación"
+                                  : option.categoria === "OPERATIVO"
+                                    ? "Operativo"
+                                    : "Electromédico"
+                              }
+                              size="small"
+                              sx={{
+                                fontSize: "0.65rem",
+                                height: 18,
+                                bgcolor:
+                                  option.categoria === "IDENTIFICACION"
+                                    ? "#e3f2fd"
+                                    : option.categoria === "OPERATIVO"
+                                      ? "#fff3e0"
+                                      : "#ede7f6",
+                                color:
+                                  option.categoria === "IDENTIFICACION"
+                                    ? "#0d47a1"
+                                    : option.categoria === "OPERATIVO"
+                                      ? "#e65100"
+                                      : "#4a148c",
+                              }}
+                            />
+                          </Box>
+                        </li>
+                      );
+                    }}
+                    renderValue={(value: CampoBooleanoDef[], getItemProps) =>
+                      value.map((option: CampoBooleanoDef, index: number) => {
+                        const { key, ...itemProps } = getItemProps({ index });
+                        return (
+                          <Chip
+                            key={key}
+                            label={option.label}
+                            size="small"
+                            sx={{
+                              fontSize: "0.75rem",
+                              height: 24,
+                              bgcolor: "#e0f2fe",
+                              color: "#005596",
+                              fontWeight: 500,
+                            }}
+                            {...itemProps}
+                          />
+                        );
+                      })
+                    }
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        variant="standard"
+                        label="Características"
+                        placeholder={
+                          filtroCaracteristicas.length === 0
+                            ? "Seleccionar características..."
+                            : ""
+                        }
+                        fullWidth
+                      />
+                    )}
+                  />
+
+                  {filtroCaracteristicas.length > 1 && (
+                    <Box
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 1,
+                        mt: 1.5,
+                      }}
+                    >
+                      <Typography
+                        variant="caption"
+                        sx={{ color: "#64748b", fontWeight: 500 }}
+                      >
+                        Criterio:
+                      </Typography>
+                      <Chip
+                        label="Contiene todas"
+                        size="small"
+                        clickable
+                        onClick={() => setCriterioCaract("todas")}
+                        color={criterioCaract === "todas" ? "primary" : "default"}
+                        variant={criterioCaract === "todas" ? "filled" : "outlined"}
+                        sx={{ fontSize: "0.7rem", height: 22 }}
+                      />
+                      <Chip
+                        label="Al menos una"
+                        size="small"
+                        clickable
+                        onClick={() => setCriterioCaract("alguna")}
+                        color={criterioCaract === "alguna" ? "primary" : "default"}
+                        variant={criterioCaract === "alguna" ? "filled" : "outlined"}
+                        sx={{ fontSize: "0.7rem", height: 22 }}
+                      />
+                    </Box>
+                  )}
+                </Box>
               </Box>
 
               <Box
@@ -555,7 +732,7 @@ export default function TiposEquiposConfig() {
               variant="h6"
               sx={{ color: "#0090d0", fontWeight: "bold" }}
             >
-              REQUERIMIENTOS POR TIPO DE SERVICIO
+              REQUERIMIENTOS POR SERVICIO EXTERNO
             </Typography>
             <Box sx={{ display: "flex", gap: 1.5 }}>
               <Button
@@ -564,7 +741,7 @@ export default function TiposEquiposConfig() {
                 sx={{ bgcolor: "#29b6f6", fontWeight: "bold" }}
                 onClick={handleOpenNuevo}
               >
-                NUEVO SERVICIO
+                NUEVO SUBSERVICIO
               </Button>
             </Box>
           </Box>
@@ -586,9 +763,9 @@ export default function TiposEquiposConfig() {
                     },
                   }}
                 >
-                  <TableCell sx={{ minWidth: "250px" }}>TIPO DE SERVICIO</TableCell>
+                  <TableCell sx={{ minWidth: "250px" }}>SUBSERVICIO</TableCell>
                   <TableCell sx={{ minWidth: "350px" }}>
-                    CARACTERÍSTICAS ACTIVAS (CAMPOS EXIGIDOS)
+                    CARACTERÍSTICAS ACTIVAS
                   </TableCell>
                   <TableCell align="center" sx={{ minWidth: "120px" }}>
                     ACCIONES
@@ -632,32 +809,39 @@ export default function TiposEquiposConfig() {
                               py: 0.5,
                             }}
                           >
-                            {activeFeatures.map((f) => (
-                              <Tooltip
-                                key={f.key}
-                                title={`Campo requerido: ${f.label}`}
-                                arrow
-                                placement="top"
-                              >
-                                <Chip
-                                  label={f.shortLabel || f.label}
-                                  size="small"
-                                  variant="outlined"
-                                  sx={{
-                                    fontSize: "0.7rem",
-                                    height: 22,
-                                    borderColor: "#cbd5e1",
-                                    color: "#334155",
-                                    bgcolor: "#f8fafc",
-                                    cursor: "pointer",
-                                    "&:hover": {
-                                      bgcolor: "#e2e8f0",
-                                      borderColor: "#94a3b8",
-                                    },
-                                  }}
-                                />
-                              </Tooltip>
-                            ))}
+                            {activeFeatures.map((f) => {
+                              const isMatchInFilter = filtrosAplicados.caracteristicas.some(
+                                (fc) => fc.key === f.key
+                              );
+                              return (
+                                <Tooltip
+                                  key={f.key}
+                                  title={`Campo requerido: ${f.label}${isMatchInFilter ? " (Coincide con filtro)" : ""
+                                    }`}
+                                  arrow
+                                  placement="top"
+                                >
+                                  <Chip
+                                    label={f.shortLabel || f.label}
+                                    size="small"
+                                    variant={isMatchInFilter ? "filled" : "outlined"}
+                                    sx={{
+                                      fontSize: "0.7rem",
+                                      height: 22,
+                                      borderColor: isMatchInFilter ? "#0284c7" : "#cbd5e1",
+                                      color: isMatchInFilter ? "#ffffff" : "#334155",
+                                      bgcolor: isMatchInFilter ? "#0284c7" : "#f8fafc",
+                                      fontWeight: isMatchInFilter ? 700 : 400,
+                                      cursor: "pointer",
+                                      "&:hover": {
+                                        bgcolor: isMatchInFilter ? "#0369a1" : "#e2e8f0",
+                                        borderColor: isMatchInFilter ? "#0369a1" : "#94a3b8",
+                                      },
+                                    }}
+                                  />
+                                </Tooltip>
+                              );
+                            })}
                           </Box>
                         )}
                       </TableCell>
@@ -743,7 +927,7 @@ export default function TiposEquiposConfig() {
             <Typography variant="h6" sx={{ fontWeight: "bold", fontSize: "1.1rem" }}>
               {isEditing
                 ? `CONFIGURACIÓN DE CARACTERÍSTICAS: ${formData.nombre}`
-                : "NUEVO TIPO DE SERVICIO"}
+                : "NUEVO SERVICIO EXTERNO"}
             </Typography>
             <IconButton
               size="small"
@@ -766,7 +950,7 @@ export default function TiposEquiposConfig() {
                 textTransform: "uppercase",
               }}
             >
-              1. Identificación del Servicio / Equipo
+              1. Identificación del Servicio Externo / Equipo
             </Typography>
 
             <Box
@@ -783,7 +967,7 @@ export default function TiposEquiposConfig() {
                 required
                 error={!!formErrors.tipologia}
               >
-                <InputLabel>Tipología Sanitaria</InputLabel>
+                <InputLabel>Servicio Externo</InputLabel>
                 <Select
                   value={formData.tipologia}
                   onChange={(e) =>
@@ -802,18 +986,36 @@ export default function TiposEquiposConfig() {
                 </Select>
               </FormControl>
 
-              <TextField
-                label="Nombre de Servicio"
-                variant="standard"
+              <Autocomplete
+                freeSolo
+                openOnFocus
+                options={opcionesNombresServicio}
                 value={formData.nombre}
-                onChange={(e) =>
-                  setFormData({ ...formData, nombre: e.target.value })
-                }
-                placeholder="Ej. RESONANCIA MAGNÉTICA, LÁSER, RAYOS X..."
-                fullWidth
-                required
-                error={!!formErrors.nombre}
-                helperText={formErrors.nombre}
+                onChange={(_, newValue) => {
+                  const val = typeof newValue === "string" ? newValue : newValue || "";
+                  setFormData((prev) => ({ ...prev, nombre: val.toUpperCase() }));
+                  if (formErrors.nombre) {
+                    setFormErrors((prev) => ({ ...prev, nombre: "" }));
+                  }
+                }}
+                onInputChange={(_, newInputValue) => {
+                  setFormData((prev) => ({ ...prev, nombre: (newInputValue || "").toUpperCase() }));
+                  if (formErrors.nombre) {
+                    setFormErrors((prev) => ({ ...prev, nombre: "" }));
+                  }
+                }}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Subservicio"
+                    variant="standard"
+                    placeholder="Ej. RESONANCIA MAGNÉTICA, RAYOS X..."
+                    fullWidth
+                    required
+                    error={!!formErrors.nombre}
+                    helperText={formErrors.nombre}
+                  />
+                )}
               />
             </Box>
 

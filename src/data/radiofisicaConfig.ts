@@ -264,7 +264,7 @@ export const RADIOFISICA_CATALOG: TipoServicioRadiofisica[] = [
 ];
 
 export function findSubservicio(tipoNombre?: string, subservicioNombre?: string): { tipo: TipoServicioRadiofisica; sub: SubservicioRadiofisica } {
-  let matchedTipo = RADIOFISICA_CATALOG.find(t => 
+  let matchedTipo = RADIOFISICA_CATALOG.find(t =>
     tipoNombre && (t.nombre.toLowerCase().includes(tipoNombre.toLowerCase()) || tipoNombre.toLowerCase().includes(t.nombre.toLowerCase()))
   ) || RADIOFISICA_CATALOG[0];
 

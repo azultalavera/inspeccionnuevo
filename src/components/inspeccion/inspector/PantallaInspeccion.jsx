@@ -69,6 +69,7 @@ import PhotoViewer from "./components/PhotoViewer";
 import RevisionActaView from "./components/RevisionActaView";
 import SignatureModal from "./components/SignatureModal";
 import DatosTramiteRadiofisica from "./components/DatosTramiteRadiofisica";
+import RadiacionDispersaSection from "./components/RadiacionDispersaSection";
 
 const PantallaInspeccion = ({
   serviciosEfector: propsServicios = null,
@@ -1435,26 +1436,35 @@ const PantallaInspeccion = ({
                             {renderProgressBar(sectionStats)}
                           </AccordionSummary>
                           <AccordionDetails sx={{ py: 2 }}>
-                            <Box
-                              sx={{
-                                display: "grid",
-                                gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-                                gap: 2,
-                              }}
-                            >
-                              {sec.fields.map((field) => (
-                                <FieldItem
-                                  key={field.id}
-                                  field={field}
-                                  value={inspectorData[field.id]}
-                                  allData={inspectorData}
-                                  onChange={handleFieldChange}
-                                  onOpenObs={(fid, lbl, val) => handleOpenObsDialog(fid, lbl, val, "GENERAL")}
-                                  infraEfector={infraEfector}
-                                  serviciosEfector={serviciosEfector}
-                                />
-                              ))}
-                            </Box>
+                            {sec.id === "sec-rad-cs-dispersa" || sec.name === "RADIACIÓN DISPERSA" ? (
+                              <RadiacionDispersaSection
+                                fields={sec.fields}
+                                inspectorData={inspectorData}
+                                onChange={handleFieldChange}
+                                onOpenObs={(fid, lbl, val) => handleOpenObsDialog(fid, lbl, val, "GENERAL")}
+                              />
+                            ) : (
+                              <Box
+                                sx={{
+                                  display: "grid",
+                                  gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+                                  gap: 2,
+                                }}
+                              >
+                                {sec.fields.map((field) => (
+                                  <FieldItem
+                                    key={field.id}
+                                    field={field}
+                                    value={inspectorData[field.id]}
+                                    allData={inspectorData}
+                                    onChange={handleFieldChange}
+                                    onOpenObs={(fid, lbl, val) => handleOpenObsDialog(fid, lbl, val, "GENERAL")}
+                                    infraEfector={infraEfector}
+                                    serviciosEfector={serviciosEfector}
+                                  />
+                                ))}
+                              </Box>
+                            )}
                           </AccordionDetails>
                         </Accordion>
                       );
@@ -1809,6 +1819,13 @@ const PantallaInspeccion = ({
                                       equiposEfector={equiposEfector}
                                       currentSrvName={srv.name}
                                       serviciosEfector={serviciosEfector}
+                                    />
+                                  ) : (section.id === "sec-rad-cs-dispersa" || section.name === "RADIACIÓN DISPERSA") ? (
+                                    <RadiacionDispersaSection
+                                      fields={section.fields}
+                                      inspectorData={inspectorData}
+                                      onChange={handleFieldChange}
+                                      onOpenObs={(fid, lbl, val) => handleOpenObsDialog(fid, lbl, val, "GENERAL")}
                                     />
                                   ) : (
                                     <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)" }, gap: 3 }}>
