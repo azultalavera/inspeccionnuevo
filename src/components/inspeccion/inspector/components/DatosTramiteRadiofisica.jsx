@@ -204,6 +204,97 @@ const CardFieldItem = ({
   );
 };
 
+// Item de campo con Check de observación que alimenta a la observación general
+const CardFieldCheckItem = ({
+  id,
+  label,
+  value,
+  isObserved,
+  onToggleObs,
+}) => {
+  const isNoDeclarado =
+    value === null ||
+    value === undefined ||
+    value === "" ||
+    value === "-" ||
+    value === "No declarado";
+
+  const displayVal = isNoDeclarado ? "No declarado" : value;
+
+  return (
+    <Box sx={{ py: 0.5 }}>
+      <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 0.4 }}>
+        <Typography
+          variant="caption"
+          sx={{
+            color: isObserved ? "#0369a1" : "#64748b",
+            fontWeight: 700,
+            fontSize: "0.75rem",
+            textTransform: "uppercase",
+            letterSpacing: "0.02em",
+          }}
+        >
+          {label}
+        </Typography>
+        <Tooltip title={isObserved ? `Quitar observación de ${label}` : `Observar ${label}`}>
+          <Box
+            onClick={() => onToggleObs(id, label, value)}
+            sx={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 0.4,
+              cursor: "pointer",
+              px: 0.7,
+              py: 0.2,
+              borderRadius: 1.5,
+              bgcolor: isObserved ? "#e0f2fe" : "transparent",
+              border: "1px solid",
+              borderColor: isObserved ? "#7dd3fc" : "#e2e8f0",
+              "&:hover": {
+                bgcolor: isObserved ? "#bae6fd" : "#f1f5f9",
+                borderColor: isObserved ? "#38bdf8" : "#cbd5e1",
+              },
+              transition: "all 0.15s ease",
+              userSelect: "none",
+            }}
+          >
+            <Checkbox
+              size="small"
+              checked={isObserved}
+              sx={{
+                p: 0,
+                color: "#94a3b8",
+                "&.Mui-checked": { color: "#0284c7" },
+                "& .MuiSvgIcon-root": { fontSize: 16 },
+              }}
+            />
+            <Typography
+              sx={{
+                fontSize: "0.68rem",
+                fontWeight: 800,
+                color: isObserved ? "#0369a1" : "#64748b",
+                letterSpacing: 0.5,
+              }}
+            >
+              OBS
+            </Typography>
+          </Box>
+        </Tooltip>
+      </Box>
+      <Typography
+        sx={{
+          fontWeight: isNoDeclarado ? 500 : 700,
+          color: isNoDeclarado ? "#94a3b8" : "#1e293b",
+          fontSize: "0.95rem",
+          fontStyle: isNoDeclarado ? "italic" : "normal",
+        }}
+      >
+        {displayVal}
+      </Typography>
+    </Box>
+  );
+};
+
 const DatosTramiteRadiofisica = ({
   category,
   subservicio,
@@ -981,6 +1072,101 @@ const DatosTramiteRadiofisica = ({
     const obsVal = getObs(fieldId);
     const pmObservadoVal = getValue("rad_equipo_pm_observado", "");
 
+    const equipoFieldsConfig = [
+      { id: "rad_eq_marca", label: "Marca", defaultVal: "marca" },
+      { id: "rad_eq_modelo", label: "Modelo", defaultVal: "modelo" },
+      { id: "rad_eq_serie", label: "Serie", defaultVal: "12345" },
+      { id: "rad_eq_condicion", label: "Condición", defaultVal: "Propio" },
+      { id: "rad_eq_ano_fab", label: "Año fabricación", defaultVal: "2000" },
+      { id: "rad_eq_tipo", label: "Tipo de equipo", defaultVal: "Fijo" },
+      { id: "rad_eq_corriente_max", label: "Corriente max", defaultVal: "50" },
+      { id: "rad_eq_tension_max", label: "Tensión max", defaultVal: "50" },
+      { id: "rad_eq_tipo_revelado", label: "Tipo revelado", defaultVal: "DIGITAL" },
+      { id: "rad_eq_pm_declarado", label: "Número de PM declarado", defaultVal: "-" },
+    ];
+
+    const computeGeneralObs = (observedLabels, existingObs = "") => {
+      if (observedLabels.length === 0) {
+        if (!existingObs || existingObs.startsWith("Se observan los siguientes campos del equipo:")) {
+          return "";
+        }
+        return existingObs;
+      }
+      const baseText = `Se observan los siguientes campos del equipo: ${observedLabels.join(", ")}.`;
+      if (!existingObs || existingObs.startsWith("Se observan los siguientes campos del equipo:")) {
+        const match = existingObs.match(/^Se observan los siguientes campos del equipo:[^.]*\.\s*(.*)$/);
+        const extra = match && match[1] ? ` ${match[1]}` : "";
+        return `${baseText}${extra}`;
+      }
+      return `${baseText} ${existingObs}`;
+    };
+
+    const handleToggleFieldObs = (targetId, targetLabel, currentVal) => {
+      const isCurrentlyObs = Boolean(getObs(targetId));
+      const willBeObs = !isCurrentlyObs;
+
+      onChange(targetId, {
+        value: currentVal !== undefined ? currentVal : getValue(targetId, ""),
+        obs: willBeObs ? `Observado: ${targetLabel}` : "",
+      });
+
+      const allFields = [
+        ...equipoFieldsConfig.map((f) => ({
+          label: f.label,
+          isObs: f.id === targetId ? willBeObs : Boolean(getObs(f.id)),
+        })),
+        {
+          label: "Número de PM observado",
+          isObs:
+            "rad_equipo_pm_observado" === targetId
+              ? willBeObs
+              : Boolean(getObs("rad_equipo_pm_observado")),
+        },
+      ];
+
+      const observedLabels = allFields.filter((f) => f.isObs).map((f) => f.label);
+
+      onChange(fieldId, {
+        value: getValue(fieldId, ""),
+        obs: computeGeneralObs(observedLabels, getObs(fieldId)),
+      });
+    };
+
+    const handlePmObservadoChange = (newVal) => {
+      const pmDeclarado = getValue("rad_eq_pm_declarado", "-");
+      const hasValue = newVal && newVal.trim() !== "";
+      const isDiff = hasValue && pmDeclarado !== "-" && newVal.trim() !== pmDeclarado;
+      const willBeObs = isDiff || Boolean(getObs("rad_equipo_pm_observado"));
+
+      onChange("rad_equipo_pm_observado", {
+        value: newVal,
+        obs: willBeObs ? "El número de PM observado no coincide con el declarado" : "",
+      });
+
+      const allFields = [
+        ...equipoFieldsConfig.map((f) => ({
+          label: f.label,
+          isObs: Boolean(getObs(f.id)),
+        })),
+        {
+          label: "Número de PM observado",
+          isObs: willBeObs,
+        },
+      ];
+
+      const observedLabels = allFields.filter((f) => f.isObs).map((f) => f.label);
+
+      onChange(fieldId, {
+        value: getValue(fieldId, ""),
+        obs: computeGeneralObs(observedLabels, getObs(fieldId)),
+      });
+    };
+
+    const activeObsCount = [
+      ...equipoFieldsConfig.filter((f) => Boolean(getObs(f.id))),
+      ...(Boolean(getObs("rad_equipo_pm_observado")) ? [{ label: "PM" }] : []),
+    ].length;
+
     const eppList = [
       {
         id: "mampara_plomada",
@@ -1063,84 +1249,24 @@ const DatosTramiteRadiofisica = ({
             </Typography>
           }
           obs={obsVal}
-          onOpenObs={onOpenObs}
         >
-          <CardFieldItem
-            id="rad_eq_marca"
-            label="Marca"
-            value={getValue("rad_eq_marca", "marca")}
-            obs={getObs("rad_eq_marca")}
-            onOpenObs={onOpenObs}
-          />
-          <CardFieldItem
-            id="rad_eq_modelo"
-            label="Modelo"
-            value={getValue("rad_eq_modelo", "modelo")}
-            obs={getObs("rad_eq_modelo")}
-            onOpenObs={onOpenObs}
-          />
-          <CardFieldItem
-            id="rad_eq_serie"
-            label="Serie"
-            value={getValue("rad_eq_serie", "12345")}
-            obs={getObs("rad_eq_serie")}
-            onOpenObs={onOpenObs}
-          />
-          <CardFieldItem
-            id="rad_eq_condicion"
-            label="Condición"
-            value={getValue("rad_eq_condicion", "Propio")}
-            obs={getObs("rad_eq_condicion")}
-            onOpenObs={onOpenObs}
-          />
-          <CardFieldItem
-            id="rad_eq_ano_fab"
-            label="Año fabricación"
-            value={getValue("rad_eq_ano_fab", "2000")}
-            obs={getObs("rad_eq_ano_fab")}
-            onOpenObs={onOpenObs}
-          />
-          <CardFieldItem
-            id="rad_eq_tipo"
-            label="Tipo de equipo"
-            value={getValue("rad_eq_tipo", "Fijo")}
-            obs={getObs("rad_eq_tipo")}
-            onOpenObs={onOpenObs}
-          />
-          <CardFieldItem
-            id="rad_eq_corriente_max"
-            label="Corriente max"
-            value={getValue("rad_eq_corriente_max", "50")}
-            obs={getObs("rad_eq_corriente_max")}
-            onOpenObs={onOpenObs}
-          />
-          <CardFieldItem
-            id="rad_eq_tension_max"
-            label="Tensión max"
-            value={getValue("rad_eq_tension_max", "50")}
-            obs={getObs("rad_eq_tension_max")}
-            onOpenObs={onOpenObs}
-          />
-          <CardFieldItem
-            id="rad_eq_tipo_revelado"
-            label="Tipo revelado"
-            value={getValue("rad_eq_tipo_revelado", "DIGITAL")}
-            obs={getObs("rad_eq_tipo_revelado")}
-            onOpenObs={onOpenObs}
-          />
-          <CardFieldItem
-            id="rad_eq_pm_declarado"
-            label="Número de PM declarado"
-            value={getValue("rad_eq_pm_declarado", "-")}
-            obs={getObs("rad_eq_pm_declarado")}
-            onOpenObs={onOpenObs}
-          />
-          <Box>
-            <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          {equipoFieldsConfig.map((field) => (
+            <CardFieldCheckItem
+              key={field.id}
+              id={field.id}
+              label={field.label}
+              value={getValue(field.id, field.defaultVal)}
+              isObserved={Boolean(getObs(field.id))}
+              onToggleObs={handleToggleFieldObs}
+            />
+          ))}
+
+          <Box sx={{ py: 0.5 }}>
+            <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 0.4 }}>
               <Typography
                 variant="caption"
                 sx={{
-                  color: "#64748b",
+                  color: Boolean(getObs("rad_equipo_pm_observado")) ? "#0369a1" : "#64748b",
                   fontWeight: 700,
                   fontSize: "0.75rem",
                   textTransform: "uppercase",
@@ -1149,39 +1275,62 @@ const DatosTramiteRadiofisica = ({
               >
                 Número de PM observado
               </Typography>
-              {onOpenObs && (
-                <Tooltip
-                  title={
-                    getObs("rad_equipo_pm_observado")
-                      ? `Observación: ${getObs("rad_equipo_pm_observado")}`
-                      : "Observar Número de PM observado"
+              <Tooltip
+                title={
+                  Boolean(getObs("rad_equipo_pm_observado"))
+                    ? "Quitar observación de PM observado"
+                    : "Observar PM observado"
+                }
+              >
+                <Box
+                  onClick={() =>
+                    handleToggleFieldObs(
+                      "rad_equipo_pm_observado",
+                      "Número de PM observado",
+                      pmObservadoVal
+                    )
                   }
+                  sx={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 0.4,
+                    cursor: "pointer",
+                    px: 0.7,
+                    py: 0.2,
+                    borderRadius: 1.5,
+                    bgcolor: Boolean(getObs("rad_equipo_pm_observado")) ? "#e0f2fe" : "transparent",
+                    border: "1px solid",
+                    borderColor: Boolean(getObs("rad_equipo_pm_observado")) ? "#7dd3fc" : "#e2e8f0",
+                    "&:hover": {
+                      bgcolor: Boolean(getObs("rad_equipo_pm_observado")) ? "#bae6fd" : "#f1f5f9",
+                      borderColor: Boolean(getObs("rad_equipo_pm_observado")) ? "#38bdf8" : "#cbd5e1",
+                    },
+                    transition: "all 0.15s ease",
+                    userSelect: "none",
+                  }}
                 >
-                  <IconButton
+                  <Checkbox
                     size="small"
-                    onClick={() =>
-                      onOpenObs(
-                        "rad_equipo_pm_observado",
-                        "Número de PM observado",
-                        getObs("rad_equipo_pm_observado"),
-                        "TRAMITE"
-                      )
-                    }
+                    checked={Boolean(getObs("rad_equipo_pm_observado"))}
                     sx={{
-                      p: 0.2,
-                      color: getObs("rad_equipo_pm_observado") ? "#0ea5e9" : "#94a3b8",
-                      opacity: getObs("rad_equipo_pm_observado") ? 1 : 0.35,
-                      "&:hover": { opacity: 1, color: "#0ea5e9" },
+                      p: 0,
+                      color: "#94a3b8",
+                      "&.Mui-checked": { color: "#0284c7" },
+                      "& .MuiSvgIcon-root": { fontSize: 16 },
+                    }}
+                  />
+                  <Typography
+                    sx={{
+                      fontSize: "0.68rem",
+                      fontWeight: 800,
+                      color: Boolean(getObs("rad_equipo_pm_observado")) ? "#0369a1" : "#64748b",
+                      letterSpacing: 0.5,
                     }}
                   >
-                    {getObs("rad_equipo_pm_observado") ? (
-                      <ChatBubbleIcon sx={{ fontSize: 15 }} />
-                    ) : (
-                      <ChatBubbleOutlineIcon sx={{ fontSize: 15 }} />
-                    )}
-                  </IconButton>
-                </Tooltip>
-              )}
+                    OBS
+                  </Typography>
+                </Box>
+              </Tooltip>
             </Box>
             <TextField
               size="small"
@@ -1189,36 +1338,69 @@ const DatosTramiteRadiofisica = ({
               variant="standard"
               placeholder="No declarado"
               value={pmObservadoVal}
-              onChange={(e) => {
-                const newVal = e.target.value;
-                const hasValue = newVal && newVal.trim() !== "";
-                const autoObs = hasValue ? "El número de PM no es igual al declarado" : "";
-                onChange("rad_equipo_pm_observado", {
-                  value: newVal,
-                  obs: autoObs,
-                });
-                onChange("rad_equipo_rx", {
-                  value: getValue("rad_equipo_rx", ""),
-                  obs: autoObs,
-                });
-              }}
+              onChange={(e) => handlePmObservadoChange(e.target.value)}
               InputProps={{
                 disableUnderline: true,
               }}
               sx={{
                 mt: 0.2,
-                "& .MuiInputBase-root": {
-                  borderRadius: 1,
-                  "&:hover": { bgcolor: "#f8fafc" },
-                  px: 0.5,
-                  mx: -0.5,
-                },
                 "& .MuiInputBase-input": {
                   fontWeight: pmObservadoVal ? 700 : 500,
                   color: pmObservadoVal ? "#1e293b" : "#94a3b8",
                   fontSize: "0.95rem",
                   fontStyle: pmObservadoVal ? "normal" : "italic",
                   p: 0,
+                },
+              }}
+            />
+          </Box>
+
+          {/* Observación general que se alimenta automáticamente de los checks */}
+          <Box sx={{ mt: 1.5, pt: 2.5, borderTop: "1px solid #e2e8f0", gridColumn: { xs: "1fr", sm: "1 / -1" } }}>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1.2 }}>
+              <ChatBubbleIcon sx={{ fontSize: 18, color: obsVal ? "#0284c7" : "#94a3b8" }} />
+              <Typography sx={{ fontWeight: 800, fontSize: "0.82rem", color: obsVal ? "#0369a1" : "#475569", textTransform: "uppercase", letterSpacing: 0.3 }}>
+                Observación general del equipo
+              </Typography>
+              {activeObsCount > 0 && (
+                <Chip
+                  label={`${activeObsCount} campo${activeObsCount > 1 ? "s" : ""} marcado${activeObsCount > 1 ? "s" : ""}`}
+                  size="small"
+                  sx={{
+                    height: 22,
+                    fontSize: "0.72rem",
+                    fontWeight: 800,
+                    bgcolor: "#e0f2fe",
+                    color: "#0369a1",
+                    border: "1px solid #bae6fd",
+                  }}
+                />
+              )}
+            </Box>
+            <TextField
+              fullWidth
+              multiline
+              rows={2}
+              size="small"
+              placeholder="Al tildar el check OBS en los campos, se completará aquí la observación general..."
+              value={obsVal}
+              onChange={(e) => {
+                onChange(fieldId, {
+                  value: getValue(fieldId, ""),
+                  obs: e.target.value,
+                });
+              }}
+              sx={{
+                bgcolor: obsVal ? "#f0f9ff" : "#f8fafc",
+                borderRadius: 2,
+                "& .MuiOutlinedInput-root": {
+                  borderRadius: 2,
+                  borderColor: obsVal ? "#7dd3fc" : "#e2e8f0",
+                  "&:hover .MuiOutlinedInput-notchedOutline": {
+                    borderColor: obsVal ? "#0284c7" : "#cbd5e1",
+                  },
+                  fontSize: "0.85rem",
+                  color: "#1e293b",
                 },
               }}
             />
@@ -1481,9 +1663,6 @@ const DatosTramiteRadiofisica = ({
                 <TableCell sx={{ fontWeight: 900, color: "#0369a1", fontSize: "0.80rem", py: 2 }}>
                   DOCUMENTO PARTICULAR DE RADIOFÍSICA
                 </TableCell>
-                <TableCell sx={{ fontWeight: 900, color: "#0369a1", fontSize: "0.80rem" }}>
-                  ORGANISMO / EMISOR
-                </TableCell>
                 <TableCell align="center" sx={{ fontWeight: 900, color: "#0369a1", fontSize: "0.80rem" }}>
                   VISUALIZAR DOCUMENTO
                 </TableCell>
@@ -1508,9 +1687,6 @@ const DatosTramiteRadiofisica = ({
                           {doc.detalle}
                         </Typography>
                       )}
-                    </TableCell>
-                    <TableCell sx={{ color: "#64748b", fontWeight: 600, fontSize: "0.82rem" }}>
-                      {doc.emisor}
                     </TableCell>
                     <TableCell align="center">
                       <Tooltip title={`Ver ${doc.name}`}>
