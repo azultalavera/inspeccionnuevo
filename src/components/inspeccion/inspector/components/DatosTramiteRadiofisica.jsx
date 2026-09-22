@@ -1481,9 +1481,6 @@ const DatosTramiteRadiofisica = ({
                 <TableCell sx={{ fontWeight: 900, color: "#0369a1", fontSize: "0.80rem", py: 2 }}>
                   DOCUMENTO PARTICULAR DE RADIOFÍSICA
                 </TableCell>
-                <TableCell sx={{ fontWeight: 900, color: "#0369a1", fontSize: "0.80rem" }}>
-                  ORGANISMO / EMISOR
-                </TableCell>
                 <TableCell align="center" sx={{ fontWeight: 900, color: "#0369a1", fontSize: "0.80rem" }}>
                   VISUALIZAR DOCUMENTO
                 </TableCell>
@@ -1508,9 +1505,6 @@ const DatosTramiteRadiofisica = ({
                           {doc.detalle}
                         </Typography>
                       )}
-                    </TableCell>
-                    <TableCell sx={{ color: "#64748b", fontWeight: 600, fontSize: "0.82rem" }}>
-                      {doc.emisor}
                     </TableCell>
                     <TableCell align="center">
                       <Tooltip title={`Ver ${doc.name}`}>
