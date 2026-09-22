@@ -228,7 +228,7 @@ export default function RadiacionDispersaSection({
             <TextField
               size="small"
               type="number"
-              inputProps={{ step: "0.01", min: "0" }}
+              slotProps={{ htmlInput: { step: "0.01", min: "0" } }}
               fullWidth
               value={fondoVal}
               onChange={(e) => handleConditionChange("f-disp-fondo", e.target.value)}
@@ -371,7 +371,7 @@ export default function RadiacionDispersaSection({
                     <TextField
                       size="small"
                       type="number"
-                      inputProps={{ step: "0.01", min: "0" }}
+                      slotProps={{ htmlInput: { step: "0.01", min: "0" } }}
                       placeholder="0.00"
                       value={row.medido !== undefined ? row.medido : ""}
                       onChange={(e) => handleRowChange(row.id, "medido", e.target.value)}
@@ -391,23 +391,25 @@ export default function RadiacionDispersaSection({
                     <TextField
                       size="small"
                       type="number"
-                      inputProps={{ step: "0.01", min: "0" }}
                       value={row.corregido !== undefined ? row.corregido : 0}
                       onChange={(e) => handleRowChange(row.id, "corregido", e.target.value)}
-                      InputProps={{
-                        endAdornment: row.manualCorregido ? (
-                          <InputAdornment position="end">
-                            <Tooltip title="Valor manual. Clic para volver a la fórmula (medido - fondo)">
-                              <IconButton
-                                size="small"
-                                onClick={() => handleResetFormula(row.id)}
-                                sx={{ p: 0.2, color: "#f59e0b" }}
-                              >
-                                <RestartAltIcon fontSize="small" />
-                              </IconButton>
-                            </Tooltip>
-                          </InputAdornment>
-                        ) : null,
+                      slotProps={{
+                        htmlInput: { step: "0.01", min: "0" },
+                        input: {
+                          endAdornment: row.manualCorregido ? (
+                            <InputAdornment position="end">
+                              <Tooltip title="Valor manual. Clic para volver a la fórmula (medido - fondo)">
+                                <IconButton
+                                  size="small"
+                                  onClick={() => handleResetFormula(row.id)}
+                                  sx={{ p: 0.2, color: "#f59e0b" }}
+                                >
+                                  <RestartAltIcon fontSize="small" />
+                                </IconButton>
+                              </Tooltip>
+                            </InputAdornment>
+                          ) : null,
+                        },
                       }}
                       sx={{
                         bgcolor: row.manualCorregido ? "#fffbeb" : "#f8fafc",

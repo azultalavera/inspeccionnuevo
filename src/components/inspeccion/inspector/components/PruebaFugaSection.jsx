@@ -207,7 +207,7 @@ export default function PruebaFugaSection({
             <TextField
               size="small"
               type="number"
-              inputProps={{ step: "0.01", min: "0" }}
+              slotProps={{ htmlInput: { step: "0.01", min: "0" } }}
               fullWidth
               value={fondoVal}
               onChange={(e) => handleConditionChange("f-fuga-fondo", e.target.value)}
@@ -269,7 +269,7 @@ export default function PruebaFugaSection({
                     <TextField
                       size="small"
                       type="number"
-                      inputProps={{ step: "0.01", min: "0" }}
+                      slotProps={{ htmlInput: { step: "0.01", min: "0" } }}
                       value={medidoVal}
                       onChange={(e) => handleMedidoChange(row.medId, row.corrId, e.target.value)}
                       sx={{
@@ -288,7 +288,7 @@ export default function PruebaFugaSection({
                     <TextField
                       size="small"
                       type="number"
-                      inputProps={{ step: "0.01", min: "0" }}
+                      slotProps={{ htmlInput: { step: "0.01", min: "0" } }}
                       value={corregidoVal}
                       onChange={(e) => onChange && onChange(row.corrId, e.target.value)}
                       sx={{

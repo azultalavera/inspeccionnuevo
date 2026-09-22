@@ -221,7 +221,7 @@ const FieldItem = ({ field, value, onChange, onOpenObs, infraEfector, serviciosE
             disabled={isEffectiveDisabled}
             value={hasRealValue ? realValue : (specialValue !== undefined ? specialValue : (isTramite ? tramiteVal : ""))}
             onChange={(e) => onChange(field.id, e.target.value)}
-            InputLabelProps={{ shrink: true }}
+            slotProps={{ inputLabel: { shrink: true } }}
             sx={{
               "& .MuiInputBase-root": {
                 borderRadius: 2,
@@ -327,13 +327,15 @@ const FieldItem = ({ field, value, onChange, onOpenObs, infraEfector, serviciosE
             disabled={isEffectiveDisabled}
             value={hasRealValue ? realValue : (specialValue !== undefined ? specialValue : (isTramite ? tramiteVal : ""))}
             onChange={(e) => onChange(field.id, e.target.value)}
-            InputProps={{
-              sx: {
-                borderRadius: 2,
-                fontSize: "14px",
-                height: 48,
-                fontWeight: 600,
-                bgcolor: isEffectiveDisabled ? "#f8fafc" : "white",
+            slotProps={{
+              input: {
+                sx: {
+                  borderRadius: 2,
+                  fontSize: "14px",
+                  height: 48,
+                  fontWeight: 600,
+                  bgcolor: isEffectiveDisabled ? "#f8fafc" : "white",
+                },
               },
             }}
           />
@@ -350,14 +352,16 @@ const FieldItem = ({ field, value, onChange, onOpenObs, infraEfector, serviciosE
             multiline={field.type === "textarea"}
             rows={field.type === "textarea" ? 3 : 1}
             onChange={(e) => onChange(field.id, e.target.value)}
-            InputProps={{
-              sx: {
-                borderRadius: 2,
-                fontSize: "14px",
-                fontWeight: 500,
-                minHeight: 48,
-                bgcolor: isEffectiveDisabled ? "#f8fafc" : "white",
-                color: isEffectiveDisabled ? "#94a3b8" : "inherit",
+            slotProps={{
+              input: {
+                sx: {
+                  borderRadius: 2,
+                  fontSize: "14px",
+                  fontWeight: 500,
+                  minHeight: 48,
+                  bgcolor: isEffectiveDisabled ? "#f8fafc" : "white",
+                  color: isEffectiveDisabled ? "#94a3b8" : "inherit",
+                },
               },
             }}
           />

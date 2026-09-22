@@ -307,7 +307,7 @@ export default function RepetibilidadTuboSection({
                     <TextField
                       size="small"
                       type="number"
-                      inputProps={{ step: "0.1", min: "0" }}
+                      slotProps={{ htmlInput: { step: "0.1", min: "0" } }}
                       value={kvMedidoVal}
                       onChange={(e) => onChange && onChange(row.kvId, e.target.value)}
                       sx={{
@@ -326,7 +326,7 @@ export default function RepetibilidadTuboSection({
                     <TextField
                       size="small"
                       type="number"
-                      inputProps={{ step: "0.1", min: "0" }}
+                      slotProps={{ htmlInput: { step: "0.1", min: "0" } }}
                       value={tMedidoVal}
                       onChange={(e) => onChange && onChange(row.tId, e.target.value)}
                       sx={{
@@ -364,7 +364,7 @@ export default function RepetibilidadTuboSection({
                     <TextField
                       size="small"
                       type="number"
-                      inputProps={{ step: "0.01", min: "0" }}
+                      slotProps={{ htmlInput: { step: "0.01", min: "0" } }}
                       value={dosisMedidaVal}
                       onChange={(e) => onChange && onChange(row.dosisId, e.target.value)}
                       sx={{
@@ -437,8 +437,10 @@ export default function RepetibilidadTuboSection({
                 <TextField
                   size="small"
                   value={statsKv.mean}
-                  InputProps={{
-                    readOnly: true,
+                  slotProps={{
+                    input: {
+                      readOnly: true,
+                    },
                   }}
                   sx={{
                     width: 120,
@@ -460,8 +462,10 @@ export default function RepetibilidadTuboSection({
                 <TextField
                   size="small"
                   value={statsT.mean}
-                  InputProps={{
-                    readOnly: true,
+                  slotProps={{
+                    input: {
+                      readOnly: true,
+                    },
                   }}
                   sx={{
                     width: 120,
@@ -504,8 +508,10 @@ export default function RepetibilidadTuboSection({
                 <TextField
                   size="small"
                   value={statsDosis.mean}
-                  InputProps={{
-                    readOnly: true,
+                  slotProps={{
+                    input: {
+                      readOnly: true,
+                    },
                   }}
                   sx={{
                     width: 120,
@@ -570,8 +576,10 @@ export default function RepetibilidadTuboSection({
                 <TextField
                   size="small"
                   value={statsKv.stdDev}
-                  InputProps={{
-                    readOnly: true,
+                  slotProps={{
+                    input: {
+                      readOnly: true,
+                    },
                   }}
                   sx={{
                     width: 120,
@@ -593,8 +601,10 @@ export default function RepetibilidadTuboSection({
                 <TextField
                   size="small"
                   value={statsT.stdDev}
-                  InputProps={{
-                    readOnly: true,
+                  slotProps={{
+                    input: {
+                      readOnly: true,
+                    },
                   }}
                   sx={{
                     width: 120,
@@ -637,8 +647,10 @@ export default function RepetibilidadTuboSection({
                 <TextField
                   size="small"
                   value={statsDosis.stdDev}
-                  InputProps={{
-                    readOnly: true,
+                  slotProps={{
+                    input: {
+                      readOnly: true,
+                    },
                   }}
                   sx={{
                     width: 120,

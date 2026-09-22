@@ -808,7 +808,7 @@ const PantallaInspeccion = ({
     },
     {
       id: "DIRECTOR_TECNICO",
-      label: "RESPONSABLE DE USO",
+      label: "RESPONSABLE",
       icon: <PersonIcon sx={{ fontSize: 28 }} />,
     },
     {
@@ -1099,7 +1099,7 @@ const PantallaInspeccion = ({
               <Divider orientation="vertical" flexItem sx={{ mx: 1, height: 18, my: 'auto' }} />
 
               <Typography variant="caption" sx={{ fontWeight: 800, color: '#64748b' }}>
-                {isRadiofisica ? 'RESPONSABLE DE USO: ' : 'DIRECTOR TÉCNICO: '}<Box component="span" sx={{ color: '#0f172a', fontWeight: 900 }}>{directorTecnico.nombre} {directorTecnico.apellido}</Box>
+                {isRadiofisica ? 'RESPONSABLE: ' : 'DIRECTOR TÉCNICO: '}<Box component="span" sx={{ color: '#0f172a', fontWeight: 900 }}>{directorTecnico.nombre} {directorTecnico.apellido}</Box>
               </Typography>
 
               <Divider orientation="vertical" flexItem sx={{ mx: 1, height: 18, my: 'auto' }} />

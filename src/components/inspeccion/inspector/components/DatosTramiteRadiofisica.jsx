@@ -49,8 +49,9 @@ import ApartmentIcon from "@mui/icons-material/Apartment";
 import PhoneIcon from "@mui/icons-material/Phone";
 import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
-import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutlineOutlined";
+import EngineeringIcon from "@mui/icons-material/Engineering";
+import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
 
 // Contenedor Card idéntico al diseño de la imagen de referencia
 const EstablecimientoCard = ({
@@ -305,6 +306,18 @@ const DatosTramiteRadiofisica = ({
   onOpenViewer,
 }) => {
   const [expandedEpp, setExpandedEpp] = useState({ mampara_plomada: true });
+  const [subTabResp, setSubTabResp] = useState("TODOS");
+  const [expandedRespInst, setExpandedRespInst] = useState({ 1: true, 2: false, 3: false });
+  const [expandedRespUso, setExpandedRespUso] = useState({ 1: true, 2: false, 3: false });
+  const [expandedPrestador, setExpandedPrestador] = useState(true);
+  const [collapsedSubCards, setCollapsedSubCards] = useState({});
+
+  const toggleSubCard = (cardKey) => {
+    setCollapsedSubCards((prev) => ({
+      ...prev,
+      [cardKey]: !prev[cardKey],
+    }));
+  };
 
   // Helper para leer valor u objeto { value, obs }
   const getValue = (fieldId, defaultVal = null) => {
@@ -347,36 +360,26 @@ const DatosTramiteRadiofisica = ({
             id="rad_est_tipo_dependencia"
             label="Tipo dependencia"
             value={getValue("rad_est_tipo_dependencia", "PÚBLICA")}
-            obs={getObs("rad_est_tipo_dependencia")}
-            onOpenObs={onOpenObs}
           />
           <CardFieldItem
             id="rad_est_denominacion"
             label="Denominación"
             value={getValue("rad_est_denominacion", "Hola")}
-            obs={getObs("rad_est_denominacion")}
-            onOpenObs={onOpenObs}
           />
           <CardFieldItem
             id="rad_est_propiedad"
             label="Propiedad"
             value={getValue("rad_est_propiedad", "Molina Martin Roberto")}
-            obs={getObs("rad_est_propiedad")}
-            onOpenObs={onOpenObs}
           />
           <CardFieldItem
             id="rad_est_cuit"
             label="CUIT"
             value={getValue("rad_est_cuit", "20-39624236-3")}
-            obs={getObs("rad_est_cuit")}
-            onOpenObs={onOpenObs}
           />
           <CardFieldItem
             id="rad_est_hab_municipal"
             label="Posee habilitación municipal"
             value={getValue("rad_est_hab_municipal", "Sí")}
-            obs={getObs("rad_est_hab_municipal")}
-            onOpenObs={onOpenObs}
           />
         </EstablecimientoCard>
 
@@ -392,43 +395,31 @@ const DatosTramiteRadiofisica = ({
             id="rad_est_celular"
             label="Celular"
             value={getValue("rad_est_celular", "3516123456")}
-            obs={getObs("rad_est_celular")}
-            onOpenObs={onOpenObs}
           />
           <CardFieldItem
             id="rad_est_telefono"
             label="Teléfono"
             value={getValue("rad_est_telefono", null)}
-            obs={getObs("rad_est_telefono")}
-            onOpenObs={onOpenObs}
           />
           <CardFieldItem
             id="rad_est_correo"
             label="Correo Electrónico"
             value={getValue("rad_est_correo", "aaaa@gmail.com")}
-            obs={getObs("rad_est_correo")}
-            onOpenObs={onOpenObs}
           />
           <CardFieldItem
             id="rad_est_celular_alt"
             label="Celular Alternativo"
             value={getValue("rad_est_celular_alt", null)}
-            obs={getObs("rad_est_celular_alt")}
-            onOpenObs={onOpenObs}
           />
           <CardFieldItem
             id="rad_est_telefono_alt"
             label="Teléfono Alternativo"
             value={getValue("rad_est_telefono_alt", null)}
-            obs={getObs("rad_est_telefono_alt")}
-            onOpenObs={onOpenObs}
           />
           <CardFieldItem
             id="rad_est_correo_alt"
             label="Correo Electrónico Alternativo"
             value={getValue("rad_est_correo_alt", null)}
-            obs={getObs("rad_est_correo_alt")}
-            onOpenObs={onOpenObs}
           />
         </EstablecimientoCard>
 
@@ -444,64 +435,46 @@ const DatosTramiteRadiofisica = ({
             id="rad_est_calle"
             label="Calle"
             value={getValue("rad_est_calle", "Chacabuco")}
-            obs={getObs("rad_est_calle")}
-            onOpenObs={onOpenObs}
           />
           <CardFieldItem
             id="rad_est_numero"
             label="Número"
             value={getValue("rad_est_numero", "10")}
-            obs={getObs("rad_est_numero")}
-            onOpenObs={onOpenObs}
           />
           <CardFieldItem
             id="rad_est_barrio"
             label="Barrio"
             value={getValue("rad_est_barrio", "Centro")}
-            obs={getObs("rad_est_barrio")}
-            onOpenObs={onOpenObs}
           />
           <CardFieldItem
             id="rad_est_piso"
             label="Piso"
             value={getValue("rad_est_piso", null)}
-            obs={getObs("rad_est_piso")}
-            onOpenObs={onOpenObs}
           />
           <CardFieldItem
             id="rad_est_depto"
             label="Depto"
             value={getValue("rad_est_depto", null)}
-            obs={getObs("rad_est_depto")}
-            onOpenObs={onOpenObs}
           />
           <CardFieldItem
             id="rad_est_cp"
             label="Código Postal"
             value={getValue("rad_est_cp", "5000")}
-            obs={getObs("rad_est_cp")}
-            onOpenObs={onOpenObs}
           />
           <CardFieldItem
             id="rad_est_provincia"
             label="Provincia"
             value={getValue("rad_est_provincia", "CORDOBA")}
-            obs={getObs("rad_est_provincia")}
-            onOpenObs={onOpenObs}
           />
           <CardFieldItem
             id="rad_est_departamento"
             label="Departamento"
             value={getValue("rad_est_departamento", "CAPITAL")}
-            obs={getObs("rad_est_departamento")}
-            onOpenObs={onOpenObs}
           />
           <CardFieldItem
             id="rad_est_localidad"
             label="Localidad"
             value={getValue("rad_est_localidad", "CORDOBA")}
-            obs={getObs("rad_est_localidad")}
-            onOpenObs={onOpenObs}
           />
         </EstablecimientoCard>
 
@@ -517,22 +490,16 @@ const DatosTramiteRadiofisica = ({
             id="rad_prop_celular"
             label="Celular"
             value={getValue("rad_prop_celular", "000000")}
-            obs={getObs("rad_prop_celular")}
-            onOpenObs={onOpenObs}
           />
           <CardFieldItem
             id="rad_prop_telefono"
             label="Teléfono"
             value={getValue("rad_prop_telefono", null)}
-            obs={getObs("rad_prop_telefono")}
-            onOpenObs={onOpenObs}
           />
           <CardFieldItem
             id="rad_prop_correo"
             label="Correo Electrónico"
             value={getValue("rad_prop_correo", "martinmolina1379@gmail.com")}
-            obs={getObs("rad_prop_correo")}
-            onOpenObs={onOpenObs}
           />
         </EstablecimientoCard>
 
@@ -548,518 +515,1346 @@ const DatosTramiteRadiofisica = ({
             id="rad_prop_calle"
             label="Calle"
             value={getValue("rad_prop_calle", "Moyano")}
-            obs={getObs("rad_prop_calle")}
-            onOpenObs={onOpenObs}
           />
           <CardFieldItem
             id="rad_prop_numero"
             label="Número"
             value={getValue("rad_prop_numero", "1182")}
-            obs={getObs("rad_prop_numero")}
-            onOpenObs={onOpenObs}
           />
           <CardFieldItem
             id="rad_prop_barrio"
             label="Barrio"
             value={getValue("rad_prop_barrio", "Nueva Córdoba")}
-            obs={getObs("rad_prop_barrio")}
-            onOpenObs={onOpenObs}
           />
           <CardFieldItem
             id="rad_prop_piso"
             label="Piso"
             value={getValue("rad_prop_piso", null)}
-            obs={getObs("rad_prop_piso")}
-            onOpenObs={onOpenObs}
           />
           <CardFieldItem
             id="rad_prop_depto"
             label="Depto"
             value={getValue("rad_prop_depto", null)}
-            obs={getObs("rad_prop_depto")}
-            onOpenObs={onOpenObs}
           />
           <CardFieldItem
             id="rad_prop_cp"
             label="Código Postal"
             value={getValue("rad_prop_cp", "5016")}
-            obs={getObs("rad_prop_cp")}
-            onOpenObs={onOpenObs}
           />
           <CardFieldItem
             id="rad_prop_provincia"
             label="Provincia"
             value={getValue("rad_prop_provincia", "CORDOBA")}
-            obs={getObs("rad_prop_provincia")}
-            onOpenObs={onOpenObs}
           />
           <CardFieldItem
             id="rad_prop_departamento"
             label="Departamento"
             value={getValue("rad_prop_departamento", "CAPITAL")}
-            obs={getObs("rad_prop_departamento")}
-            onOpenObs={onOpenObs}
           />
           <CardFieldItem
             id="rad_prop_localidad"
             label="Localidad"
             value={getValue("rad_prop_localidad", "CORDOBA")}
-            obs={getObs("rad_prop_localidad")}
-            onOpenObs={onOpenObs}
           />
         </EstablecimientoCard>
+
+        {/* Contenedor 6: Prestador de servicio (desplegable) */}
+        <Paper
+          elevation={0}
+          sx={{
+            border: "1px solid #e2e8f0",
+            borderRadius: 4,
+            overflow: "hidden",
+            bgcolor: "#ffffff",
+          }}
+        >
+          {/* Header del desplegable Prestador de servicio */}
+          <Box
+            onClick={() => setExpandedPrestador((prev) => !prev)}
+            sx={{
+              bgcolor: expandedPrestador ? "#f8fafc" : "#ffffff",
+              px: 2.5,
+              py: 1.8,
+              borderBottom: expandedPrestador ? "1px solid #e2e8f0" : "none",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              cursor: "pointer",
+              userSelect: "none",
+              transition: "all 0.2s ease-in-out",
+            }}
+          >
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+              <ApartmentIcon sx={{ color: "#0ea5e9", fontSize: 24 }} />
+              <Typography
+                sx={{
+                  fontWeight: 800,
+                  color: "#1e293b",
+                  fontSize: "0.95rem",
+                  textTransform: "uppercase",
+                }}
+              >
+                Prestador de servicio
+              </Typography>
+            </Box>
+
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+              <Tooltip title={getObs("rad_sec_prestador_servicio") ? "Ver / Editar observación" : "Observar Prestador de servicio"}>
+                <IconButton
+                  size="small"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onOpenObs &&
+                      onOpenObs(
+                        "rad_sec_prestador_servicio",
+                        "Prestador de servicio",
+                        getObs("rad_sec_prestador_servicio"),
+                        "ESTABLECIMIENTO"
+                      );
+                  }}
+                  sx={{ color: getObs("rad_sec_prestador_servicio") ? "#0ea5e9" : "#94a3b8" }}
+                >
+                  {getObs("rad_sec_prestador_servicio") ? (
+                    <ChatBubbleIcon fontSize="small" />
+                  ) : (
+                    <ChatBubbleOutlineIcon fontSize="small" />
+                  )}
+                </IconButton>
+              </Tooltip>
+
+              <IconButton size="small" sx={{ color: "#64748b" }}>
+                {expandedPrestador ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
+              </IconButton>
+            </Box>
+          </Box>
+
+          {/* Contenido desplegable: las 2 cards según la foto */}
+          <Collapse in={expandedPrestador}>
+            <Box sx={{ p: { xs: 2, sm: 3 }, bgcolor: "#f8fafc", display: "flex", flexDirection: "column", gap: 3 }}>
+              
+              {/* Card 1: Datos generales del prestador del servicio */}
+              <Box sx={{ width: "100%" }}>
+                <Box
+                  onClick={() => toggleSubCard("prest_gen")}
+                  sx={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    mb: 1.5,
+                    px: 0.5,
+                    cursor: "pointer",
+                    userSelect: "none",
+                  }}
+                >
+                  <Typography
+                    sx={{
+                      fontWeight: 800,
+                      color: "#0284c7",
+                      fontSize: "1.02rem",
+                    }}
+                  >
+                    Datos generales del prestador del servicio
+                  </Typography>
+                  <IconButton size="small" sx={{ color: "#0284c7", p: 0.5 }}>
+                    {collapsedSubCards["prest_gen"] ? (
+                      <KeyboardArrowDownIcon />
+                    ) : (
+                      <KeyboardArrowUpIcon />
+                    )}
+                  </IconButton>
+                </Box>
+
+                <Collapse in={!collapsedSubCards["prest_gen"]}>
+                  <Paper
+                    elevation={0}
+                    sx={{
+                      p: { xs: 2, sm: 3 },
+                      border: "1px solid #e2e8f0",
+                      borderRadius: 2.5,
+                      bgcolor: "#ffffff",
+                    }}
+                  >
+                    <Box
+                      sx={{
+                        display: "grid",
+                        gridTemplateColumns: { xs: "1fr", sm: "repeat(3, 1fr)" },
+                        gap: { xs: 2, sm: 3 },
+                      }}
+                    >
+                      {/* Nombre/s */}
+                      <Box>
+                        <Typography
+                          variant="caption"
+                          sx={{
+                            color: "#64748b",
+                            fontWeight: 600,
+                            fontSize: "0.78rem",
+                            display: "block",
+                            mb: 0.8,
+                          }}
+                        >
+                          Nombre/s
+                        </Typography>
+                        <Box sx={{ borderBottom: "1px dashed #cbd5e1", pb: 0.8 }}>
+                          <Typography sx={{ color: "#1e293b", fontWeight: 700, fontSize: "0.92rem" }}>
+                            {getValue("rad_prest_nombre", "Maximo Samir")}
+                          </Typography>
+                        </Box>
+                      </Box>
+
+                      {/* Apellido/s */}
+                      <Box>
+                        <Typography
+                          variant="caption"
+                          sx={{
+                            color: "#64748b",
+                            fontWeight: 600,
+                            fontSize: "0.78rem",
+                            display: "block",
+                            mb: 0.8,
+                          }}
+                        >
+                          Apellido/s
+                        </Typography>
+                        <Box sx={{ borderBottom: "1px dashed #cbd5e1", pb: 0.8 }}>
+                          <Typography sx={{ color: "#1e293b", fontWeight: 700, fontSize: "0.92rem" }}>
+                            {getValue("rad_prest_apellido", "Tabares")}
+                          </Typography>
+                        </Box>
+                      </Box>
+
+                      {/* CUIL */}
+                      <Box>
+                        <Typography
+                          variant="caption"
+                          sx={{
+                            color: "#64748b",
+                            fontWeight: 600,
+                            fontSize: "0.78rem",
+                            display: "block",
+                            mb: 0.8,
+                          }}
+                        >
+                          CUIL
+                        </Typography>
+                        <Box sx={{ borderBottom: "1px dashed #cbd5e1", pb: 0.8 }}>
+                          <Typography sx={{ color: "#1e293b", fontWeight: 700, fontSize: "0.92rem" }}>
+                            {getValue("rad_prest_cuil", "20460337691")}
+                          </Typography>
+                        </Box>
+                      </Box>
+                    </Box>
+                  </Paper>
+                </Collapse>
+              </Box>
+
+              {/* Card 2: Domicilio del prestador del servicio */}
+              <Box sx={{ width: "100%" }}>
+                <Box
+                  onClick={() => toggleSubCard("prest_dom")}
+                  sx={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    mb: 1.5,
+                    px: 0.5,
+                    cursor: "pointer",
+                    userSelect: "none",
+                  }}
+                >
+                  <Typography
+                    sx={{
+                      fontWeight: 800,
+                      color: "#0284c7",
+                      fontSize: "1.02rem",
+                    }}
+                  >
+                    Domicilio del prestador del servicio
+                  </Typography>
+                  <IconButton size="small" sx={{ color: "#0284c7", p: 0.5 }}>
+                    {collapsedSubCards["prest_dom"] ? (
+                      <KeyboardArrowDownIcon />
+                    ) : (
+                      <KeyboardArrowUpIcon />
+                    )}
+                  </IconButton>
+                </Box>
+
+                <Collapse in={!collapsedSubCards["prest_dom"]}>
+                  <Paper
+                    elevation={0}
+                    sx={{
+                      p: { xs: 2, sm: 3 },
+                      border: "1px solid #e2e8f0",
+                      borderRadius: 2.5,
+                      bgcolor: "#ffffff",
+                    }}
+                  >
+                    {/* Fila 1: Calle, Número, Barrio */}
+                    <Box
+                      sx={{
+                        display: "grid",
+                        gridTemplateColumns: { xs: "1fr", sm: "repeat(3, 1fr)" },
+                        gap: { xs: 2, sm: 3 },
+                        mb: 3,
+                      }}
+                    >
+                      <Box>
+                        <Typography
+                          variant="caption"
+                          sx={{
+                            color: "#64748b",
+                            fontWeight: 600,
+                            fontSize: "0.78rem",
+                            display: "block",
+                            mb: 0.8,
+                          }}
+                        >
+                          Calle
+                        </Typography>
+                        <Box sx={{ borderBottom: "1px dashed #cbd5e1", pb: 0.8 }}>
+                          <Typography sx={{ color: "#1e293b", fontWeight: 700, fontSize: "0.92rem" }}>
+                            {getValue("rad_prest_calle", "No informado")}
+                          </Typography>
+                        </Box>
+                      </Box>
+
+                      <Box>
+                        <Typography
+                          variant="caption"
+                          sx={{
+                            color: "#64748b",
+                            fontWeight: 600,
+                            fontSize: "0.78rem",
+                            display: "block",
+                            mb: 0.8,
+                          }}
+                        >
+                          Número
+                        </Typography>
+                        <Box sx={{ borderBottom: "1px dashed #cbd5e1", pb: 0.8 }}>
+                          <Typography sx={{ color: "#1e293b", fontWeight: 700, fontSize: "0.92rem" }}>
+                            {getValue("rad_prest_numero", "No informado")}
+                          </Typography>
+                        </Box>
+                      </Box>
+
+                      <Box>
+                        <Typography
+                          variant="caption"
+                          sx={{
+                            color: "#64748b",
+                            fontWeight: 600,
+                            fontSize: "0.78rem",
+                            display: "block",
+                            mb: 0.8,
+                          }}
+                        >
+                          Barrio
+                        </Typography>
+                        <Box sx={{ borderBottom: "1px dashed #cbd5e1", pb: 0.8 }}>
+                          <Typography sx={{ color: "#1e293b", fontWeight: 700, fontSize: "0.92rem" }}>
+                            {getValue("rad_prest_barrio", "No informado")}
+                          </Typography>
+                        </Box>
+                      </Box>
+                    </Box>
+
+                    {/* Fila 2: Piso, Depto, Código postal */}
+                    <Box
+                      sx={{
+                        display: "grid",
+                        gridTemplateColumns: { xs: "1fr", sm: "repeat(3, 1fr)" },
+                        gap: { xs: 2, sm: 3 },
+                        mb: 3,
+                      }}
+                    >
+                      <Box>
+                        <Typography
+                          variant="caption"
+                          sx={{
+                            color: "#64748b",
+                            fontWeight: 600,
+                            fontSize: "0.78rem",
+                            display: "block",
+                            mb: 0.8,
+                          }}
+                        >
+                          Piso
+                        </Typography>
+                        <Box sx={{ borderBottom: "1px dashed #cbd5e1", pb: 0.8 }}>
+                          <Typography sx={{ color: "#1e293b", fontWeight: 700, fontSize: "0.92rem" }}>
+                            {getValue("rad_prest_piso", "No informado")}
+                          </Typography>
+                        </Box>
+                      </Box>
+
+                      <Box>
+                        <Typography
+                          variant="caption"
+                          sx={{
+                            color: "#64748b",
+                            fontWeight: 600,
+                            fontSize: "0.78rem",
+                            display: "block",
+                            mb: 0.8,
+                          }}
+                        >
+                          Depto
+                        </Typography>
+                        <Box sx={{ borderBottom: "1px dashed #cbd5e1", pb: 0.8 }}>
+                          <Typography sx={{ color: "#1e293b", fontWeight: 700, fontSize: "0.92rem" }}>
+                            {getValue("rad_prest_depto", "No informado")}
+                          </Typography>
+                        </Box>
+                      </Box>
+
+                      <Box>
+                        <Typography
+                          variant="caption"
+                          sx={{
+                            color: "#64748b",
+                            fontWeight: 600,
+                            fontSize: "0.78rem",
+                            display: "block",
+                            mb: 0.8,
+                          }}
+                        >
+                          Código postal
+                        </Typography>
+                        <Box sx={{ borderBottom: "1px dashed #cbd5e1", pb: 0.8 }}>
+                          <Typography sx={{ color: "#1e293b", fontWeight: 700, fontSize: "0.92rem" }}>
+                            {getValue("rad_prest_cp", "No informado")}
+                          </Typography>
+                        </Box>
+                      </Box>
+                    </Box>
+
+                    {/* Fila 3: Provincia, Departamento, Localidad */}
+                    <Box
+                      sx={{
+                        display: "grid",
+                        gridTemplateColumns: { xs: "1fr", sm: "repeat(3, 1fr)" },
+                        gap: { xs: 2, sm: 3 },
+                      }}
+                    >
+                      <Box>
+                        <Typography
+                          variant="caption"
+                          sx={{
+                            color: "#64748b",
+                            fontWeight: 600,
+                            fontSize: "0.78rem",
+                            display: "block",
+                            mb: 0.8,
+                          }}
+                        >
+                          Provincia
+                        </Typography>
+                        <Box sx={{ borderBottom: "1px dashed #cbd5e1", pb: 0.8 }}>
+                          <Typography sx={{ color: "#1e293b", fontWeight: 700, fontSize: "0.92rem" }}>
+                            {getValue("rad_prest_provincia", "No informado")}
+                          </Typography>
+                        </Box>
+                      </Box>
+
+                      <Box>
+                        <Typography
+                          variant="caption"
+                          sx={{
+                            color: "#64748b",
+                            fontWeight: 600,
+                            fontSize: "0.78rem",
+                            display: "block",
+                            mb: 0.8,
+                          }}
+                        >
+                          Departamento
+                        </Typography>
+                        <Box sx={{ borderBottom: "1px dashed #cbd5e1", pb: 0.8 }}>
+                          <Typography sx={{ color: "#1e293b", fontWeight: 700, fontSize: "0.92rem" }}>
+                            {getValue("rad_prest_departamento", "No informado")}
+                          </Typography>
+                        </Box>
+                      </Box>
+
+                      <Box>
+                        <Typography
+                          variant="caption"
+                          sx={{
+                            color: "#64748b",
+                            fontWeight: 600,
+                            fontSize: "0.78rem",
+                            display: "block",
+                            mb: 0.8,
+                          }}
+                        >
+                          Localidad
+                        </Typography>
+                        <Box sx={{ borderBottom: "1px dashed #cbd5e1", pb: 0.8 }}>
+                          <Typography sx={{ color: "#1e293b", fontWeight: 700, fontSize: "0.92rem" }}>
+                            {getValue("rad_prest_localidad", "No informado")}
+                          </Typography>
+                        </Box>
+                      </Box>
+                    </Box>
+
+                  </Paper>
+                </Collapse>
+              </Box>
+
+            </Box>
+          </Collapse>
+        </Paper>
       </Box>
     );
   }
 
   // ────────────────────────────────────────────────────────────
-  // STEP: RESPONSABLE DE USO (ex DIRECTOR TÉCNICO)
+  // STEP: RESPONSABLE (ex RESPONSABLE DE USO / DIRECTOR TÉCNICO)
   // ────────────────────────────────────────────────────────────
   if (
     category === "DIRECTOR_TECNICO" ||
     category === "DIRECTOR TECNICO" ||
     category === "RESPONSABLE_DE_USO" ||
-    category === "RESPONSABLE DE USO"
+    category === "RESPONSABLE DE USO" ||
+    category === "RESPONSABLE"
   ) {
     const dtDocFieldId = "rad_est_dt_autorizacion_pdf";
     const dtDocStatus = getValue(dtDocFieldId);
     const dtDocObs = getObs(dtDocFieldId);
 
+    const toggleRespInst = (id) => {
+      setExpandedRespInst((prev) => ({
+        ...prev,
+        [id]: !prev[id],
+      }));
+    };
+
+    const toggleRespUso = (id) => {
+      setExpandedRespUso((prev) => ({
+        ...prev,
+        [id]: !prev[id],
+      }));
+    };
+
+    const RESPONSABLES_USO = [
+      {
+        id: 1,
+        titulo: "Responsable de uso 1",
+        nombre: "Rodrigo",
+        apellido: "Tosco",
+        cuil: "20394442594",
+        matricula: "1212",
+        autorizacion: "3333333333",
+        usoEquipos: "Radiodiagnóstico dental",
+        pdfDoc: "autorizacion_individual_arn.pdf",
+        docStatusId: "rad_dt_resp_uso_1_doc_status",
+      },
+      {
+        id: 2,
+        titulo: "Responsable de uso 2",
+        nombre: "Martín S.",
+        apellido: "Benítez",
+        cuil: "20284509123",
+        matricula: "MP-84920",
+        autorizacion: "ARN-2024-8450-TX",
+        usoEquipos: "Radiodiagnóstico Médico Convencional",
+        pdfDoc: "autorizacion_individual_arn.pdf",
+        docStatusId: "rad_dt_resp_uso_2_doc_status",
+      },
+      {
+        id: 3,
+        titulo: "Responsable de uso 3",
+        nombre: "Valeria Inés",
+        apellido: "Navarro",
+        cuil: "27341208952",
+        matricula: "MP-55102",
+        autorizacion: "ARN-2025-1102-TX",
+        usoEquipos: "Radiología General e Intervencionismo",
+        pdfDoc: "autorizacion_individual_arn.pdf",
+        docStatusId: "rad_dt_resp_uso_3_doc_status",
+      },
+    ];
+
+    const RESPONSABLES_INSTALACION = [
+      {
+        id: 1,
+        titulo: "Responsable de instalación 1",
+        nombre: "Luciana",
+        apellido: "Castro Barrionuevo",
+        cuil: "27435597586",
+        celular: "*******7408",
+        email: "cast*******@gmail.com",
+      },
+      {
+        id: 2,
+        titulo: "Responsable de instalación 2",
+        nombre: "Carlos Alberto",
+        apellido: "Varela",
+        cuil: "20245892113",
+        celular: "*******3120",
+        email: "cvarela*******@gmail.com",
+      },
+      {
+        id: 3,
+        titulo: "Responsable de instalación 3",
+        nombre: "Mariana Soledad",
+        apellido: "Benítez Gómez",
+        cuil: "27319842554",
+        celular: "*******8821",
+        email: "marianab*******@hotmail.com",
+      },
+    ];
+
     return (
       <Box sx={{ display: "flex", flexDirection: "column", gap: 3, mb: 4 }}>
-        <Box sx={{ mb: 0.5 }}>
-          <Typography variant="h6" sx={{ fontWeight: 800, color: "#0284c7", fontSize: "1.15rem" }}>
-            Responsable de Uso
-          </Typography>
+        {/* Cabecera con selector de subsecciones */}
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            flexWrap: "wrap",
+            gap: 1.5,
+            borderBottom: "1px solid #e2e8f0",
+            pb: 1.5,
+          }}
+        >
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            <PersonIcon sx={{ color: "#0284c7", fontSize: 26 }} />
+            <Typography variant="h6" sx={{ fontWeight: 800, color: "#1e293b", fontSize: "1.2rem" }}>
+              Responsable
+            </Typography>
+          </Box>
+
+          <Box sx={{ display: "flex", gap: 1, bgcolor: "#f1f5f9", p: 0.5, borderRadius: 2 }}>
+            <Button
+              size="small"
+              onClick={() => setSubTabResp("TODOS")}
+              sx={{
+                fontWeight: 800,
+                fontSize: "0.8rem",
+                borderRadius: 1.5,
+                px: 2,
+                py: 0.5,
+                bgcolor: subTabResp === "TODOS" ? "#ffffff" : "transparent",
+                color: subTabResp === "TODOS" ? "#0284c7" : "#64748b",
+                boxShadow: subTabResp === "TODOS" ? "0 1px 3px rgba(0,0,0,0.1)" : "none",
+                "&:hover": { bgcolor: subTabResp === "TODOS" ? "#ffffff" : "rgba(0,0,0,0.04)" },
+              }}
+            >
+              Ver Ambos
+            </Button>
+            <Button
+              size="small"
+              onClick={() => setSubTabResp("INSTALACION")}
+              sx={{
+                fontWeight: 800,
+                fontSize: "0.8rem",
+                borderRadius: 1.5,
+                px: 2,
+                py: 0.5,
+                bgcolor: subTabResp === "INSTALACION" ? "#ffffff" : "transparent",
+                color: subTabResp === "INSTALACION" ? "#0284c7" : "#64748b",
+                boxShadow: subTabResp === "INSTALACION" ? "0 1px 3px rgba(0,0,0,0.1)" : "none",
+                "&:hover": { bgcolor: subTabResp === "INSTALACION" ? "#ffffff" : "rgba(0,0,0,0.04)" },
+              }}
+            >
+              Responsable de Instalación (3)
+            </Button>
+            <Button
+              size="small"
+              onClick={() => setSubTabResp("USO")}
+              sx={{
+                fontWeight: 800,
+                fontSize: "0.8rem",
+                borderRadius: 1.5,
+                px: 2,
+                py: 0.5,
+                bgcolor: subTabResp === "USO" ? "#ffffff" : "transparent",
+                color: subTabResp === "USO" ? "#0284c7" : "#64748b",
+                boxShadow: subTabResp === "USO" ? "0 1px 3px rgba(0,0,0,0.1)" : "none",
+                "&:hover": { bgcolor: subTabResp === "USO" ? "#ffffff" : "rgba(0,0,0,0.04)" },
+              }}
+            >
+              Responsable de Uso (3)
+            </Button>
+          </Box>
         </Box>
 
-        {/* 1. Tabla: Datos del Responsable de Uso */}
-        <EstablecimientoCard
-          id="rad_dt_responsable_uso"
-          title="Responsable de Uso"
-          icon={<PersonIcon sx={{ color: "#0ea5e9", fontSize: 22 }} />}
-          obs={getObs("rad_dt_responsable_uso")}
-          onOpenObs={onOpenObs}
-          noGrid={true}
-        >
-          <TableContainer>
-            <Table size="small">
-              <TableHead>
-                <TableRow sx={{ bgcolor: "#f8fafc" }}>
-                  <TableCell sx={{ fontWeight: 900, color: "#0369a1", fontSize: "0.80rem", py: 2 }}>
-                    DATOS PERSONALES Y CONTACTO
-                  </TableCell>
-                  <TableCell sx={{ fontWeight: 900, color: "#0369a1", fontSize: "0.80rem" }}>
-                    DNI / CUIL
-                  </TableCell>
-                  <TableCell sx={{ fontWeight: 900, color: "#0369a1", fontSize: "0.80rem" }}>
-                    TÍTULO HABILITANTE
-                  </TableCell>
-                  <TableCell sx={{ fontWeight: 900, color: "#0369a1", fontSize: "0.80rem" }}>
-                    MATRÍCULA
-                  </TableCell>
-                  <TableCell sx={{ fontWeight: 900, color: "#0369a1", fontSize: "0.80rem" }}>
-                    ESPECIALIDAD / ROL
-                  </TableCell>
-                  <TableCell align="center" sx={{ fontWeight: 900, color: "#0369a1", fontSize: "0.80rem", width: 60 }}>
-                    OBS.
-                  </TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                <TableRow hover sx={{ "&:hover": { bgcolor: "#f8fafc" } }}>
-                  <TableCell sx={{ py: 1.8 }}>
-                    <Typography sx={{ fontWeight: 800, color: "#1e293b", fontSize: "0.88rem" }}>
-                      Lic. Martín S. Benítez
-                    </Typography>
-                    <Typography variant="caption" sx={{ color: "#64748b", fontWeight: 600, display: "block", mt: 0.3 }}>
-                      mbenitez@radiofisica.org.ar | Tel: (0351) 555-1234
-                    </Typography>
-                  </TableCell>
-                  <TableCell sx={{ py: 1.8 }}>
-                    <Typography sx={{ fontWeight: 700, color: "#1e293b", fontSize: "0.85rem" }}>
-                      DNI: 28.450.912
-                    </Typography>
-                    <Typography variant="caption" sx={{ color: "#64748b", fontWeight: 600, display: "block" }}>
-                      CUIL: 20-28450912-3
-                    </Typography>
-                  </TableCell>
-                  <TableCell sx={{ py: 1.8 }}>
-                    <Typography sx={{ fontWeight: 800, color: "#1e293b", fontSize: "0.85rem" }}>
-                      Licenciado en Producción de Bioimágenes
-                    </Typography>
-                  </TableCell>
-                  <TableCell sx={{ py: 1.8 }}>
-                    <Chip
-                      label="MP-84920"
-                      size="small"
-                      sx={{ height: 22, fontSize: "11px", fontWeight: 800, bgcolor: "#f1f5f9", color: "#334155" }}
-                    />
-                  </TableCell>
-                  <TableCell sx={{ py: 1.8 }}>
-                    <Typography sx={{ fontWeight: 700, color: "#0369a1", fontSize: "0.85rem" }}>
-                      Radiofísica y Protección Radiológica
-                    </Typography>
-                    <Chip
-                      label="Responsable de Uso"
-                      size="small"
-                      sx={{ height: 20, fontSize: "10.5px", fontWeight: 800, bgcolor: "#e0f2fe", color: "#0369a1", mt: 0.4 }}
-                    />
-                  </TableCell>
-                  <TableCell align="center" sx={{ py: 1.8 }}>
-                    <Tooltip title={getObs("rad_dt_responsable_uso_fila") ? "Ver / Editar observación" : "Agregar observación"}>
-                      <IconButton
-                        size="small"
-                        onClick={() =>
-                          onOpenObs &&
-                          onOpenObs(
-                            "rad_dt_responsable_uso_fila",
-                            "Responsable de Uso - Lic. Martín S. Benítez",
-                            getObs("rad_dt_responsable_uso_fila"),
-                            "TRAMITE"
-                          )
-                        }
-                        sx={{ color: getObs("rad_dt_responsable_uso_fila") ? "#0ea5e9" : "#94a3b8" }}
-                      >
-                        {getObs("rad_dt_responsable_uso_fila") ? (
-                          <ChatBubbleIcon fontSize="small" />
-                        ) : (
-                          <ChatBubbleOutlineIcon fontSize="small" />
-                        )}
-                      </IconButton>
-                    </Tooltip>
-                  </TableCell>
-                </TableRow>
-              </TableBody>
-            </Table>
-          </TableContainer>
-        </EstablecimientoCard>
+        {/* SUBSECCIÓN 1: RESPONSABLE DE INSTALACIÓN */}
+        {(subTabResp === "TODOS" || subTabResp === "INSTALACION") && (
+          <EstablecimientoCard
+            id="rad_sub_resp_instalacion"
+            title="Responsable de Instalación"
+            icon={<EngineeringIcon sx={{ color: "#0ea5e9", fontSize: 22 }} />}
+            obs={getObs("rad_sub_resp_instalacion")}
+            onOpenObs={onOpenObs}
+            noGrid={true}
+          >
+            <Box sx={{ p: 2.5, display: "flex", flexDirection: "column", gap: 2.5 }}>
+              <Typography variant="body2" sx={{ color: "#64748b", fontWeight: 600 }}>
+                Nómina de profesionales responsables de la instalación declarados en el trámite.
+              </Typography>
 
-        {/* 2. Tabla: Habilitación y Permiso Individual ARN */}
-        <EstablecimientoCard
-          id="rad_dt_habilitacion_arn"
-          title="Habilitación Regulatoria ARN"
-          icon={<DescriptionIcon sx={{ color: "#0ea5e9", fontSize: 22 }} />}
-          obs={getObs("rad_dt_habilitacion_arn")}
-          onOpenObs={onOpenObs}
-          noGrid={true}
-        >
-          <TableContainer>
-            <Table size="small">
-              <TableHead>
-                <TableRow sx={{ bgcolor: "#f8fafc" }}>
-                  <TableCell sx={{ fontWeight: 900, color: "#0369a1", fontSize: "0.80rem", py: 2 }}>
-                    DOCUMENTO / HABILITACIÓN
-                  </TableCell>
-                  <TableCell sx={{ fontWeight: 900, color: "#0369a1", fontSize: "0.80rem" }}>
-                    ALCANCE / TIPO INSTALACIÓN
-                  </TableCell>
-                  <TableCell align="center" sx={{ fontWeight: 900, color: "#0369a1", fontSize: "0.80rem" }}>
-                    ORGANISMO EMISOR
-                  </TableCell>
-                  <TableCell align="center" sx={{ fontWeight: 900, color: "#0369a1", fontSize: "0.80rem" }}>
-                    ESTADO PERMISO
-                  </TableCell>
-                  <TableCell align="center" sx={{ fontWeight: 900, color: "#0369a1", fontSize: "0.80rem" }}>
-                    VISUALIZAR
-                  </TableCell>
-                  <TableCell align="center" sx={{ fontWeight: 900, color: "#0369a1", fontSize: "0.80rem" }}>
-                    ESTADO
-                  </TableCell>
-                  <TableCell align="center" sx={{ fontWeight: 900, color: "#0369a1", fontSize: "0.80rem", width: 60 }}>
-                    OBS.
-                  </TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                <TableRow hover sx={{ "&:hover": { bgcolor: "#f8fafc" } }}>
-                  <TableCell sx={{ py: 1.8 }}>
-                    <Typography sx={{ fontWeight: 800, color: "#1e293b", fontSize: "0.88rem" }}>
-                      Autorización Individual (ARN)
-                    </Typography>
-                    <Typography variant="caption" sx={{ color: "#64748b", fontWeight: 600, display: "block", mt: 0.3 }}>
-                      Permiso individual para el uso de equipos generadores de Rayos X médicos
-                    </Typography>
-                  </TableCell>
-                  <TableCell sx={{ py: 1.8 }}>
-                    <Typography sx={{ fontWeight: 700, color: "#334155", fontSize: "0.85rem" }}>
-                      Radiodiagnóstico Médico Convencional
-                    </Typography>
-                    <Typography variant="caption" sx={{ color: "#64748b", fontWeight: 600, display: "block" }}>
-                      Instalación Clase II
-                    </Typography>
-                  </TableCell>
-                  <TableCell align="center" sx={{ py: 1.8 }}>
-                    <Chip
-                      label="ARN"
-                      size="small"
-                      sx={{ height: 22, fontSize: "11px", fontWeight: 800, bgcolor: "#f1f5f9", color: "#0f172a" }}
-                    />
-                  </TableCell>
-                  <TableCell align="center" sx={{ py: 1.8 }}>
-                    <Chip
-                      icon={<CheckCircleIcon sx={{ fontSize: "16px !important", color: "#15803d !important" }} />}
-                      label="VIGENTE"
-                      size="small"
-                      sx={{ height: 22, fontSize: "11px", fontWeight: 800, bgcolor: "#dcfce7", color: "#15803d" }}
-                    />
-                  </TableCell>
-                  <TableCell align="center" sx={{ py: 1.8 }}>
-                    <Tooltip title="Visualizar Autorización Individual (PDF)">
-                      <IconButton
-                        size="small"
-                        onClick={() => onOpenViewer && onOpenViewer("autorizacion_individual_arn.pdf")}
-                        sx={{ color: "#0284c7", bgcolor: "#e0f2fe", "&:hover": { bgcolor: "#bae6fd" } }}
-                      >
-                        <VisibilityIcon fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
-                  </TableCell>
-                  <TableCell align="center" sx={{ py: 1.8 }}>
-                    <ToggleButtonGroup
-                      value={dtDocStatus}
-                      exclusive
-                      onChange={(e, val) => val !== null && handleToggle(dtDocFieldId, val)}
-                      size="small"
-                      sx={{ height: 32 }}
-                    >
-                      <ToggleButton
-                        value="conforme"
-                        sx={{
-                          px: 1.5,
-                          fontSize: "0.75rem",
-                          fontWeight: 800,
-                          "&.Mui-selected": { bgcolor: "#dcfce7", color: "#166534" },
-                        }}
-                      >
-                        Conforme
-                      </ToggleButton>
-                      <ToggleButton
-                        value="observado"
-                        sx={{
-                          px: 1.5,
-                          fontSize: "0.75rem",
-                          fontWeight: 800,
-                          "&.Mui-selected": { bgcolor: "#fee2e2", color: "#991b1b" },
-                        }}
-                      >
-                        Observado
-                      </ToggleButton>
-                    </ToggleButtonGroup>
-                  </TableCell>
-                  <TableCell align="center" sx={{ py: 1.8 }}>
-                    <Tooltip title={dtDocObs ? "Ver / Editar observación" : "Agregar observación"}>
-                      <IconButton
-                        size="small"
-                        onClick={() =>
-                          onOpenObs &&
-                          onOpenObs(
-                            dtDocFieldId,
-                            "Autorización Individual (PDF) - Responsable de uso",
-                            dtDocObs,
-                            "TRAMITE"
-                          )
-                        }
-                        sx={{ color: dtDocObs ? "#0ea5e9" : "#94a3b8" }}
-                      >
-                        {dtDocObs ? <ChatBubbleIcon fontSize="small" /> : <ChatBubbleOutlineIcon fontSize="small" />}
-                      </IconButton>
-                    </Tooltip>
-                  </TableCell>
-                </TableRow>
-              </TableBody>
-            </Table>
-          </TableContainer>
-        </EstablecimientoCard>
+              {RESPONSABLES_INSTALACION.map((resp) => {
+                const isExpanded = !!expandedRespInst[resp.id];
 
-        {/* 3. Tabla: Datos generales del prestador del servicio */}
-        <EstablecimientoCard
-          id="rad_dt_datos_prestador"
-          title="Datos generales del prestador del servicio"
-          icon={<ApartmentIcon sx={{ color: "#0ea5e9", fontSize: 22 }} />}
-          obs={getObs("rad_dt_datos_prestador")}
-          onOpenObs={onOpenObs}
-          noGrid={true}
-        >
-          <TableContainer>
-            <Table size="small">
-              <TableHead>
-                <TableRow sx={{ bgcolor: "#f8fafc" }}>
-                  <TableCell sx={{ fontWeight: 900, color: "#0369a1", fontSize: "0.80rem", py: 2 }}>
-                    PRESTADOR / TITULAR
-                  </TableCell>
-                  <TableCell sx={{ fontWeight: 900, color: "#0369a1", fontSize: "0.80rem" }}>
-                    CUIL / CUIT
-                  </TableCell>
-                  <TableCell sx={{ fontWeight: 900, color: "#0369a1", fontSize: "0.80rem" }}>
-                    CARÁCTER
-                  </TableCell>
-                  <TableCell align="center" sx={{ fontWeight: 900, color: "#0369a1", fontSize: "0.80rem", width: 60 }}>
-                    OBS.
-                  </TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                <TableRow hover sx={{ "&:hover": { bgcolor: "#f8fafc" } }}>
-                  <TableCell sx={{ py: 1.8 }}>
-                    <Typography sx={{ fontWeight: 800, color: "#1e293b", fontSize: "0.88rem" }}>
-                      {getValue("rad_prest_nombre", "Lic. Martín S.")} {getValue("rad_prest_apellido", "Benítez")}
-                    </Typography>
-                  </TableCell>
-                  <TableCell sx={{ py: 1.8 }}>
-                    <Typography sx={{ fontWeight: 700, color: "#334155", fontSize: "0.85rem" }}>
-                      {getValue("rad_prest_cuil", "20-28450912-3")}
-                    </Typography>
-                  </TableCell>
-                  <TableCell sx={{ py: 1.8 }}>
-                    <Chip
-                      label="Titular Prestador del Servicio"
-                      size="small"
+                return (
+                  <Paper
+                    key={resp.id}
+                    elevation={0}
+                    sx={{
+                      border: "1px solid #e2e8f0",
+                      borderRadius: 3,
+                      overflow: "hidden",
+                      bgcolor: "#ffffff",
+                      transition: "all 0.2s ease-in-out",
+                      "&:hover": {
+                        borderColor: "#cbd5e1",
+                        boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
+                      },
+                    }}
+                  >
+                    {/* Header del Desplegable */}
+                    <Box
+                      onClick={() => toggleRespInst(resp.id)}
                       sx={{
-                        height: 22,
-                        fontSize: "11px",
-                        fontWeight: 700,
-                        bgcolor: "#f0fdf4",
-                        color: "#15803d",
-                        border: "1px solid #bbf7d0",
+                        p: 2,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        bgcolor: isExpanded ? "#f8fafc" : "#ffffff",
+                        cursor: "pointer",
+                        borderBottom: isExpanded ? "1px solid #e2e8f0" : "none",
+                        userSelect: "none",
                       }}
-                    />
-                  </TableCell>
-                  <TableCell align="center" sx={{ py: 1.8 }}>
-                    <Tooltip title={getObs("rad_prest_nombre") ? "Ver / Editar observación" : "Agregar observación"}>
-                      <IconButton
-                        size="small"
-                        onClick={() =>
-                          onOpenObs &&
-                          onOpenObs(
-                            "rad_prest_nombre",
-                            "Datos Generales del Prestador",
-                            getObs("rad_prest_nombre"),
-                            "TRAMITE"
-                          )
-                        }
-                        sx={{ color: getObs("rad_prest_nombre") ? "#0ea5e9" : "#94a3b8" }}
-                      >
-                        {getObs("rad_prest_nombre") ? (
-                          <ChatBubbleIcon fontSize="small" />
-                        ) : (
-                          <ChatBubbleOutlineIcon fontSize="small" />
-                        )}
-                      </IconButton>
-                    </Tooltip>
-                  </TableCell>
-                </TableRow>
-              </TableBody>
-            </Table>
-          </TableContainer>
-        </EstablecimientoCard>
+                    >
+                      <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+                        <Box
+                          sx={{
+                            width: 32,
+                            height: 32,
+                            borderRadius: "50%",
+                            bgcolor: isExpanded ? "#e0f2fe" : "#f1f5f9",
+                            color: isExpanded ? "#0369a1" : "#64748b",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            fontWeight: 900,
+                            fontSize: "0.85rem",
+                          }}
+                        >
+                          {resp.id}
+                        </Box>
+                        <Box>
+                          <Typography sx={{ fontWeight: 800, color: "#1e293b", fontSize: "0.95rem" }}>
+                            {resp.titulo}
+                          </Typography>
+                          <Typography variant="caption" sx={{ color: "#64748b", fontWeight: 600 }}>
+                            {resp.nombre} {resp.apellido} • CUIL: {resp.cuil}
+                          </Typography>
+                        </Box>
+                      </Box>
 
-        {/* 4. Tabla: Domicilio del prestador del servicio */}
-        <EstablecimientoCard
-          id="rad_dt_domicilio_prestador"
-          title="Domicilio del prestador del servicio"
-          icon={<PlaceIcon sx={{ color: "#0ea5e9", fontSize: 22 }} />}
-          obs={getObs("rad_dt_domicilio_prestador")}
-          onOpenObs={onOpenObs}
-          noGrid={true}
-        >
-          <TableContainer>
-            <Table size="small">
-              <TableHead>
-                <TableRow sx={{ bgcolor: "#f8fafc" }}>
-                  <TableCell sx={{ fontWeight: 900, color: "#0369a1", fontSize: "0.80rem", py: 2 }}>
-                    CALLE Y NÚMERO
-                  </TableCell>
-                  <TableCell sx={{ fontWeight: 900, color: "#0369a1", fontSize: "0.80rem" }}>
-                    PISO / DEPTO
-                  </TableCell>
-                  <TableCell sx={{ fontWeight: 900, color: "#0369a1", fontSize: "0.80rem" }}>
-                    BARRIO
-                  </TableCell>
-                  <TableCell sx={{ fontWeight: 900, color: "#0369a1", fontSize: "0.80rem" }}>
-                    LOCALIDAD
-                  </TableCell>
-                  <TableCell sx={{ fontWeight: 900, color: "#0369a1", fontSize: "0.80rem" }}>
-                    DEPARTAMENTO
-                  </TableCell>
-                  <TableCell sx={{ fontWeight: 900, color: "#0369a1", fontSize: "0.80rem" }}>
-                    PROVINCIA
-                  </TableCell>
-                  <TableCell sx={{ fontWeight: 900, color: "#0369a1", fontSize: "0.80rem" }}>
-                    CÓDIGO POSTAL
-                  </TableCell>
-                  <TableCell align="center" sx={{ fontWeight: 900, color: "#0369a1", fontSize: "0.80rem", width: 60 }}>
-                    OBS.
-                  </TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                <TableRow hover sx={{ "&:hover": { bgcolor: "#f8fafc" } }}>
-                  <TableCell sx={{ py: 1.8 }}>
-                    <Typography sx={{ fontWeight: 800, color: "#1e293b", fontSize: "0.88rem" }}>
-                      {getValue("rad_prest_calle", "Av. Vélez Sarsfield")} {getValue("rad_prest_numero", "1450")}
-                    </Typography>
-                  </TableCell>
-                  <TableCell sx={{ py: 1.8 }}>
-                    <Typography sx={{ color: "#64748b", fontWeight: 600, fontSize: "0.85rem" }}>
-                      {getValue("rad_prest_piso") || "-"} / {getValue("rad_prest_depto") || "-"}
-                    </Typography>
-                  </TableCell>
-                  <TableCell sx={{ py: 1.8 }}>
-                    <Typography sx={{ fontWeight: 700, color: "#334155", fontSize: "0.85rem" }}>
-                      {getValue("rad_prest_barrio", "Nueva Córdoba")}
-                    </Typography>
-                  </TableCell>
-                  <TableCell sx={{ py: 1.8 }}>
-                    <Typography sx={{ fontWeight: 700, color: "#1e293b", fontSize: "0.85rem" }}>
-                      {getValue("rad_prest_localidad", "CORDOBA")}
-                    </Typography>
-                  </TableCell>
-                  <TableCell sx={{ py: 1.8 }}>
-                    <Typography sx={{ color: "#475569", fontWeight: 600, fontSize: "0.85rem" }}>
-                      {getValue("rad_prest_departamento", "CAPITAL")}
-                    </Typography>
-                  </TableCell>
-                  <TableCell sx={{ py: 1.8 }}>
-                    <Typography sx={{ color: "#475569", fontWeight: 600, fontSize: "0.85rem" }}>
-                      {getValue("rad_prest_provincia", "CORDOBA")}
-                    </Typography>
-                  </TableCell>
-                  <TableCell sx={{ py: 1.8 }}>
-                    <Chip
-                      label={getValue("rad_prest_cp", "X5000JJM")}
-                      size="small"
-                      sx={{ height: 22, fontSize: "11px", fontWeight: 800, bgcolor: "#f1f5f9", color: "#334155" }}
-                    />
-                  </TableCell>
-                  <TableCell align="center" sx={{ py: 1.8 }}>
-                    <Tooltip title={getObs("rad_prest_domicilio") ? "Ver / Editar observación" : "Agregar observación"}>
-                      <IconButton
-                        size="small"
-                        onClick={() =>
-                          onOpenObs &&
-                          onOpenObs(
-                            "rad_prest_domicilio",
-                            "Domicilio del Prestador",
-                            getObs("rad_prest_domicilio"),
-                            "TRAMITE"
-                          )
-                        }
-                        sx={{ color: getObs("rad_prest_domicilio") ? "#0ea5e9" : "#94a3b8" }}
-                      >
-                        {getObs("rad_prest_domicilio") ? (
-                          <ChatBubbleIcon fontSize="small" />
-                        ) : (
-                          <ChatBubbleOutlineIcon fontSize="small" />
-                        )}
+                      <IconButton size="small" sx={{ color: "#64748b" }}>
+                        {isExpanded ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
                       </IconButton>
-                    </Tooltip>
-                  </TableCell>
-                </TableRow>
-              </TableBody>
-            </Table>
-          </TableContainer>
-        </EstablecimientoCard>
+                    </Box>
+
+                    {/* Contenido desplegable: Mini card idéntica a la imagen de referencia */}
+                    <Collapse in={isExpanded}>
+                      <Box sx={{ p: { xs: 2, sm: 3 }, bgcolor: "#f8fafc" }}>
+                        <Box sx={{ width: "100%" }}>
+                          {/* Mini header "Datos personales" */}
+                          <Box
+                            onClick={() => toggleSubCard(`${resp.id}_inst_pers`)}
+                            sx={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                              alignItems: "center",
+                              mb: 1.5,
+                              px: 0.5,
+                              cursor: "pointer",
+                              userSelect: "none",
+                            }}
+                          >
+                            <Typography
+                              sx={{
+                                fontWeight: 800,
+                                color: "#0284c7",
+                                fontSize: "1.02rem",
+                              }}
+                            >
+                              Datos personales
+                            </Typography>
+                            <IconButton size="small" sx={{ color: "#0284c7", p: 0.5 }}>
+                              {collapsedSubCards[`${resp.id}_inst_pers`] ? (
+                                <KeyboardArrowDownIcon />
+                              ) : (
+                                <KeyboardArrowUpIcon />
+                              )}
+                            </IconButton>
+                          </Box>
+
+                          {/* Mini Card blanca con bordes redondeados y campos con subrayado discontinuo */}
+                          <Collapse in={!collapsedSubCards[`${resp.id}_inst_pers`]}>
+                            <Paper
+                              elevation={0}
+                              sx={{
+                                p: { xs: 2, sm: 3 },
+                                border: "1px solid #e2e8f0",
+                                borderRadius: 2.5,
+                                bgcolor: "#ffffff",
+                              }}
+                            >
+                            {/* Fila 1: Nombre/s *, Apellido/s *, CUIL * */}
+                            <Box
+                              sx={{
+                                display: "grid",
+                                gridTemplateColumns: { xs: "1fr", sm: "repeat(3, 1fr)" },
+                                gap: { xs: 2, sm: 3 },
+                                mb: 3,
+                              }}
+                            >
+                              {/* Nombre/s */}
+                              <Box>
+                                <Typography
+                                  variant="caption"
+                                  sx={{
+                                    color: "#64748b",
+                                    fontWeight: 600,
+                                    fontSize: "0.78rem",
+                                    display: "block",
+                                    mb: 0.8,
+                                  }}
+                                >
+                                  Nombre/s *
+                                </Typography>
+                                <Box sx={{ borderBottom: "1px dashed #cbd5e1", pb: 0.8 }}>
+                                  <Typography sx={{ color: "#1e293b", fontWeight: 700, fontSize: "0.92rem" }}>
+                                    {resp.nombre}
+                                  </Typography>
+                                </Box>
+                              </Box>
+
+                              {/* Apellido/s */}
+                              <Box>
+                                <Typography
+                                  variant="caption"
+                                  sx={{
+                                    color: "#64748b",
+                                    fontWeight: 600,
+                                    fontSize: "0.78rem",
+                                    display: "block",
+                                    mb: 0.8,
+                                  }}
+                                >
+                                  Apellido/s *
+                                </Typography>
+                                <Box sx={{ borderBottom: "1px dashed #cbd5e1", pb: 0.8 }}>
+                                  <Typography sx={{ color: "#1e293b", fontWeight: 700, fontSize: "0.92rem" }}>
+                                    {resp.apellido}
+                                  </Typography>
+                                </Box>
+                              </Box>
+
+                              {/* CUIL */}
+                              <Box>
+                                <Typography
+                                  variant="caption"
+                                  sx={{
+                                    color: "#64748b",
+                                    fontWeight: 600,
+                                    fontSize: "0.78rem",
+                                    display: "block",
+                                    mb: 0.8,
+                                  }}
+                                >
+                                  CUIL *
+                                </Typography>
+                                <Box sx={{ borderBottom: "1px dashed #cbd5e1", pb: 0.8 }}>
+                                  <Typography sx={{ color: "#1e293b", fontWeight: 700, fontSize: "0.92rem" }}>
+                                    {resp.cuil}
+                                  </Typography>
+                                </Box>
+                              </Box>
+                            </Box>
+
+                            {/* Fila 2: Celular *, Correo Electrónico * */}
+                            <Box
+                              sx={{
+                                display: "grid",
+                                gridTemplateColumns: { xs: "1fr", sm: "repeat(3, 1fr)" },
+                                gap: { xs: 2, sm: 3 },
+                              }}
+                            >
+                              {/* Celular */}
+                              <Box>
+                                <Typography
+                                  variant="caption"
+                                  sx={{
+                                    color: "#64748b",
+                                    fontWeight: 600,
+                                    fontSize: "0.78rem",
+                                    display: "block",
+                                    mb: 0.8,
+                                  }}
+                                >
+                                  Celular *
+                                </Typography>
+                                <Box sx={{ borderBottom: "1px dashed #cbd5e1", pb: 0.8 }}>
+                                  <Typography sx={{ color: "#1e293b", fontWeight: 700, fontSize: "0.92rem" }}>
+                                    {resp.celular}
+                                  </Typography>
+                                </Box>
+                              </Box>
+
+                              {/* Correo Electrónico */}
+                              <Box>
+                                <Typography
+                                  variant="caption"
+                                  sx={{
+                                    color: "#64748b",
+                                    fontWeight: 600,
+                                    fontSize: "0.78rem",
+                                    display: "block",
+                                    mb: 0.8,
+                                  }}
+                                >
+                                  Correo Electrónico *
+                                </Typography>
+                                <Box sx={{ borderBottom: "1px dashed #cbd5e1", pb: 0.8 }}>
+                                  <Typography sx={{ color: "#1e293b", fontWeight: 700, fontSize: "0.92rem" }}>
+                                    {resp.email}
+                                  </Typography>
+                                </Box>
+                              </Box>
+                            </Box>
+                          </Paper>
+                        </Collapse>
+                      </Box>
+                    </Box>
+                  </Collapse>
+                </Paper>
+              );
+            })}
+            </Box>
+          </EstablecimientoCard>
+        )}
+
+        {/* SUBSECCIÓN 2: RESPONSABLE DE USO */}
+        {(subTabResp === "TODOS" || subTabResp === "USO") && (
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+              <Typography variant="h6" sx={{ fontWeight: 800, color: "#0284c7", fontSize: "1.15rem" }}>
+                Responsable de Uso
+              </Typography>
+            </Box>
+
+            {/* Listado de Responsables de Uso (máximo 3) con desplegables */}
+            <EstablecimientoCard
+              id="rad_sub_resp_uso_container"
+              title="Responsable de Uso"
+              icon={<PersonIcon sx={{ color: "#0ea5e9", fontSize: 22 }} />}
+              obs={getObs("rad_sub_resp_uso_container")}
+              onOpenObs={onOpenObs}
+              noGrid={true}
+            >
+              <Box sx={{ p: 2.5, display: "flex", flexDirection: "column", gap: 2.5 }}>
+                <Typography variant="body2" sx={{ color: "#64748b", fontWeight: 600 }}>
+                  Nómina de profesionales responsables del uso de equipos declarados en el trámite (máximo 3).
+                </Typography>
+
+                {RESPONSABLES_USO.map((resp) => {
+                  const isExpanded = !!expandedRespUso[resp.id];
+                  const docObsKey = `rad_resp_uso_${resp.id}_doc_obs`;
+                  const docObs = getObs(docObsKey);
+
+                  return (
+                    <Paper
+                      key={resp.id}
+                      elevation={0}
+                      sx={{
+                        border: "1px solid #e2e8f0",
+                        borderRadius: 3,
+                        overflow: "hidden",
+                        bgcolor: "#ffffff",
+                        transition: "all 0.2s ease-in-out",
+                        "&:hover": {
+                          borderColor: "#cbd5e1",
+                          boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
+                        },
+                      }}
+                    >
+                      {/* Header del Desplegable */}
+                      <Box
+                        onClick={() => toggleRespUso(resp.id)}
+                        sx={{
+                          p: 2,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          bgcolor: isExpanded ? "#f8fafc" : "#ffffff",
+                          cursor: "pointer",
+                          borderBottom: isExpanded ? "1px solid #e2e8f0" : "none",
+                          userSelect: "none",
+                        }}
+                      >
+                        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+                          <Box
+                            sx={{
+                              width: 32,
+                              height: 32,
+                              borderRadius: "50%",
+                              bgcolor: isExpanded ? "#e0f2fe" : "#f1f5f9",
+                              color: isExpanded ? "#0369a1" : "#64748b",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              fontWeight: 900,
+                              fontSize: "0.85rem",
+                            }}
+                          >
+                            {resp.id}
+                          </Box>
+                          <Box>
+                            <Typography sx={{ fontWeight: 800, color: "#1e293b", fontSize: "0.95rem" }}>
+                              {resp.titulo}
+                            </Typography>
+                            <Typography variant="caption" sx={{ color: "#64748b", fontWeight: 600 }}>
+                              {resp.nombre} {resp.apellido} • Matrícula: {resp.matricula} • CUIL: {resp.cuil}
+                            </Typography>
+                          </Box>
+                        </Box>
+
+                        <IconButton size="small" sx={{ color: "#64748b" }}>
+                          {isExpanded ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
+                        </IconButton>
+                      </Box>
+
+                      {/* Contenido desplegable: Mini cards según la imagen */}
+                      <Collapse in={isExpanded}>
+                        <Box sx={{ p: { xs: 2, sm: 3 }, bgcolor: "#f8fafc", display: "flex", flexDirection: "column", gap: 2.5 }}>
+                          
+                          {/* 1. Datos personales responsable de uso */}
+                          <Box sx={{ width: "100%" }}>
+                            <Box
+                              onClick={() => toggleSubCard(`${resp.id}_pers`)}
+                              sx={{
+                                display: "flex",
+                                justifyContent: "space-between",
+                                alignItems: "center",
+                                mb: 1.5,
+                                px: 0.5,
+                                cursor: "pointer",
+                                userSelect: "none",
+                              }}
+                            >
+                              <Typography
+                                sx={{
+                                  fontWeight: 800,
+                                  color: "#0284c7",
+                                  fontSize: "1.02rem",
+                                }}
+                              >
+                                Datos personales responsable de uso
+                              </Typography>
+                              <IconButton size="small" sx={{ color: "#0284c7", p: 0.5 }}>
+                                {collapsedSubCards[`${resp.id}_pers`] ? (
+                                  <KeyboardArrowDownIcon />
+                                ) : (
+                                  <KeyboardArrowUpIcon />
+                                )}
+                              </IconButton>
+                            </Box>
+
+                            <Collapse in={!collapsedSubCards[`${resp.id}_pers`]}>
+                              <Paper
+                                elevation={0}
+                                sx={{
+                                  p: { xs: 2, sm: 3 },
+                                  border: "1px solid #e2e8f0",
+                                  borderRadius: 2.5,
+                                  bgcolor: "#ffffff",
+                                }}
+                              >
+                                <Box
+                                  sx={{
+                                    display: "grid",
+                                    gridTemplateColumns: { xs: "1fr", sm: "repeat(3, 1fr)" },
+                                    gap: { xs: 2, sm: 3 },
+                                  }}
+                                >
+                                  {/* Nombre/a */}
+                                  <Box>
+                                    <Typography
+                                      variant="caption"
+                                      sx={{
+                                        color: "#64748b",
+                                        fontWeight: 600,
+                                        fontSize: "0.78rem",
+                                        display: "block",
+                                        mb: 0.8,
+                                      }}
+                                    >
+                                      Nombre/a
+                                    </Typography>
+                                    <Box sx={{ borderBottom: "1px dashed #cbd5e1", pb: 0.8 }}>
+                                      <Typography sx={{ color: "#1e293b", fontWeight: 700, fontSize: "0.92rem" }}>
+                                        {resp.nombre}
+                                      </Typography>
+                                    </Box>
+                                  </Box>
+
+                                  {/* Apellido/a */}
+                                  <Box>
+                                    <Typography
+                                      variant="caption"
+                                      sx={{
+                                        color: "#64748b",
+                                        fontWeight: 600,
+                                        fontSize: "0.78rem",
+                                        display: "block",
+                                        mb: 0.8,
+                                      }}
+                                    >
+                                      Apellido/a
+                                    </Typography>
+                                    <Box sx={{ borderBottom: "1px dashed #cbd5e1", pb: 0.8 }}>
+                                      <Typography sx={{ color: "#1e293b", fontWeight: 700, fontSize: "0.92rem" }}>
+                                        {resp.apellido}
+                                      </Typography>
+                                    </Box>
+                                  </Box>
+
+                                  {/* CUIL */}
+                                  <Box>
+                                    <Typography
+                                      variant="caption"
+                                      sx={{
+                                        color: "#64748b",
+                                        fontWeight: 600,
+                                        fontSize: "0.78rem",
+                                        display: "block",
+                                        mb: 0.8,
+                                      }}
+                                    >
+                                      CUIL
+                                    </Typography>
+                                    <Box sx={{ borderBottom: "1px dashed #cbd5e1", pb: 0.8 }}>
+                                      <Typography sx={{ color: "#1e293b", fontWeight: 700, fontSize: "0.92rem" }}>
+                                        {resp.cuil}
+                                      </Typography>
+                                    </Box>
+                                  </Box>
+                                </Box>
+                              </Paper>
+                            </Collapse>
+                          </Box>
+
+                          {/* 2. Datos académicos responsable de uso */}
+                          <Box sx={{ width: "100%" }}>
+                            <Box
+                              onClick={() => toggleSubCard(`${resp.id}_acad`)}
+                              sx={{
+                                display: "flex",
+                                justifyContent: "space-between",
+                                alignItems: "center",
+                                mb: 1.5,
+                                px: 0.5,
+                                cursor: "pointer",
+                                userSelect: "none",
+                              }}
+                            >
+                              <Typography
+                                sx={{
+                                  fontWeight: 800,
+                                  color: "#0284c7",
+                                  fontSize: "1.02rem",
+                                }}
+                              >
+                                Datos académicos responsable de uso
+                              </Typography>
+                              <IconButton size="small" sx={{ color: "#0284c7", p: 0.5 }}>
+                                {collapsedSubCards[`${resp.id}_acad`] ? (
+                                  <KeyboardArrowDownIcon />
+                                ) : (
+                                  <KeyboardArrowUpIcon />
+                                )}
+                              </IconButton>
+                            </Box>
+
+                            <Collapse in={!collapsedSubCards[`${resp.id}_acad`]}>
+                              <Paper
+                                elevation={0}
+                                sx={{
+                                  p: { xs: 2, sm: 3 },
+                                  border: "1px solid #e2e8f0",
+                                  borderRadius: 2.5,
+                                  bgcolor: "#ffffff",
+                                }}
+                              >
+                                {/* Fila 1: Nº de matrícula *, Nº autorización individual * */}
+                                <Box
+                                  sx={{
+                                    display: "grid",
+                                    gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)" },
+                                    gap: { xs: 2, sm: 3 },
+                                    mb: 3,
+                                  }}
+                                >
+                                  <Box>
+                                    <Typography
+                                      variant="caption"
+                                      sx={{
+                                        color: "#64748b",
+                                        fontWeight: 600,
+                                        fontSize: "0.78rem",
+                                        display: "block",
+                                        mb: 0.8,
+                                      }}
+                                    >
+                                      Nº de matrícula *
+                                    </Typography>
+                                    <Box sx={{ borderBottom: "1px solid #64748b", pb: 0.8 }}>
+                                      <Typography sx={{ color: "#1e293b", fontWeight: 700, fontSize: "0.92rem" }}>
+                                        {resp.matricula}
+                                      </Typography>
+                                    </Box>
+                                  </Box>
+
+                                  <Box>
+                                    <Typography
+                                      variant="caption"
+                                      sx={{
+                                        color: "#64748b",
+                                        fontWeight: 600,
+                                        fontSize: "0.78rem",
+                                        display: "block",
+                                        mb: 0.8,
+                                      }}
+                                    >
+                                      Nº autorización individual *
+                                    </Typography>
+                                    <Box sx={{ borderBottom: "1px solid #64748b", pb: 0.8 }}>
+                                      <Typography sx={{ color: "#1e293b", fontWeight: 700, fontSize: "0.92rem" }}>
+                                        {resp.autorizacion}
+                                      </Typography>
+                                    </Box>
+                                  </Box>
+                                </Box>
+
+                                {/* Fila 2: Uso de equipos para * */}
+                                <Box>
+                                  <Typography
+                                    variant="caption"
+                                    sx={{
+                                      color: "#64748b",
+                                      fontWeight: 600,
+                                      fontSize: "0.78rem",
+                                      display: "block",
+                                      mb: 0.8,
+                                    }}
+                                  >
+                                    Uso de equipos para *
+                                  </Typography>
+                                  <Box
+                                    sx={{
+                                      borderBottom: "1px solid #64748b",
+                                      pb: 0.8,
+                                      display: "flex",
+                                      justifyContent: "space-between",
+                                      alignItems: "center",
+                                    }}
+                                  >
+                                    <Typography sx={{ color: "#1e293b", fontWeight: 700, fontSize: "0.92rem" }}>
+                                      {resp.usoEquipos}
+                                    </Typography>
+                                    <ArrowDropDownIcon sx={{ color: "#64748b" }} />
+                                  </Box>
+                                </Box>
+                              </Paper>
+                            </Collapse>
+                          </Box>
+
+                          {/* 3. Autorización Individual (Documento PDF) */}
+                          <Box sx={{ width: "100%" }}>
+                            <Box sx={{ mb: 1.5, px: 0.5 }}>
+                              <Typography
+                                sx={{
+                                  fontWeight: 800,
+                                  color: "#1e293b",
+                                  fontSize: "1.02rem",
+                                }}
+                              >
+                                Autorización Individual
+                              </Typography>
+                            </Box>
+
+                            <Paper
+                              elevation={0}
+                              sx={{
+                                p: 2,
+                                border: "1px solid #e2e8f0",
+                                borderRadius: 2.5,
+                                bgcolor: "#ffffff",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "space-between",
+                                flexWrap: "wrap",
+                                gap: 2,
+                              }}
+                            >
+                              <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+                                <DescriptionIcon sx={{ color: "#0ea5e9", fontSize: 28 }} />
+                                <Typography sx={{ fontWeight: 800, color: "#1e293b", fontSize: "0.90rem" }}>
+                                  Autorización Individual
+                                </Typography>
+                              </Box>
+
+                              <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+                                <Tooltip title="Visualizar Autorización Individual (PDF)">
+                                  <IconButton
+                                    size="small"
+                                    onClick={() => onOpenViewer && onOpenViewer(resp.pdfDoc)}
+                                    sx={{ color: "#0284c7", bgcolor: "#e0f2fe", "&:hover": { bgcolor: "#bae6fd" } }}
+                                  >
+                                    <VisibilityIcon fontSize="small" />
+                                  </IconButton>
+                                </Tooltip>
+
+                                <Tooltip title={docObs ? "Ver / Editar observación" : "Agregar observación"}>
+                                  <IconButton
+                                    size="small"
+                                    onClick={() =>
+                                      onOpenObs &&
+                                      onOpenObs(
+                                        docObsKey,
+                                        `Autorización Individual - ${resp.nombre} ${resp.apellido}`,
+                                        docObs,
+                                        "TRAMITE"
+                                      )
+                                    }
+                                    sx={{ color: docObs ? "#0ea5e9" : "#94a3b8" }}
+                                  >
+                                    {docObs ? <ChatBubbleIcon fontSize="small" /> : <ChatBubbleOutlineIcon fontSize="small" />}
+                                  </IconButton>
+                                </Tooltip>
+                              </Box>
+                            </Paper>
+                          </Box>
+
+                        </Box>
+                      </Collapse>
+                    </Paper>
+                  );
+                })}
+              </Box>
+            </EstablecimientoCard>
+          </Box>
+        )}
       </Box>
     );
   }
