@@ -32,10 +32,13 @@ import {
 import CloseIcon from "@mui/icons-material/Close";
 import MedicalServicesIcon from "@mui/icons-material/MedicalServices";
 import VisibilityIcon from "@mui/icons-material/Visibility";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import CancelIcon from "@mui/icons-material/Cancel";
 import ChatBubbleIcon from "@mui/icons-material/ChatBubble";
 import ChatBubbleOutlineIcon from "@mui/icons-material/ChatBubbleOutlined";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import PersonIcon from "@mui/icons-material/Person";
+import PeopleIcon from "@mui/icons-material/People";
 import SchoolIcon from "@mui/icons-material/School";
 import PlaceIcon from "@mui/icons-material/Place";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
@@ -840,179 +843,132 @@ const DatosTramiteRadiofisica = ({
   // ────────────────────────────────────────────────────────────
   // 2. STEP: PERSONAL
   // ────────────────────────────────────────────────────────────
-  if (category === "PERSONAL" || category === "RECURSOS HUMANOS") {
+  if (category === "PERSONAL" || category === "PLANTEL" || category === "RECURSOS HUMANOS") {
     const staffList = [
       {
         id: "staff-1",
         nombre: "Lic. Martín S. Benítez",
-        funcion: "Responsable de Uso / Licenciado en Bioimágenes",
+        titulo: "Lic. en Producción de Bioimágenes",
+        especialidad: "Radiofísica y Protección Radiológica",
         dni: "28.450.912",
-        cuil: "20-28450912-3",
         matricula: "MP-84920",
-        pdfName: "matricula_benitez.pdf",
+        dosimetro: "SI",
       },
       {
         id: "staff-2",
         nombre: "Tec. Andrea Romero",
-        funcion: "Técnica Radióloga Operadora de Equipo",
+        titulo: "Técnica Radióloga",
+        especialidad: "Operadora de Equipo de Rayos X",
         dni: "34.120.450",
-        cuil: "27-34120450-4",
         matricula: "MP-12480",
-        pdfName: "matricula_romero.pdf",
+        dosimetro: "SI",
       },
       {
         id: "staff-3",
         nombre: "Dr. Gustavo F. Morales",
-        funcion: "Médico Especialista en Radiodiagnóstico",
+        titulo: "Médico Cirujano",
+        especialidad: "Especialista en Diagnóstico por Imágenes",
         dni: "22.981.340",
-        cuil: "20-22981340-8",
         matricula: "ME-7412",
-        pdfName: "matricula_morales.pdf",
+        dosimetro: "SI",
       },
     ];
 
     return (
       <Box sx={{ display: "flex", flexDirection: "column", gap: 2.5, mb: 4 }}>
-        <Alert
-          severity="warning"
-          icon={<InfoOutlinedIcon fontSize="medium" />}
-          sx={{
-            borderRadius: 3,
-            bgcolor: "#fffbeb",
-            border: "1px solid #fde68a",
-            color: "#92400e",
-            "& .MuiAlert-icon": { color: "#b45309" },
-          }}
+        <EstablecimientoCard
+          id="rad_sec_plantel"
+          title="Plantel"
+          icon={<PeopleIcon sx={{ color: "#0ea5e9", fontSize: 22 }} />}
+          obs={getObs("rad_sec_plantel") || getObs("rad_personal_general")}
+          onOpenObs={onOpenObs}
+          noGrid={true}
         >
-          <AlertTitle sx={{ fontWeight: 800, fontSize: "0.95rem", mb: 0.5 }}>
-            Verificación de Personal Declarado
-          </AlertTitle>
-          Carga nominal de RRHH (Datos personales) y constancia de matrícula activa del RRHH (PDF).
-          <Typography variant="caption" sx={{ display: "block", mt: 0.5, fontWeight: 700, color: "#b45309" }}>
-            * Consultar si lo muestra caso de ser observado o siempre.
-          </Typography>
-        </Alert>
-
-        <TableContainer
-          component={Paper}
-          elevation={0}
-          sx={{ border: "1px solid #e2e8f0", borderRadius: 4, overflow: "hidden" }}
-        >
-          <Table size="small">
-            <TableHead>
-              <TableRow sx={{ bgcolor: "#f8fafc" }}>
-                <TableCell sx={{ fontWeight: 900, color: "#0369a1", fontSize: "0.80rem", py: 2 }}>
-                  CARGA NOMINAL DE RRHH (DATOS PERSONALES)
-                </TableCell>
-                <TableCell sx={{ fontWeight: 900, color: "#0369a1", fontSize: "0.80rem" }}>
-                  FUNCIÓN / ROL
-                </TableCell>
-                <TableCell sx={{ fontWeight: 900, color: "#0369a1", fontSize: "0.80rem" }}>
-                  DNI / MATRÍCULA
-                </TableCell>
-                <TableCell align="center" sx={{ fontWeight: 900, color: "#0369a1", fontSize: "0.80rem" }}>
-                  CONSTANCIA DE MATRÍCULA ACTIVA (PDF)
-                </TableCell>
-                <TableCell align="center" sx={{ fontWeight: 900, color: "#0369a1", fontSize: "0.80rem", width: 140 }}>
-                  ESTADO
-                </TableCell>
-                <TableCell align="center" sx={{ fontWeight: 900, color: "#0369a1", fontSize: "0.80rem", width: 70 }}>
-                  OBS.
-                </TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {staffList.map((person) => {
-                const fieldId = `rad_personal_${person.id}`;
-                const statusVal = getValue(fieldId);
-                const obsVal = getObs(fieldId);
-
-                return (
-                  <TableRow key={person.id} hover sx={{ "&:hover": { bgcolor: "#f8fafc" } }}>
-                    <TableCell sx={{ py: 1.8 }}>
-                      <Typography sx={{ fontWeight: 800, color: "#1e293b", fontSize: "0.88rem" }}>
-                        {person.nombre}
-                      </Typography>
-                      <Typography variant="caption" sx={{ color: "#64748b" }}>
-                        CUIL: {person.cuil}
-                      </Typography>
-                    </TableCell>
-                    <TableCell sx={{ color: "#334155", fontWeight: 600, fontSize: "0.85rem" }}>
-                      {person.funcion}
-                    </TableCell>
-                    <TableCell>
-                      <Typography sx={{ fontWeight: 700, color: "#1e293b", fontSize: "0.85rem" }}>
-                        DNI: {person.dni}
-                      </Typography>
-                      <Chip
-                        label={person.matricula}
-                        size="small"
-                        sx={{ height: 20, fontSize: "11px", fontWeight: 800, bgcolor: "#f1f5f9", color: "#334155" }}
-                      />
-                    </TableCell>
-                    <TableCell align="center">
-                      <Tooltip title={`Ver Constancia de Matrícula de ${person.nombre}`}>
-                        <IconButton
+          <TableContainer>
+            <Table size="small">
+              <TableHead>
+                <TableRow sx={{ bgcolor: "#f8fafc" }}>
+                  <TableCell sx={{ fontWeight: 900, color: "#0369a1", fontSize: "0.80rem", py: 2 }}>
+                    DATOS PERSONALES
+                  </TableCell>
+                  <TableCell sx={{ fontWeight: 900, color: "#0369a1", fontSize: "0.80rem" }}>
+                    TITULO/ESPECIALIDAD
+                  </TableCell>
+                  <TableCell sx={{ fontWeight: 900, color: "#0369a1", fontSize: "0.80rem" }}>
+                    DNI/MATRICULA
+                  </TableCell>
+                  <TableCell align="center" sx={{ fontWeight: 900, color: "#0369a1", fontSize: "0.80rem", width: 140 }}>
+                    DOSIMETRO
+                  </TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {staffList.map((person) => {
+                  return (
+                    <TableRow key={person.id} hover sx={{ "&:hover": { bgcolor: "#f8fafc" } }}>
+                      <TableCell sx={{ py: 1.8 }}>
+                        <Typography sx={{ fontWeight: 800, color: "#1e293b", fontSize: "0.88rem" }}>
+                          {person.nombre}
+                        </Typography>
+                      </TableCell>
+                      <TableCell sx={{ py: 1.8 }}>
+                        <Typography sx={{ fontWeight: 800, color: "#1e293b", fontSize: "0.85rem" }}>
+                          {person.titulo}
+                        </Typography>
+                        <Typography variant="caption" sx={{ color: "#64748b", fontWeight: 600, display: "block" }}>
+                          {person.especialidad}
+                        </Typography>
+                      </TableCell>
+                      <TableCell sx={{ py: 1.8 }}>
+                        <Typography sx={{ fontWeight: 700, color: "#1e293b", fontSize: "0.85rem" }}>
+                          DNI: {person.dni}
+                        </Typography>
+                        <Chip
+                          label={person.matricula}
                           size="small"
-                          onClick={() => onOpenViewer && onOpenViewer(person.pdfName)}
-                          sx={{ color: "#0284c7", bgcolor: "#e0f2fe", "&:hover": { bgcolor: "#bae6fd" } }}
-                        >
-                          <VisibilityIcon fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
-                    </TableCell>
-                    <TableCell align="center">
-                      <ToggleButtonGroup
-                        value={statusVal}
-                        exclusive
-                        onChange={(e, val) => val !== null && handleToggle(fieldId, val)}
-                        size="small"
-                        sx={{ height: 32 }}
-                      >
-                        <ToggleButton
-                          value="conforme"
-                          sx={{
-                            px: 1.2,
-                            fontSize: "0.72rem",
-                            fontWeight: 800,
-                            "&.Mui-selected": { bgcolor: "#dcfce7", color: "#166534" },
-                          }}
-                        >
-                          Conforme
-                        </ToggleButton>
-                        <ToggleButton
-                          value="observado"
-                          sx={{
-                            px: 1.2,
-                            fontSize: "0.72rem",
-                            fontWeight: 800,
-                            "&.Mui-selected": { bgcolor: "#fee2e2", color: "#991b1b" },
-                          }}
-                        >
-                          Observado
-                        </ToggleButton>
-                      </ToggleButtonGroup>
-                    </TableCell>
-                    <TableCell align="center">
-                      <Tooltip title={obsVal ? "Ver / Editar observación" : "Agregar observación"}>
-                        <IconButton
-                          size="small"
-                          onClick={() =>
-                            onOpenObs &&
-                            onOpenObs(fieldId, `Personal: ${person.nombre}`, obsVal, "TRAMITE")
-                          }
-                          sx={{ color: obsVal ? "#0ea5e9" : "#94a3b8" }}
-                        >
-                          {obsVal ? <ChatBubbleIcon fontSize="small" /> : <ChatBubbleOutlineIcon fontSize="small" />}
-                        </IconButton>
-                      </Tooltip>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </TableContainer>
+                          sx={{ height: 20, fontSize: "11px", fontWeight: 800, bgcolor: "#f1f5f9", color: "#334155", mt: 0.3 }}
+                        />
+                      </TableCell>
+                      <TableCell align="center" sx={{ py: 1.8 }}>
+                        {person.dosimetro === "SI" ? (
+                          <Chip
+                            icon={<CheckCircleIcon sx={{ fontSize: "16px !important", color: "#15803d !important" }} />}
+                            label="SÍ"
+                            size="small"
+                            sx={{
+                              bgcolor: "#dcfce7",
+                              color: "#166534",
+                              fontWeight: 800,
+                              fontSize: "12px",
+                              border: "1px solid #bbf7d0",
+                              px: 0.8,
+                              py: 0.2,
+                            }}
+                          />
+                        ) : (
+                          <Chip
+                            icon={<CancelIcon sx={{ fontSize: "16px !important", color: "#b91c1c !important" }} />}
+                            label="NO"
+                            size="small"
+                            sx={{
+                              bgcolor: "#fee2e2",
+                              color: "#991b1b",
+                              fontWeight: 800,
+                              fontSize: "12px",
+                              border: "1px solid #fecaca",
+                              px: 0.8,
+                              py: 0.2,
+                            }}
+                          />
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </EstablecimientoCard>
       </Box>
     );
   }
@@ -1531,9 +1487,6 @@ const DatosTramiteRadiofisica = ({
                 <TableCell align="center" sx={{ fontWeight: 900, color: "#0369a1", fontSize: "0.80rem" }}>
                   VISUALIZAR DOCUMENTO
                 </TableCell>
-                <TableCell align="center" sx={{ fontWeight: 900, color: "#0369a1", fontSize: "0.80rem", width: 140 }}>
-                  ESTADO
-                </TableCell>
                 <TableCell align="center" sx={{ fontWeight: 900, color: "#0369a1", fontSize: "0.80rem", width: 70 }}>
                   OBS.
                 </TableCell>
@@ -1542,7 +1495,6 @@ const DatosTramiteRadiofisica = ({
             <TableBody>
               {radioDocs.map((doc) => {
                 const fieldId = doc.fieldId || `rad_doc_${doc.id}`;
-                const statusVal = getValue(fieldId);
                 const obsVal = getObs(fieldId);
 
                 return (
@@ -1570,38 +1522,6 @@ const DatosTramiteRadiofisica = ({
                           <VisibilityIcon fontSize="small" />
                         </IconButton>
                       </Tooltip>
-                    </TableCell>
-                    <TableCell align="center">
-                      <ToggleButtonGroup
-                        value={statusVal}
-                        exclusive
-                        onChange={(e, val) => val !== null && handleToggle(fieldId, val)}
-                        size="small"
-                        sx={{ height: 32 }}
-                      >
-                        <ToggleButton
-                          value="conforme"
-                          sx={{
-                            px: 1.2,
-                            fontSize: "0.72rem",
-                            fontWeight: 800,
-                            "&.Mui-selected": { bgcolor: "#dcfce7", color: "#166534" },
-                          }}
-                        >
-                          Conforme
-                        </ToggleButton>
-                        <ToggleButton
-                          value="observado"
-                          sx={{
-                            px: 1.2,
-                            fontSize: "0.72rem",
-                            fontWeight: 800,
-                            "&.Mui-selected": { bgcolor: "#fee2e2", color: "#991b1b" },
-                          }}
-                        >
-                          Observado
-                        </ToggleButton>
-                      </ToggleButtonGroup>
                     </TableCell>
                     <TableCell align="center">
                       <Tooltip title={obsVal ? "Ver / Editar observación" : "Agregar observación"}>

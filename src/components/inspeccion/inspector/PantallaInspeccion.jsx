@@ -753,7 +753,7 @@ const PantallaInspeccion = ({
     },
     {
       id: "PERSONAL",
-      label: "PERSONAL",
+      label: "PLANTEL",
       icon: <PeopleIcon sx={{ fontSize: 28 }} />,
     },
     {
