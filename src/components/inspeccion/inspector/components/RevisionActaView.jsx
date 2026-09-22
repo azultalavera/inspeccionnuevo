@@ -439,7 +439,7 @@ const RevisionActaView = ({
           obs: "Falta un cardiodesfibrilador operativo en consultorios y dos respiradores declarados se encontraban fuera de servicio.",
           respuesta: "Se incorporó DEA nuevo en sector de consultorios y se adjuntan certificados de calibración y service oficial de respiradores.",
           evidence: "https://images.unsplash.com/photo-1603398938378-e54eab446dde?w=800",
-          evaluador: "Ing. Marcelo Rossi (Biomédica Rugepresa)",
+          evaluador: "Ing. Marcelo Rossi (Biomédica)",
           estado: "VALIDADO",
           fecha: "Hoy, 09:20 hs",
         },
@@ -451,7 +451,7 @@ const RevisionActaView = ({
       apartado: "Paso 8: Documentación, Residuos y Bioquímica",
       area: "Auditoría Ambiental y Bioquímica",
       rolResponsable: "AUDITOR",
-      agenteNombre: "Auditoría Central Rugepresa",
+      agenteNombre: "Auditoría Central",
       estadoGeneral: "VALIDADO",
       totalItems: 2,
       validados: 2,
@@ -463,7 +463,7 @@ const RevisionActaView = ({
           obs: "Contrato de servicio de recolección de residuos patógenos vencido o sin comprobante de última recolección.",
           respuesta: "Se adjunta prórroga de contrato con empresa recolectora habilitada y último manifiesto ambiental de retiro de residuos.",
           evidence: "https://images.unsplash.com/photo-1584515979956-d9f6e5d09982?w=800",
-          evaluador: "Auditoría Ambiental (Rugepresa)",
+          evaluador: "Auditoría Ambiental",
           estado: "VALIDADO",
           fecha: "Hoy, 11:05 hs",
         },
@@ -474,7 +474,7 @@ const RevisionActaView = ({
           obs: "Falta constancia de habilitación ante COBICO y protocolo de control de calidad analítico interlaboratorio.",
           respuesta: "Se adjunta acreditación ante COBICO y reportes del programa de evaluación externa de calidad.",
           evidence: "https://images.unsplash.com/photo-1532938911079-1b06ac7ceec7?w=800",
-          evaluador: "Auditoría Bioquímica (Rugepresa)",
+          evaluador: "Auditoría Bioquímica",
           estado: "VALIDADO",
           fecha: "Hoy, 11:30 hs",
         },
@@ -923,7 +923,7 @@ const RevisionActaView = ({
                         <Chip label="5/5 VALIDADO" size="small" sx={{ bgcolor: "#dcfce7", color: "#15803d", fontWeight: 850, fontSize: "0.68rem", height: 20 }} />
                       </Box>
                       <Typography variant="caption" sx={{ color: "#64748b", display: "block", mb: 1.2 }}>
-                        Responsable: <b>Auditoría Técnica Rugepresa</b> · Quirófanos, RRHH, equipamiento biomédico y residuos.
+                        Responsable: <b>Auditoría Técnica</b> · Quirófanos, RRHH, equipamiento biomédico y residuos.
                       </Typography>
                       <LinearProgress variant="determinate" value={100} sx={{ height: 6, borderRadius: 3, bgcolor: "#e2e8f0", "& .MuiLinearProgress-bar": { bgcolor: "#16a34a" } }} />
                     </Paper>

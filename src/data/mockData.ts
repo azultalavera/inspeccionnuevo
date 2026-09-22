@@ -59,6 +59,16 @@ export interface Tramite {
   alertaRutina?: 'ALERTA_T30' | 'ALERTA_T15' | 'CRITICO_VENCIDO' | 'AL_DIA';
   solapamientoTramiteId?: string;
   solapamientoTramiteNro?: string;
+  tramiteActivoEnCurso?: {
+    id: string;
+    nroTramite: string;
+    nroExpediente?: string;
+    tipo: 'RENOVACION' | 'MODIFICACION' | 'HABILITACION' | 'ADECUACION';
+    estado: string;
+    estadoSimultaneo?: 'INICIADO' | 'ENVIADO';
+    fechaEstado?: string;
+    descripcion?: string;
+  };
   emplazamiento?: EmplazamientoRutina;
   actaPadreId?: string;
   /** Fecha límite asignada por el coordinador para la re-inspección (DD/MM/AAAA) */
@@ -195,6 +205,80 @@ export interface DocumentoAdjunto {
 // ── TRÁMITES MOCK ──────────────────────────────────────────────
 
 export const TRAMITES: Tramite[] = [
+  {
+    id: 'TRM-RAD-001',
+    nroTramite: '2026-HAB-009101',
+    nroExpediente: 'EX-2026-0091010-APN-MS#CBA',
+    denominacion: 'HABILITACION - RADIOFÍSICA',
+    cuit: '30-71829340-5',
+    tipologia: 'RADIOFÍSICA',
+    domicilio: 'Av. Vélez Sarsfield 1450',
+    localidad: 'Córdoba',
+    departamento: 'Capital',
+    estado: 'ACEPTADO_DOC_AUD',
+    fechaIngreso: '2026-09-15',
+    fechaUltimaInspeccion: '15/09/2026',
+    inspectorAsignado: 'Valeria Romero',
+    agenteAsignado: 'Valeria Romero',
+    inspectoresAsignados: ['Valeria Romero'],
+    tipoInspeccion: 'HABILITACION',
+    formatoInspeccion: 'PRESENCIAL',
+    tipoTramite: 'HABILITACION',
+    nroActa: 1,
+  },
+  {
+    id: 'TRM-1420',
+    nroTramite: '1420',
+    nroExpediente: '0425-014523/2026',
+    denominacion: 'Sanatorio Allende Cerro',
+    cuit: '30-54896321-8',
+    tipologia: 'CLÍNICA, SANATORIO U HOSPITAL PRIVADO',
+    domicilio: 'Av. Rafael Núñez 5200',
+    localidad: 'Córdoba',
+    departamento: 'Capital',
+    estado: 'OBSERVADO_INSP',
+    fechaIngreso: '2025-08-11',
+    fechaUltimaInspeccion: '11/08/2025',
+    inspectorAsignado: 'Valeria Romero',
+    agenteAsignado: 'Valeria Romero',
+    inspectoresAsignados: ['Valeria Romero'],
+    tipoInspeccion: 'HABILITACION',
+    formatoInspeccion: 'PRESENCIAL',
+    tipoTramite: 'HABILITACION',
+    nroActa: 108,
+    tramiteActivoEnCurso: {
+      id: 'TRM-2026-08812',
+      nroTramite: '2026-08812',
+      nroExpediente: '0425-014523/2026',
+      tipo: 'RENOVACION',
+      estado: 'ENVIADO',
+      estadoSimultaneo: 'ENVIADO',
+      fechaEstado: '10/08/2026',
+      descripcion: 'Renovación de Habilitación en proceso de evaluación técnica',
+    },
+    solapamientoTramiteId: 'TRM-2026-08812',
+    solapamientoTramiteNro: '2026-08812',
+  },
+  {
+    id: 'TRM-1429',
+    nroTramite: '1429',
+    nroExpediente: '0425-015880/2026',
+    denominacion: 'Centro de Cirugía Ambulatoria Nueva Córdoba',
+    cuit: '30-71456321-0',
+    tipologia: 'CENTRO DE CIRUGÍA AMBULATORIA',
+    domicilio: 'Estrada 350',
+    localidad: 'Córdoba',
+    departamento: 'Capital',
+    estado: 'ACEPTADO_DOC_AUD',
+    fechaIngreso: '2025-07-22',
+    fechaUltimaInspeccion: '22/07/2025',
+    inspectorAsignado: 'Sin asignar',
+    agenteAsignado: 'Sin asignar',
+    inspectoresAsignados: [],
+    tipoInspeccion: 'HABILITACION',
+    formatoInspeccion: 'PRESENCIAL',
+    tipoTramite: 'HABILITACION',
+  },
   {
     id: 'TRM-HAB-001',
     nroTramite: '2026-HAB-000101',
@@ -895,6 +979,17 @@ export const TRAMITES: Tramite[] = [
 
 export const ESTABLECIMIENTOS: Establecimiento[] = [
   {
+    id: 'EST-RAD-001',
+    nroExpediente: 'EX-2026-0091010-APN-MS#CBA',
+    denominacion: 'HABILITACION - RADIOFÍSICA',
+    cuit: '30-71829340-5',
+    fechaCreacion: '15/09/2026',
+    departamento: 'Capital',
+    localidad: 'Córdoba',
+    tipologia: 'RADIOFÍSICA',
+    estado: 'En Proceso',
+  },
+  {
     id: 'EST001',
     nroExpediente: '0425-010203/2023',
     denominacion: 'Sanatorio Allende Cerro',
@@ -1108,7 +1203,7 @@ export const USUARIOS: Usuario[] = [
     id: 'USR001',
     nombre: 'Valeria',
     apellido: 'Romero',
-    cuil: '27-33445566-7',
+    cuil: '27-31456789-4',
     rol: 'INSPECTOR',
     avatar: 'VR',
   },
