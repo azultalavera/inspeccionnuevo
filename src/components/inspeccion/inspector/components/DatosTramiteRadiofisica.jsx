@@ -613,9 +613,14 @@ const DatosTramiteRadiofisica = ({
   }
 
   // ────────────────────────────────────────────────────────────
-  // STEP: DIRECTOR TÉCNICO
+  // STEP: RESPONSABLE DE USO (ex DIRECTOR TÉCNICO)
   // ────────────────────────────────────────────────────────────
-  if (category === "DIRECTOR_TECNICO" || category === "DIRECTOR TECNICO") {
+  if (
+    category === "DIRECTOR_TECNICO" ||
+    category === "DIRECTOR TECNICO" ||
+    category === "RESPONSABLE_DE_USO" ||
+    category === "RESPONSABLE DE USO"
+  ) {
     const dtDocFieldId = "rad_est_dt_autorizacion_pdf";
     const dtDocStatus = getValue(dtDocFieldId);
     const dtDocObs = getObs(dtDocFieldId);
@@ -624,309 +629,437 @@ const DatosTramiteRadiofisica = ({
       <Box sx={{ display: "flex", flexDirection: "column", gap: 3, mb: 4 }}>
         <Box sx={{ mb: 0.5 }}>
           <Typography variant="h6" sx={{ fontWeight: 800, color: "#0284c7", fontSize: "1.15rem" }}>
-            Director Técnico
+            Responsable de Uso
           </Typography>
         </Box>
 
-        {/* Sub-tarjeta 1: Datos generales del prestador del servicio */}
+        {/* 1. Tabla: Datos del Responsable de Uso */}
+        <EstablecimientoCard
+          id="rad_dt_responsable_uso"
+          title="Responsable de Uso"
+          icon={<PersonIcon sx={{ color: "#0ea5e9", fontSize: 22 }} />}
+          obs={getObs("rad_dt_responsable_uso")}
+          onOpenObs={onOpenObs}
+          noGrid={true}
+        >
+          <TableContainer>
+            <Table size="small">
+              <TableHead>
+                <TableRow sx={{ bgcolor: "#f8fafc" }}>
+                  <TableCell sx={{ fontWeight: 900, color: "#0369a1", fontSize: "0.80rem", py: 2 }}>
+                    DATOS PERSONALES Y CONTACTO
+                  </TableCell>
+                  <TableCell sx={{ fontWeight: 900, color: "#0369a1", fontSize: "0.80rem" }}>
+                    DNI / CUIL
+                  </TableCell>
+                  <TableCell sx={{ fontWeight: 900, color: "#0369a1", fontSize: "0.80rem" }}>
+                    TÍTULO HABILITANTE
+                  </TableCell>
+                  <TableCell sx={{ fontWeight: 900, color: "#0369a1", fontSize: "0.80rem" }}>
+                    MATRÍCULA
+                  </TableCell>
+                  <TableCell sx={{ fontWeight: 900, color: "#0369a1", fontSize: "0.80rem" }}>
+                    ESPECIALIDAD / ROL
+                  </TableCell>
+                  <TableCell align="center" sx={{ fontWeight: 900, color: "#0369a1", fontSize: "0.80rem", width: 60 }}>
+                    OBS.
+                  </TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                <TableRow hover sx={{ "&:hover": { bgcolor: "#f8fafc" } }}>
+                  <TableCell sx={{ py: 1.8 }}>
+                    <Typography sx={{ fontWeight: 800, color: "#1e293b", fontSize: "0.88rem" }}>
+                      Lic. Martín S. Benítez
+                    </Typography>
+                    <Typography variant="caption" sx={{ color: "#64748b", fontWeight: 600, display: "block", mt: 0.3 }}>
+                      mbenitez@radiofisica.org.ar | Tel: (0351) 555-1234
+                    </Typography>
+                  </TableCell>
+                  <TableCell sx={{ py: 1.8 }}>
+                    <Typography sx={{ fontWeight: 700, color: "#1e293b", fontSize: "0.85rem" }}>
+                      DNI: 28.450.912
+                    </Typography>
+                    <Typography variant="caption" sx={{ color: "#64748b", fontWeight: 600, display: "block" }}>
+                      CUIL: 20-28450912-3
+                    </Typography>
+                  </TableCell>
+                  <TableCell sx={{ py: 1.8 }}>
+                    <Typography sx={{ fontWeight: 800, color: "#1e293b", fontSize: "0.85rem" }}>
+                      Licenciado en Producción de Bioimágenes
+                    </Typography>
+                  </TableCell>
+                  <TableCell sx={{ py: 1.8 }}>
+                    <Chip
+                      label="MP-84920"
+                      size="small"
+                      sx={{ height: 22, fontSize: "11px", fontWeight: 800, bgcolor: "#f1f5f9", color: "#334155" }}
+                    />
+                  </TableCell>
+                  <TableCell sx={{ py: 1.8 }}>
+                    <Typography sx={{ fontWeight: 700, color: "#0369a1", fontSize: "0.85rem" }}>
+                      Radiofísica y Protección Radiológica
+                    </Typography>
+                    <Chip
+                      label="Responsable de Uso"
+                      size="small"
+                      sx={{ height: 20, fontSize: "10.5px", fontWeight: 800, bgcolor: "#e0f2fe", color: "#0369a1", mt: 0.4 }}
+                    />
+                  </TableCell>
+                  <TableCell align="center" sx={{ py: 1.8 }}>
+                    <Tooltip title={getObs("rad_dt_responsable_uso_fila") ? "Ver / Editar observación" : "Agregar observación"}>
+                      <IconButton
+                        size="small"
+                        onClick={() =>
+                          onOpenObs &&
+                          onOpenObs(
+                            "rad_dt_responsable_uso_fila",
+                            "Responsable de Uso - Lic. Martín S. Benítez",
+                            getObs("rad_dt_responsable_uso_fila"),
+                            "TRAMITE"
+                          )
+                        }
+                        sx={{ color: getObs("rad_dt_responsable_uso_fila") ? "#0ea5e9" : "#94a3b8" }}
+                      >
+                        {getObs("rad_dt_responsable_uso_fila") ? (
+                          <ChatBubbleIcon fontSize="small" />
+                        ) : (
+                          <ChatBubbleOutlineIcon fontSize="small" />
+                        )}
+                      </IconButton>
+                    </Tooltip>
+                  </TableCell>
+                </TableRow>
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </EstablecimientoCard>
+
+        {/* 2. Tabla: Habilitación y Permiso Individual ARN */}
+        <EstablecimientoCard
+          id="rad_dt_habilitacion_arn"
+          title="Habilitación Regulatoria ARN"
+          icon={<DescriptionIcon sx={{ color: "#0ea5e9", fontSize: 22 }} />}
+          obs={getObs("rad_dt_habilitacion_arn")}
+          onOpenObs={onOpenObs}
+          noGrid={true}
+        >
+          <TableContainer>
+            <Table size="small">
+              <TableHead>
+                <TableRow sx={{ bgcolor: "#f8fafc" }}>
+                  <TableCell sx={{ fontWeight: 900, color: "#0369a1", fontSize: "0.80rem", py: 2 }}>
+                    DOCUMENTO / HABILITACIÓN
+                  </TableCell>
+                  <TableCell sx={{ fontWeight: 900, color: "#0369a1", fontSize: "0.80rem" }}>
+                    ALCANCE / TIPO INSTALACIÓN
+                  </TableCell>
+                  <TableCell align="center" sx={{ fontWeight: 900, color: "#0369a1", fontSize: "0.80rem" }}>
+                    ORGANISMO EMISOR
+                  </TableCell>
+                  <TableCell align="center" sx={{ fontWeight: 900, color: "#0369a1", fontSize: "0.80rem" }}>
+                    ESTADO PERMISO
+                  </TableCell>
+                  <TableCell align="center" sx={{ fontWeight: 900, color: "#0369a1", fontSize: "0.80rem" }}>
+                    VISUALIZAR
+                  </TableCell>
+                  <TableCell align="center" sx={{ fontWeight: 900, color: "#0369a1", fontSize: "0.80rem" }}>
+                    ESTADO
+                  </TableCell>
+                  <TableCell align="center" sx={{ fontWeight: 900, color: "#0369a1", fontSize: "0.80rem", width: 60 }}>
+                    OBS.
+                  </TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                <TableRow hover sx={{ "&:hover": { bgcolor: "#f8fafc" } }}>
+                  <TableCell sx={{ py: 1.8 }}>
+                    <Typography sx={{ fontWeight: 800, color: "#1e293b", fontSize: "0.88rem" }}>
+                      Autorización Individual (ARN)
+                    </Typography>
+                    <Typography variant="caption" sx={{ color: "#64748b", fontWeight: 600, display: "block", mt: 0.3 }}>
+                      Permiso individual para el uso de equipos generadores de Rayos X médicos
+                    </Typography>
+                  </TableCell>
+                  <TableCell sx={{ py: 1.8 }}>
+                    <Typography sx={{ fontWeight: 700, color: "#334155", fontSize: "0.85rem" }}>
+                      Radiodiagnóstico Médico Convencional
+                    </Typography>
+                    <Typography variant="caption" sx={{ color: "#64748b", fontWeight: 600, display: "block" }}>
+                      Instalación Clase II
+                    </Typography>
+                  </TableCell>
+                  <TableCell align="center" sx={{ py: 1.8 }}>
+                    <Chip
+                      label="ARN"
+                      size="small"
+                      sx={{ height: 22, fontSize: "11px", fontWeight: 800, bgcolor: "#f1f5f9", color: "#0f172a" }}
+                    />
+                  </TableCell>
+                  <TableCell align="center" sx={{ py: 1.8 }}>
+                    <Chip
+                      icon={<CheckCircleIcon sx={{ fontSize: "16px !important", color: "#15803d !important" }} />}
+                      label="VIGENTE"
+                      size="small"
+                      sx={{ height: 22, fontSize: "11px", fontWeight: 800, bgcolor: "#dcfce7", color: "#15803d" }}
+                    />
+                  </TableCell>
+                  <TableCell align="center" sx={{ py: 1.8 }}>
+                    <Tooltip title="Visualizar Autorización Individual (PDF)">
+                      <IconButton
+                        size="small"
+                        onClick={() => onOpenViewer && onOpenViewer("autorizacion_individual_arn.pdf")}
+                        sx={{ color: "#0284c7", bgcolor: "#e0f2fe", "&:hover": { bgcolor: "#bae6fd" } }}
+                      >
+                        <VisibilityIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                  </TableCell>
+                  <TableCell align="center" sx={{ py: 1.8 }}>
+                    <ToggleButtonGroup
+                      value={dtDocStatus}
+                      exclusive
+                      onChange={(e, val) => val !== null && handleToggle(dtDocFieldId, val)}
+                      size="small"
+                      sx={{ height: 32 }}
+                    >
+                      <ToggleButton
+                        value="conforme"
+                        sx={{
+                          px: 1.5,
+                          fontSize: "0.75rem",
+                          fontWeight: 800,
+                          "&.Mui-selected": { bgcolor: "#dcfce7", color: "#166534" },
+                        }}
+                      >
+                        Conforme
+                      </ToggleButton>
+                      <ToggleButton
+                        value="observado"
+                        sx={{
+                          px: 1.5,
+                          fontSize: "0.75rem",
+                          fontWeight: 800,
+                          "&.Mui-selected": { bgcolor: "#fee2e2", color: "#991b1b" },
+                        }}
+                      >
+                        Observado
+                      </ToggleButton>
+                    </ToggleButtonGroup>
+                  </TableCell>
+                  <TableCell align="center" sx={{ py: 1.8 }}>
+                    <Tooltip title={dtDocObs ? "Ver / Editar observación" : "Agregar observación"}>
+                      <IconButton
+                        size="small"
+                        onClick={() =>
+                          onOpenObs &&
+                          onOpenObs(
+                            dtDocFieldId,
+                            "Autorización Individual (PDF) - Responsable de uso",
+                            dtDocObs,
+                            "TRAMITE"
+                          )
+                        }
+                        sx={{ color: dtDocObs ? "#0ea5e9" : "#94a3b8" }}
+                      >
+                        {dtDocObs ? <ChatBubbleIcon fontSize="small" /> : <ChatBubbleOutlineIcon fontSize="small" />}
+                      </IconButton>
+                    </Tooltip>
+                  </TableCell>
+                </TableRow>
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </EstablecimientoCard>
+
+        {/* 3. Tabla: Datos generales del prestador del servicio */}
         <EstablecimientoCard
           id="rad_dt_datos_prestador"
           title="Datos generales del prestador del servicio"
           icon={<ApartmentIcon sx={{ color: "#0ea5e9", fontSize: 22 }} />}
           obs={getObs("rad_dt_datos_prestador")}
           onOpenObs={onOpenObs}
+          noGrid={true}
         >
-          <CardFieldItem
-            id="rad_prest_nombre"
-            label="Nombre"
-            value={getValue("rad_prest_nombre", "Martín S.")}
-            obs={getObs("rad_prest_nombre")}
-            onOpenObs={onOpenObs}
-          />
-          <CardFieldItem
-            id="rad_prest_apellido"
-            label="Apellido"
-            value={getValue("rad_prest_apellido", "Benítez")}
-            obs={getObs("rad_prest_apellido")}
-            onOpenObs={onOpenObs}
-          />
-          <CardFieldItem
-            id="rad_prest_cuil"
-            label="CUIL"
-            value={getValue("rad_prest_cuil", "20-28450912-3")}
-            obs={getObs("rad_prest_cuil")}
-            onOpenObs={onOpenObs}
-          />
+          <TableContainer>
+            <Table size="small">
+              <TableHead>
+                <TableRow sx={{ bgcolor: "#f8fafc" }}>
+                  <TableCell sx={{ fontWeight: 900, color: "#0369a1", fontSize: "0.80rem", py: 2 }}>
+                    PRESTADOR / TITULAR
+                  </TableCell>
+                  <TableCell sx={{ fontWeight: 900, color: "#0369a1", fontSize: "0.80rem" }}>
+                    CUIL / CUIT
+                  </TableCell>
+                  <TableCell sx={{ fontWeight: 900, color: "#0369a1", fontSize: "0.80rem" }}>
+                    CARÁCTER
+                  </TableCell>
+                  <TableCell align="center" sx={{ fontWeight: 900, color: "#0369a1", fontSize: "0.80rem", width: 60 }}>
+                    OBS.
+                  </TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                <TableRow hover sx={{ "&:hover": { bgcolor: "#f8fafc" } }}>
+                  <TableCell sx={{ py: 1.8 }}>
+                    <Typography sx={{ fontWeight: 800, color: "#1e293b", fontSize: "0.88rem" }}>
+                      {getValue("rad_prest_nombre", "Lic. Martín S.")} {getValue("rad_prest_apellido", "Benítez")}
+                    </Typography>
+                  </TableCell>
+                  <TableCell sx={{ py: 1.8 }}>
+                    <Typography sx={{ fontWeight: 700, color: "#334155", fontSize: "0.85rem" }}>
+                      {getValue("rad_prest_cuil", "20-28450912-3")}
+                    </Typography>
+                  </TableCell>
+                  <TableCell sx={{ py: 1.8 }}>
+                    <Chip
+                      label="Titular Prestador del Servicio"
+                      size="small"
+                      sx={{
+                        height: 22,
+                        fontSize: "11px",
+                        fontWeight: 700,
+                        bgcolor: "#f0fdf4",
+                        color: "#15803d",
+                        border: "1px solid #bbf7d0",
+                      }}
+                    />
+                  </TableCell>
+                  <TableCell align="center" sx={{ py: 1.8 }}>
+                    <Tooltip title={getObs("rad_prest_nombre") ? "Ver / Editar observación" : "Agregar observación"}>
+                      <IconButton
+                        size="small"
+                        onClick={() =>
+                          onOpenObs &&
+                          onOpenObs(
+                            "rad_prest_nombre",
+                            "Datos Generales del Prestador",
+                            getObs("rad_prest_nombre"),
+                            "TRAMITE"
+                          )
+                        }
+                        sx={{ color: getObs("rad_prest_nombre") ? "#0ea5e9" : "#94a3b8" }}
+                      >
+                        {getObs("rad_prest_nombre") ? (
+                          <ChatBubbleIcon fontSize="small" />
+                        ) : (
+                          <ChatBubbleOutlineIcon fontSize="small" />
+                        )}
+                      </IconButton>
+                    </Tooltip>
+                  </TableCell>
+                </TableRow>
+              </TableBody>
+            </Table>
+          </TableContainer>
         </EstablecimientoCard>
 
-        {/* Sub-tarjeta 2: Domicilio del prestador del servicio */}
+        {/* 4. Tabla: Domicilio del prestador del servicio */}
         <EstablecimientoCard
           id="rad_dt_domicilio_prestador"
           title="Domicilio del prestador del servicio"
           icon={<PlaceIcon sx={{ color: "#0ea5e9", fontSize: 22 }} />}
           obs={getObs("rad_dt_domicilio_prestador")}
           onOpenObs={onOpenObs}
+          noGrid={true}
         >
-          <CardFieldItem
-            id="rad_prest_calle"
-            label="Calle"
-            value={getValue("rad_prest_calle", "Av. Vélez Sarsfield")}
-            obs={getObs("rad_prest_calle")}
-            onOpenObs={onOpenObs}
-          />
-          <CardFieldItem
-            id="rad_prest_numero"
-            label="Número"
-            value={getValue("rad_prest_numero", "1450")}
-            obs={getObs("rad_prest_numero")}
-            onOpenObs={onOpenObs}
-          />
-          <CardFieldItem
-            id="rad_prest_barrio"
-            label="Barrio"
-            value={getValue("rad_prest_barrio", "Nueva Córdoba")}
-            obs={getObs("rad_prest_barrio")}
-            onOpenObs={onOpenObs}
-          />
-          <CardFieldItem
-            id="rad_prest_piso"
-            label="Piso"
-            value={getValue("rad_prest_piso", null)}
-            obs={getObs("rad_prest_piso")}
-            onOpenObs={onOpenObs}
-          />
-          <CardFieldItem
-            id="rad_prest_depto"
-            label="Depto"
-            value={getValue("rad_prest_depto", null)}
-            obs={getObs("rad_prest_depto")}
-            onOpenObs={onOpenObs}
-          />
-          <CardFieldItem
-            id="rad_prest_cp"
-            label="Código Postal"
-            value={getValue("rad_prest_cp", "X5000JJM")}
-            obs={getObs("rad_prest_cp")}
-            onOpenObs={onOpenObs}
-          />
-          <CardFieldItem
-            id="rad_prest_provincia"
-            label="Provincia"
-            value={getValue("rad_prest_provincia", "CORDOBA")}
-            obs={getObs("rad_prest_provincia")}
-            onOpenObs={onOpenObs}
-          />
-          <CardFieldItem
-            id="rad_prest_departamento"
-            label="Departamento"
-            value={getValue("rad_prest_departamento", "CAPITAL")}
-            obs={getObs("rad_prest_departamento")}
-            onOpenObs={onOpenObs}
-          />
-          <CardFieldItem
-            id="rad_prest_localidad"
-            label="Localidad"
-            value={getValue("rad_prest_localidad", "CORDOBA")}
-            obs={getObs("rad_prest_localidad")}
-            onOpenObs={onOpenObs}
-          />
+          <TableContainer>
+            <Table size="small">
+              <TableHead>
+                <TableRow sx={{ bgcolor: "#f8fafc" }}>
+                  <TableCell sx={{ fontWeight: 900, color: "#0369a1", fontSize: "0.80rem", py: 2 }}>
+                    CALLE Y NÚMERO
+                  </TableCell>
+                  <TableCell sx={{ fontWeight: 900, color: "#0369a1", fontSize: "0.80rem" }}>
+                    PISO / DEPTO
+                  </TableCell>
+                  <TableCell sx={{ fontWeight: 900, color: "#0369a1", fontSize: "0.80rem" }}>
+                    BARRIO
+                  </TableCell>
+                  <TableCell sx={{ fontWeight: 900, color: "#0369a1", fontSize: "0.80rem" }}>
+                    LOCALIDAD
+                  </TableCell>
+                  <TableCell sx={{ fontWeight: 900, color: "#0369a1", fontSize: "0.80rem" }}>
+                    DEPARTAMENTO
+                  </TableCell>
+                  <TableCell sx={{ fontWeight: 900, color: "#0369a1", fontSize: "0.80rem" }}>
+                    PROVINCIA
+                  </TableCell>
+                  <TableCell sx={{ fontWeight: 900, color: "#0369a1", fontSize: "0.80rem" }}>
+                    CÓDIGO POSTAL
+                  </TableCell>
+                  <TableCell align="center" sx={{ fontWeight: 900, color: "#0369a1", fontSize: "0.80rem", width: 60 }}>
+                    OBS.
+                  </TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                <TableRow hover sx={{ "&:hover": { bgcolor: "#f8fafc" } }}>
+                  <TableCell sx={{ py: 1.8 }}>
+                    <Typography sx={{ fontWeight: 800, color: "#1e293b", fontSize: "0.88rem" }}>
+                      {getValue("rad_prest_calle", "Av. Vélez Sarsfield")} {getValue("rad_prest_numero", "1450")}
+                    </Typography>
+                  </TableCell>
+                  <TableCell sx={{ py: 1.8 }}>
+                    <Typography sx={{ color: "#64748b", fontWeight: 600, fontSize: "0.85rem" }}>
+                      {getValue("rad_prest_piso") || "-"} / {getValue("rad_prest_depto") || "-"}
+                    </Typography>
+                  </TableCell>
+                  <TableCell sx={{ py: 1.8 }}>
+                    <Typography sx={{ fontWeight: 700, color: "#334155", fontSize: "0.85rem" }}>
+                      {getValue("rad_prest_barrio", "Nueva Córdoba")}
+                    </Typography>
+                  </TableCell>
+                  <TableCell sx={{ py: 1.8 }}>
+                    <Typography sx={{ fontWeight: 700, color: "#1e293b", fontSize: "0.85rem" }}>
+                      {getValue("rad_prest_localidad", "CORDOBA")}
+                    </Typography>
+                  </TableCell>
+                  <TableCell sx={{ py: 1.8 }}>
+                    <Typography sx={{ color: "#475569", fontWeight: 600, fontSize: "0.85rem" }}>
+                      {getValue("rad_prest_departamento", "CAPITAL")}
+                    </Typography>
+                  </TableCell>
+                  <TableCell sx={{ py: 1.8 }}>
+                    <Typography sx={{ color: "#475569", fontWeight: 600, fontSize: "0.85rem" }}>
+                      {getValue("rad_prest_provincia", "CORDOBA")}
+                    </Typography>
+                  </TableCell>
+                  <TableCell sx={{ py: 1.8 }}>
+                    <Chip
+                      label={getValue("rad_prest_cp", "X5000JJM")}
+                      size="small"
+                      sx={{ height: 22, fontSize: "11px", fontWeight: 800, bgcolor: "#f1f5f9", color: "#334155" }}
+                    />
+                  </TableCell>
+                  <TableCell align="center" sx={{ py: 1.8 }}>
+                    <Tooltip title={getObs("rad_prest_domicilio") ? "Ver / Editar observación" : "Agregar observación"}>
+                      <IconButton
+                        size="small"
+                        onClick={() =>
+                          onOpenObs &&
+                          onOpenObs(
+                            "rad_prest_domicilio",
+                            "Domicilio del Prestador",
+                            getObs("rad_prest_domicilio"),
+                            "TRAMITE"
+                          )
+                        }
+                        sx={{ color: getObs("rad_prest_domicilio") ? "#0ea5e9" : "#94a3b8" }}
+                      >
+                        {getObs("rad_prest_domicilio") ? (
+                          <ChatBubbleIcon fontSize="small" />
+                        ) : (
+                          <ChatBubbleOutlineIcon fontSize="small" />
+                        )}
+                      </IconButton>
+                    </Tooltip>
+                  </TableCell>
+                </TableRow>
+              </TableBody>
+            </Table>
+          </TableContainer>
         </EstablecimientoCard>
-
-        {/* Sub-tarjeta 3: Director Técnico (Responsable de uso) */}
-        <Paper
-          elevation={0}
-          sx={{ border: "1px solid #e2e8f0", borderRadius: 4, overflow: "hidden" }}
-        >
-          <Box
-            sx={{
-              bgcolor: "#f8fafc",
-              px: 2.5,
-              py: 1.5,
-              borderBottom: "1px solid #e2e8f0",
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-            }}
-          >
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-              <PersonIcon sx={{ color: "#0ea5e9", fontSize: 22 }} />
-              <Typography sx={{ fontWeight: 800, color: "#1e293b", fontSize: "0.88rem", textTransform: "uppercase" }}>
-                Director Técnico (Responsable de uso)
-              </Typography>
-            </Box>
-          </Box>
-
-          <Box sx={{ p: 2.5, display: "flex", flexDirection: "column", gap: 2.5 }}>
-            {/* 3.1 Datos personales */}
-            <Box>
-              <Typography
-                variant="subtitle2"
-                sx={{
-                  fontWeight: 800,
-                  color: "#0369a1",
-                  fontSize: "0.82rem",
-                  textTransform: "uppercase",
-                  mb: 1.5,
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 0.5,
-                }}
-              >
-                <PersonIcon sx={{ fontSize: 18 }} />
-                Datos personales de responsable de uso
-              </Typography>
-              <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr 1fr" }, gap: 2 }}>
-                <Box>
-                  <Typography variant="caption" sx={{ color: "#64748b", fontWeight: 700 }}>
-                    NOMBRE Y APELLIDO
-                  </Typography>
-                  <Typography sx={{ fontWeight: 800, color: "#1e293b", fontSize: "0.95rem" }}>
-                    Lic. Martín S. Benítez
-                  </Typography>
-                </Box>
-                <Box>
-                  <Typography variant="caption" sx={{ color: "#64748b", fontWeight: 700 }}>
-                    DNI / CUIL
-                  </Typography>
-                  <Typography sx={{ fontWeight: 700, color: "#334155", fontSize: "0.95rem" }}>
-                    28.450.912 / 20-28450912-3
-                  </Typography>
-                </Box>
-                <Box>
-                  <Typography variant="caption" sx={{ color: "#64748b", fontWeight: 700 }}>
-                    CONTACTO
-                  </Typography>
-                  <Typography sx={{ fontWeight: 600, color: "#334155", fontSize: "0.9rem" }}>
-                    mbenitez@radiofisica.org.ar | 351-5551234
-                  </Typography>
-                </Box>
-              </Box>
-            </Box>
-
-            <Box sx={{ height: 1, bgcolor: "#f1f5f9" }} />
-
-            {/* 3.2 Datos académicos */}
-            <Box>
-              <Typography
-                variant="subtitle2"
-                sx={{
-                  fontWeight: 800,
-                  color: "#0369a1",
-                  fontSize: "0.82rem",
-                  textTransform: "uppercase",
-                  mb: 1.5,
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 0.5,
-                }}
-              >
-                <SchoolIcon sx={{ fontSize: 18 }} />
-                Datos académicos de responsable de uso
-              </Typography>
-              <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr 1fr" }, gap: 2 }}>
-                <Box>
-                  <Typography variant="caption" sx={{ color: "#64748b", fontWeight: 700 }}>
-                    TÍTULO HABILITANTE
-                  </Typography>
-                  <Typography sx={{ fontWeight: 800, color: "#1e293b", fontSize: "0.95rem" }}>
-                    Licenciado en Producción de Bioimágenes
-                  </Typography>
-                </Box>
-                <Box>
-                  <Typography variant="caption" sx={{ color: "#64748b", fontWeight: 700 }}>
-                    MATRÍCULA PROFESIONAL
-                  </Typography>
-                  <Typography sx={{ fontWeight: 700, color: "#334155", fontSize: "0.95rem" }}>
-                    MP-84920
-                  </Typography>
-                </Box>
-                <Box>
-                  <Typography variant="caption" sx={{ color: "#64748b", fontWeight: 700 }}>
-                    ESPECIALIDAD / CAPACITACIÓN
-                  </Typography>
-                  <Typography sx={{ fontWeight: 600, color: "#334155", fontSize: "0.9rem" }}>
-                    Radiofísica y Protección Radiológica
-                  </Typography>
-                </Box>
-              </Box>
-            </Box>
-
-            <Box sx={{ height: 1, bgcolor: "#f1f5f9" }} />
-
-            {/* 3.3 Autorización Individual (PDF) */}
-            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 2, bgcolor: "#f8fafc", p: 2, borderRadius: 3, border: "1px solid #e2e8f0" }}>
-              <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-                <DescriptionIcon sx={{ color: "#0284c7", fontSize: 26 }} />
-                <Box>
-                  <Typography sx={{ fontWeight: 800, color: "#1e293b", fontSize: "0.9rem" }}>
-                    Autorización Individual (PDF)
-                  </Typography>
-                  <Typography variant="caption" sx={{ color: "#64748b", fontWeight: 600 }}>
-                    Permiso individual emitido por la Autoridad Regulatoria Nuclear (ARN) para el uso de equipos generadores.
-                  </Typography>
-                </Box>
-              </Box>
-              <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-                <Tooltip title="Visualizar Autorización Individual (PDF)">
-                  <IconButton
-                    size="small"
-                    onClick={() => onOpenViewer && onOpenViewer("autorizacion_individual_arn.pdf")}
-                    sx={{ color: "#0284c7", bgcolor: "#e0f2fe", "&:hover": { bgcolor: "#bae6fd" } }}
-                  >
-                    <VisibilityIcon fontSize="small" />
-                  </IconButton>
-                </Tooltip>
-                <ToggleButtonGroup
-                  value={dtDocStatus}
-                  exclusive
-                  onChange={(e, val) => val !== null && handleToggle(dtDocFieldId, val)}
-                  size="small"
-                  sx={{ height: 34 }}
-                >
-                  <ToggleButton
-                    value="conforme"
-                    sx={{
-                      px: 1.5,
-                      fontSize: "0.75rem",
-                      fontWeight: 800,
-                      "&.Mui-selected": { bgcolor: "#dcfce7", color: "#166534" },
-                    }}
-                  >
-                    Conforme
-                  </ToggleButton>
-                  <ToggleButton
-                    value="observado"
-                    sx={{
-                      px: 1.5,
-                      fontSize: "0.75rem",
-                      fontWeight: 800,
-                      "&.Mui-selected": { bgcolor: "#fee2e2", color: "#991b1b" },
-                    }}
-                  >
-                    Observado
-                  </ToggleButton>
-                </ToggleButtonGroup>
-                <Tooltip title={dtDocObs ? "Ver / Editar observación" : "Agregar observación"}>
-                  <IconButton
-                    size="small"
-                    onClick={() =>
-                      onOpenObs &&
-                      onOpenObs(
-                        dtDocFieldId,
-                        "Autorización Individual (PDF) - Responsable de uso",
-                        dtDocObs,
-                        "TRAMITE"
-                      )
-                    }
-                    sx={{ color: dtDocObs ? "#0ea5e9" : "#94a3b8" }}
-                  >
-                    {dtDocObs ? <ChatBubbleIcon fontSize="small" /> : <ChatBubbleOutlineIcon fontSize="small" />}
-                  </IconButton>
-                </Tooltip>
-              </Box>
-            </Box>
-          </Box>
-        </Paper>
       </Box>
     );
   }
