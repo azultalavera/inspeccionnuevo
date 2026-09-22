@@ -278,7 +278,7 @@ export function findSubservicio(tipoNombre?: string, subservicioNombre?: string)
 // ────────────────────────────────────────────────────────────
 // PLANTILLA ESPECÍFICA: RADIOLOGÍA CONVENCIONAL SIMPLE
 // ────────────────────────────────────────────────────────────
-function getRadiologiaConvencionalSimpleSections(): MasterConfigSection[] {
+function getRadiologiaConvencionalSimpleGeneralSections(): MasterConfigSection[] {
   return [
     // 1. DATOS DEL ESTABLECIMIENTO
     {
@@ -388,8 +388,12 @@ function getRadiologiaConvencionalSimpleSections(): MasterConfigSection[] {
         { id: "f-mat-bunker", label: "Búnker", type: "sino_na", options: "SI, NO, NO APLICA", valorTramiteMock: "NO" },
         { id: "f-mat-carteles", label: "Carteles de seguridad RX", type: "sino_na", options: "SI, NO, NO APLICA", valorTramiteMock: "SI" }
       ]
-    },
+    }
+  ];
+}
 
+function getRadiologiaConvencionalSimpleMedicionesSections(): MasterConfigSection[] {
+  return [
     // 5. REPETIBILIDAD DEL TUBO
     {
       id: "sec-rad-cs-repetibilidad",
@@ -402,7 +406,29 @@ function getRadiologiaConvencionalSimpleSections(): MasterConfigSection[] {
         { id: "f-rep-t-medido", label: "1 - Tiempo medido", type: "number", valorTramiteMock: 100.2 },
         { id: "f-rep-t-unidad", label: "1 - Unidad", type: "select", options: "µSeg, mSeg, Seg", valorTramiteMock: "mSeg" },
         { id: "f-rep-dosis-medida", label: "1 - Dosis medida", type: "number", valorTramiteMock: 2.38 },
-        { id: "f-rep-dosis-unidad", label: "1 - Unidad", type: "select", options: "nGy, µGy, mGy, Gy", valorTramiteMock: "mGy" }
+        { id: "f-rep-dosis-unidad", label: "1 - Unidad", type: "select", options: "nGy, µGy, mGy, Gy", valorTramiteMock: "mGy" },
+        { id: "f-rep-2-kv-medido", label: "2 - kV medido", type: "number", valorTramiteMock: 80.1 },
+        { id: "f-rep-2-t-medido", label: "2 - Tiempo medido", type: "number", valorTramiteMock: 100.0 },
+        { id: "f-rep-2-t-unidad", label: "2 - Unidad", type: "select", options: "µSeg, mSeg, Seg", valorTramiteMock: "mSeg" },
+        { id: "f-rep-2-dosis-medida", label: "2 - Dosis medida", type: "number", valorTramiteMock: 2.39 },
+        { id: "f-rep-2-dosis-unidad", label: "2 - Unidad", type: "select", options: "nGy, µGy, mGy, Gy", valorTramiteMock: "mGy" },
+        { id: "f-rep-3-kv-medido", label: "3 - kV medido", type: "number", valorTramiteMock: 79.9 },
+        { id: "f-rep-3-t-medido", label: "3 - Tiempo medido", type: "number", valorTramiteMock: 100.4 },
+        { id: "f-rep-3-t-unidad", label: "3 - Unidad", type: "select", options: "µSeg, mSeg, Seg", valorTramiteMock: "mSeg" },
+        { id: "f-rep-3-dosis-medida", label: "3 - Dosis medida", type: "number", valorTramiteMock: 2.37 },
+        { id: "f-rep-3-dosis-unidad", label: "3 - Unidad", type: "select", options: "nGy, µGy, mGy, Gy", valorTramiteMock: "mGy" },
+        // Media
+        { id: "f-rep-media-kv", label: "Media - kV medido", type: "number", valorTramiteMock: 79.93 },
+        { id: "f-rep-media-t", label: "Media - Tiempo medido", type: "number", valorTramiteMock: 100.20 },
+        { id: "f-rep-media-t-unidad", label: "Media - Tiempo Unidad", type: "select", options: "µSeg, mSeg, Seg", valorTramiteMock: "mSeg" },
+        { id: "f-rep-media-dosis", label: "Media - Dosis medida", type: "number", valorTramiteMock: 2.38 },
+        { id: "f-rep-media-dosis-unidad", label: "Media - Dosis Unidad", type: "select", options: "nGy, µGy, mGy, Gy", valorTramiteMock: "mGy" },
+        // Desviación Estándar
+        { id: "f-rep-desv-kv", label: "Desviación Estándar - kV medido", type: "number", valorTramiteMock: 0.15 },
+        { id: "f-rep-desv-t", label: "Desviación Estándar - Tiempo medido", type: "number", valorTramiteMock: 0.20 },
+        { id: "f-rep-desv-t-unidad", label: "Desviación Estándar - Tiempo Unidad", type: "select", options: "µSeg, mSeg, Seg", valorTramiteMock: "mSeg" },
+        { id: "f-rep-desv-dosis", label: "Desviación Estándar - Dosis medida", type: "number", valorTramiteMock: 0.01 },
+        { id: "f-rep-desv-dosis-unidad", label: "Desviación Estándar - Dosis Unidad", type: "select", options: "nGy, µGy, mGy, Gy", valorTramiteMock: "mGy" }
       ]
     },
 
@@ -459,6 +485,13 @@ function getRadiologiaConvencionalSimpleSections(): MasterConfigSection[] {
   ];
 }
 
+function getRadiologiaConvencionalSimpleSections(): MasterConfigSection[] {
+  return [
+    ...getRadiologiaConvencionalSimpleGeneralSections(),
+    ...getRadiologiaConvencionalSimpleMedicionesSections()
+  ];
+}
+
 // ────────────────────────────────────────────────────────────
 // PLANTILLAS GENÉRICAS PARA OTROS SUBSERVICIOS
 // ────────────────────────────────────────────────────────────
@@ -511,25 +544,39 @@ function getGenericRadiofisicaSections(tipo: TipoServicioRadiofisica, sub: Subse
   ];
 }
 
+function getGenericRadiofisicaMedicionesSections(tipo: TipoServicioRadiofisica, sub: SubservicioRadiofisica): MasterConfigSection[] {
+  return getRadiologiaConvencionalSimpleMedicionesSections();
+}
+
 // Generador de MasterConfig dinámico para Radiofísica
 export function getRadiofisicaConfig(tipoServicioNombre = "Rayos X", subservicioNombre = "Radiología Convencional Simple"): MasterConfig {
   const { tipo, sub } = findSubservicio(tipoServicioNombre, subservicioNombre);
 
   const isConvencionalSimple = sub.id === "rad-convencional-simple" || sub.nombre.toLowerCase().includes("convencional simple");
 
-  const sections = isConvencionalSimple
-    ? getRadiologiaConvencionalSimpleSections()
+  const generalSections = isConvencionalSimple
+    ? getRadiologiaConvencionalSimpleGeneralSections()
     : getGenericRadiofisicaSections(tipo, sub);
+
+  const medicionesSections = isConvencionalSimple
+    ? getRadiologiaConvencionalSimpleMedicionesSections()
+    : getGenericRadiofisicaMedicionesSections(tipo, sub);
 
   const datosGeneralesService: MasterConfigService = {
     id: `srv-gen-rad-${sub.id}`,
     name: "DATOS GENERALES",
-    sections
+    sections: generalSections
+  };
+
+  const registroMedicionesService: MasterConfigService = {
+    id: `srv-med-rad-${sub.id}`,
+    name: "REGISTRO DE MEDICIONES",
+    sections: medicionesSections
   };
 
   return {
     id: `config-rad-${tipo.id}-${sub.id}`,
     tipologia: "RADIOFÍSICA",
-    servicios: [datosGeneralesService]
+    servicios: [datosGeneralesService, registroMedicionesService]
   };
 }

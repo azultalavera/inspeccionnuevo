@@ -70,6 +70,8 @@ import RevisionActaView from "./components/RevisionActaView";
 import SignatureModal from "./components/SignatureModal";
 import DatosTramiteRadiofisica from "./components/DatosTramiteRadiofisica";
 import RadiacionDispersaSection from "./components/RadiacionDispersaSection";
+import PruebaFugaSection from "./components/PruebaFugaSection";
+import RepetibilidadTuboSection from "./components/RepetibilidadTuboSection";
 
 const PantallaInspeccion = ({
   serviciosEfector: propsServicios = null,
@@ -163,11 +165,14 @@ const PantallaInspeccion = ({
   const [closeActaNote, setCloseActaNote] = useState("");
 
   const [expandedSectionsGenerales, setExpandedSectionsGenerales] = useState({});
+  const [expandedSectionsMediciones, setExpandedSectionsMediciones] = useState({});
   const [expandedSectionsTramite, setExpandedSectionsTramite] = useState({});
   const [allGeneralesExpanded, setAllGeneralesExpanded] = useState(true);
+  const [allMedicionesExpanded, setAllMedicionesExpanded] = useState(true);
   const [allTramiteExpanded, setAllTramiteExpanded] = useState(true);
 
   const isGeneralesExpanded = (secId) => expandedSectionsGenerales[secId] !== false;
+  const isMedicionesExpanded = (secId) => expandedSectionsMediciones[secId] !== false;
   const isTramiteExpanded = (secId) => expandedSectionsTramite[secId] !== false;
 
   const handleToggleAllGenerales = () => {
@@ -184,6 +189,20 @@ const PantallaInspeccion = ({
       }
     }
     setExpandedSectionsGenerales(newState);
+  };
+
+  const handleToggleAllMediciones = (e) => {
+    e?.stopPropagation();
+    const expand = !allMedicionesExpanded;
+    setAllMedicionesExpanded(expand);
+    const newState = {};
+    if (registroMedicionesSrv?.sections) {
+      registroMedicionesSrv.sections.forEach((s, index) => {
+        const sectionKey = s.id || `med_sec_${index}`;
+        newState[sectionKey] = expand;
+      });
+    }
+    setExpandedSectionsMediciones(newState);
   };
 
   const handleToggleAllTramite = (e) => {
@@ -304,15 +323,56 @@ const PantallaInspeccion = ({
 
   const denominacionEstablecimiento = tramiteActual?.denominacion || inspectorData["f-nomtcemx"] || "SANATORIO ALLENDE";
 
-  const datosGeneralesSrv = React.useMemo(() =>
-    config?.servicios?.find((s) => normalize(s.name).includes("DATOS GENERALES")),
-    [config]
-  );
+  const isMedicionSection = React.useCallback((sec) => {
+    const id = sec?.id || "";
+    const name = normalize(sec?.name || "");
+    return (
+      id === "sec-rad-cs-repetibilidad" ||
+      id === "sec-rad-cs-fuga" ||
+      id === "sec-rad-cs-dispersa" ||
+      id === "sec-rad-cs-dosis-anual" ||
+      name.includes("REPETIBILIDAD") ||
+      name.includes("PRUEBA DE FUGA") ||
+      name.includes("RADIACION DISPERSA") ||
+      name.includes("DOSIS ANUAL")
+    );
+  }, []);
+
+  const datosGeneralesSrv = React.useMemo(() => {
+    const srv = config?.servicios?.find((s) => normalize(s.name).includes("DATOS GENERALES"));
+    if (!srv) return null;
+    if (!srv.sections) return srv;
+    return {
+      ...srv,
+      sections: srv.sections.filter((sec) => !isMedicionSection(sec))
+    };
+  }, [config, isMedicionSection]);
+
+  const registroMedicionesSrv = React.useMemo(() => {
+    const srv = config?.servicios?.find((s) => {
+      const n = normalize(s.name);
+      return n.includes("REGISTRO DE MEDICIONES") || n.includes("MEDICIONES");
+    });
+    if (srv && srv.sections && srv.sections.length > 0) return srv;
+
+    // Fallback dinámico si aún estuviera en datos generales
+    const rawGen = config?.servicios?.find((s) => normalize(s.name).includes("DATOS GENERALES"));
+    const medSections = rawGen?.sections?.filter((sec) => isMedicionSection(sec)) || [];
+    if (medSections.length > 0) {
+      return {
+        id: "srv-med-rad-fallback",
+        name: "REGISTRO DE MEDICIONES",
+        sections: medSections
+      };
+    }
+    return null;
+  }, [config, isMedicionSection]);
 
   const otherServices = React.useMemo(() => {
     return config?.servicios?.filter((s) => {
       const isGeneral = normalize(s.name).includes("DATOS GENERALES");
-      if (isGeneral) return false;
+      const isMed = normalize(s.name).includes("REGISTRO DE MEDICIONES") || normalize(s.name).includes("MEDICIONES");
+      if (isGeneral || isMed) return false;
 
       const allEfectorSelection = [
         ...(serviciosEfector || []),
@@ -857,6 +917,13 @@ const PantallaInspeccion = ({
         ? getFlatFields(datosGeneralesSrv.sections)
         : datosGeneralesSrv.fields || [];
       fillFields(genFields);
+    }
+
+    if (registroMedicionesSrv) {
+      const medFields = registroMedicionesSrv.sections
+        ? getFlatFields(registroMedicionesSrv.sections)
+        : registroMedicionesSrv.fields || [];
+      fillFields(medFields);
     }
 
     otherServices.forEach(srv => {
@@ -1496,7 +1563,141 @@ const PantallaInspeccion = ({
             </Paper>
           )}
 
-          {/* SECCIÓN 2: DATOS DEL TRÁMITE CON CATEGORÍAS */}
+          {/* SECCIÓN 2: REGISTRO DE MEDICIONES (ENTRE DATOS GENERALES Y DATOS DEL TRÁMITE) */}
+          {(isRadiofisica || registroMedicionesSrv) && registroMedicionesSrv && (
+            <Paper
+              sx={{
+                mb: 4,
+                boxShadow: "0 4px 12px rgba(0,0,0,0.05)",
+                borderRadius: "12px",
+                border: "1px solid #e2e8f0",
+                overflow: "hidden"
+              }}
+            >
+              <Box sx={{ px: { xs: 2, sm: 3 }, py: 2, bgcolor: "#f8fafc", borderBottom: "1px solid #e2e8f0" }}>
+                <Box sx={{ display: "flex", flexDirection: "column", width: "100%", pr: 2 }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                    <Typography variant="h6" sx={{ fontWeight: 900, color: "#1e293b", textTransform: "uppercase" }}>
+                      REGISTRO DE MEDICIONES
+                    </Typography>
+                    <Box>
+                      <Tooltip title={allMedicionesExpanded ? "Contraer todos" : "Desplegar todos"}>
+                        <IconButton size="small" onClick={handleToggleAllMediciones} sx={{ color: '#64748b' }}>
+                          {allMedicionesExpanded ? <UnfoldLessIcon /> : <UnfoldMoreIcon />}
+                        </IconButton>
+                      </Tooltip>
+                    </Box>
+                  </Box>
+                  {renderProgressBar(
+                    getCompletionStats(
+                      registroMedicionesSrv.sections
+                        ? getFlatFields(registroMedicionesSrv.sections)
+                        : registroMedicionesSrv.fields || [],
+                      inspectorData
+                    )
+                  )}
+                </Box>
+              </Box>
+              <Box
+                sx={{
+                  px: { xs: 2, sm: 3 },
+                  py: 3,
+                  bgcolor: "#ffffff",
+                }}
+              >
+                <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
+                  {registroMedicionesSrv.sections?.map((sec, index) => {
+                    const sectionStats = getCompletionStats(sec.fields || [], inspectorData);
+                    const sectionKey = sec.id || `med_sec_${index}`;
+                    return (
+                      <Accordion
+                        key={sectionKey}
+                        elevation={0}
+                        expanded={isMedicionesExpanded(sectionKey)}
+                        onChange={() => setExpandedSectionsMediciones(prev => ({ ...prev, [sectionKey]: !isMedicionesExpanded(sectionKey) }))}
+                        sx={{
+                          border: "1px solid #e2e8f0",
+                          borderRadius: "12px !important",
+                          overflow: "hidden",
+                          "&:before": { display: "none" },
+                        }}
+                      >
+                        <AccordionSummary
+                          expandIcon={<ExpandMoreIcon sx={{ color: "#0ea5e9" }} />}
+                          sx={{
+                            bgcolor: "#f8fafc",
+                            "& .MuiAccordionSummary-content": {
+                              flexDirection: "column",
+                            },
+                          }}
+                        >
+                          <Typography
+                            variant="subtitle2"
+                            sx={{
+                              fontWeight: 800,
+                              color: "#475569",
+                              textTransform: "uppercase",
+                              fontSize: "0.8rem",
+                            }}
+                          >
+                            {sec.name}
+                          </Typography>
+                          {renderProgressBar(sectionStats)}
+                        </AccordionSummary>
+                        <AccordionDetails sx={{ py: 2 }}>
+                          {sec.id === "sec-rad-cs-dispersa" || sec.name === "RADIACIÓN DISPERSA" ? (
+                            <RadiacionDispersaSection
+                              fields={sec.fields}
+                              inspectorData={inspectorData}
+                              onChange={handleFieldChange}
+                              onOpenObs={(fid, lbl, val) => handleOpenObsDialog(fid, lbl, val, "GENERAL")}
+                            />
+                          ) : sec.id === "sec-rad-cs-fuga" || sec.name === "PRUEBA DE FUGA" ? (
+                            <PruebaFugaSection
+                              fields={sec.fields}
+                              inspectorData={inspectorData}
+                              onChange={handleFieldChange}
+                              onOpenObs={(fid, lbl, val) => handleOpenObsDialog(fid, lbl, val, "GENERAL")}
+                            />
+                          ) : sec.id === "sec-rad-cs-repetibilidad" || sec.name === "REPETIBILIDAD DEL TUBO" ? (
+                            <RepetibilidadTuboSection
+                              fields={sec.fields}
+                              inspectorData={inspectorData}
+                              onChange={handleFieldChange}
+                              onOpenObs={(fid, lbl, val) => handleOpenObsDialog(fid, lbl, val, "GENERAL")}
+                            />
+                          ) : (
+                            <Box
+                              sx={{
+                                display: "grid",
+                                gridTemplateColumns: { xs: "1fr", sm: "repeat(2, minmax(0, 1fr))" },
+                                gap: 2,
+                              }}
+                            >
+                              {sec.fields?.map((field) => (
+                                <FieldItem
+                                  key={field.id}
+                                  field={field}
+                                  value={inspectorData[field.id]}
+                                  allData={inspectorData}
+                                  onChange={handleFieldChange}
+                                  onOpenObs={(fid, lbl, val) => handleOpenObsDialog(fid, lbl, val, "GENERAL")}
+                                  infraEfector={infraEfector}
+                                  serviciosEfector={serviciosEfector}
+                                />
+                              ))}
+                            </Box>
+                          )}
+                        </AccordionDetails>
+                      </Accordion>
+                    );
+                  })}
+                </Box>
+              </Box>
+            </Paper>
+          )}
+
+          {/* SECCIÓN 3: DATOS DEL TRÁMITE CON CATEGORÍAS */}
           <Accordion
             expanded={expandedEstablecimiento}
             onChange={() => setExpandedEstablecimiento(!expandedEstablecimiento)}
