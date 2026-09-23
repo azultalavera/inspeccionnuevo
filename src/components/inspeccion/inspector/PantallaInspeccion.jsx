@@ -44,6 +44,8 @@ import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
 import UnfoldMoreIcon from "@mui/icons-material/UnfoldMore";
 import UnfoldLessIcon from "@mui/icons-material/UnfoldLess";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import ChatBubbleIcon from "@mui/icons-material/ChatBubble";
+import ChatBubbleOutlineIcon from "@mui/icons-material/ChatBubbleOutlined";
 
 import { useApp } from "../../../context/AppContext";
 import { useAuth } from "../../../context/AuthContext";
@@ -522,6 +524,27 @@ const PantallaInspeccion = ({
         genSummary.push({ id: f.id, label: f.label, text: obs, type: 'OBS', hasPhoto: !!photo, photo });
       }
     });
+
+    // Observaciones de secciones generales de Registro de Mediciones
+    if (registroMedicionesSrv?.sections) {
+      registroMedicionesSrv.sections.forEach((sec, idx) => {
+        const secKey = sec.id || `med_sec_${idx}`;
+        const secData = inspectorData[secKey];
+        const secObs = extractObs(secData);
+        const photo = extractPhoto(secData);
+        if (secObs) {
+          genSummary.push({
+            id: secKey,
+            label: sec.name,
+            text: secObs,
+            type: 'OBS',
+            hasPhoto: !!photo,
+            photo
+          });
+        }
+      });
+    }
+
     setObsDatosGenerales(genSummary);
 
     // 2. Datos Trámite
@@ -628,7 +651,7 @@ const PantallaInspeccion = ({
     localStorage.setItem(`obs_datos_generales_${id || 'default'}`, JSON.stringify(genSummary));
     localStorage.setItem(`obs_datos_tramite_${id || 'default'}`, JSON.stringify(traSummary));
     localStorage.setItem(`inspector_emplazamientos_${id || 'default'}`, JSON.stringify(emplazamientos));
-  }, [inspectorData, config, datosGeneralesSrv, otherServices, infraEfector, equiposEfector, id]);
+  }, [inspectorData, config, datosGeneralesSrv, registroMedicionesSrv, otherServices, infraEfector, equiposEfector, id]);
 
   const hasObservations =
     (obsDatosGenerales?.length || 0) > 0 ||
@@ -1609,6 +1632,11 @@ const PantallaInspeccion = ({
                   {registroMedicionesSrv.sections?.map((sec, index) => {
                     const sectionStats = getCompletionStats(sec.fields || [], inspectorData);
                     const sectionKey = sec.id || `med_sec_${index}`;
+                    const secData = inspectorData[sectionKey];
+                    const secObs = (secData && typeof secData === 'object' && !Array.isArray(secData))
+                      ? (secData.obs || "")
+                      : (typeof secData === 'string' ? secData : "");
+
                     return (
                       <Accordion
                         key={sectionKey}
@@ -1631,17 +1659,39 @@ const PantallaInspeccion = ({
                             },
                           }}
                         >
-                          <Typography
-                            variant="subtitle2"
-                            sx={{
-                              fontWeight: 800,
-                              color: "#475569",
-                              textTransform: "uppercase",
-                              fontSize: "0.8rem",
-                            }}
-                          >
-                            {sec.name}
-                          </Typography>
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', mb: 0.5 }}>
+                            <Typography
+                              variant="subtitle2"
+                              sx={{
+                                fontWeight: 800,
+                                color: "#475569",
+                                textTransform: "uppercase",
+                                fontSize: "0.8rem",
+                              }}
+                            >
+                              {sec.name}
+                            </Typography>
+                            <Tooltip title={secObs ? "Ver / Editar observación" : `Observar ${sec.name}`}>
+                              <IconButton
+                                size="small"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleOpenObsDialog(sectionKey, sec.name, secObs, "GENERAL");
+                                }}
+                                sx={{
+                                  color: secObs ? "#0ea5e9" : "#94a3b8",
+                                  p: 0.5,
+                                  "&:hover": { color: "#0284c7" }
+                                }}
+                              >
+                                {secObs ? (
+                                  <ChatBubbleIcon fontSize="small" />
+                                ) : (
+                                  <ChatBubbleOutlineIcon fontSize="small" />
+                                )}
+                              </IconButton>
+                            </Tooltip>
+                          </Box>
                           {renderProgressBar(sectionStats)}
                         </AccordionSummary>
                         <AccordionDetails sx={{ py: 2 }}>
@@ -1650,21 +1700,18 @@ const PantallaInspeccion = ({
                               fields={sec.fields}
                               inspectorData={inspectorData}
                               onChange={handleFieldChange}
-                              onOpenObs={(fid, lbl, val) => handleOpenObsDialog(fid, lbl, val, "GENERAL")}
                             />
                           ) : sec.id === "sec-rad-cs-fuga" || sec.name === "PRUEBA DE FUGA" ? (
                             <PruebaFugaSection
                               fields={sec.fields}
                               inspectorData={inspectorData}
                               onChange={handleFieldChange}
-                              onOpenObs={(fid, lbl, val) => handleOpenObsDialog(fid, lbl, val, "GENERAL")}
                             />
                           ) : sec.id === "sec-rad-cs-repetibilidad" || sec.name === "REPETIBILIDAD DEL TUBO" ? (
                             <RepetibilidadTuboSection
                               fields={sec.fields}
                               inspectorData={inspectorData}
                               onChange={handleFieldChange}
-                              onOpenObs={(fid, lbl, val) => handleOpenObsDialog(fid, lbl, val, "GENERAL")}
                             />
                           ) : (
                             <Box
@@ -1681,7 +1728,6 @@ const PantallaInspeccion = ({
                                   value={inspectorData[field.id]}
                                   allData={inspectorData}
                                   onChange={handleFieldChange}
-                                  onOpenObs={(fid, lbl, val) => handleOpenObsDialog(fid, lbl, val, "GENERAL")}
                                   infraEfector={infraEfector}
                                   serviciosEfector={serviciosEfector}
                                 />
@@ -2026,7 +2072,6 @@ const PantallaInspeccion = ({
                                       fields={section.fields}
                                       inspectorData={inspectorData}
                                       onChange={handleFieldChange}
-                                      onOpenObs={(fid, lbl, val) => handleOpenObsDialog(fid, lbl, val, "GENERAL")}
                                     />
                                   ) : (
                                     <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)" }, gap: 3 }}>

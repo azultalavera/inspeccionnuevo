@@ -16,8 +16,6 @@ import {
   Select,
 } from "@mui/material";
 import TuneIcon from "@mui/icons-material/Tune";
-import ChatBubbleIcon from "@mui/icons-material/ChatBubble";
-import ChatBubbleOutlineIcon from "@mui/icons-material/ChatBubbleOutlined";
 import FunctionsIcon from "@mui/icons-material/Functions";
 import AnalyticsIcon from "@mui/icons-material/Analytics";
 
@@ -278,9 +276,6 @@ export default function RepetibilidadTuboSection({
               <TableCell sx={{ fontWeight: 900, color: "#0369a1", fontSize: "0.80rem", width: 130 }}>
                 Unidad
               </TableCell>
-              <TableCell align="center" sx={{ fontWeight: 900, color: "#0369a1", fontSize: "0.80rem", width: 70 }}>
-                Obs.
-              </TableCell>
             </TableRow>
           </TableHead>
 
@@ -291,7 +286,6 @@ export default function RepetibilidadTuboSection({
               const tUnidadVal = getValue(row.tUnitId, row.defaultTUnit);
               const dosisMedidaVal = getValue(row.dosisId, row.defaultDosis);
               const dosisUnidadVal = getValue(row.dosisUnitId, row.defaultDosisUnit);
-              const obsVal = getObs(row.kvId) || getObs(row.dosisId) || getObs(row.tId);
 
               return (
                 <TableRow key={row.id} hover sx={{ "&:hover": { bgcolor: "#f8fafc" } }}>
@@ -396,26 +390,6 @@ export default function RepetibilidadTuboSection({
                       <MenuItem value="mGy">mGy</MenuItem>
                       <MenuItem value="Gy">Gy</MenuItem>
                     </Select>
-                  </TableCell>
-
-                  {/* Observación */}
-                  <TableCell align="center" sx={{ py: 1.5 }}>
-                    <Tooltip title={obsVal ? `Observación: ${obsVal}` : `Observar ${row.label}`}>
-                      <IconButton
-                        size="small"
-                        onClick={() =>
-                          onOpenObs &&
-                          onOpenObs(row.kvId, `Repetibilidad - ${row.label}`, obsVal, "GENERAL")
-                        }
-                        sx={{ color: obsVal ? "#0ea5e9" : "#94a3b8" }}
-                      >
-                        {obsVal ? (
-                          <ChatBubbleIcon fontSize="small" />
-                        ) : (
-                          <ChatBubbleOutlineIcon fontSize="small" />
-                        )}
-                      </IconButton>
-                    </Tooltip>
                   </TableCell>
                 </TableRow>
               );
@@ -549,15 +523,6 @@ export default function RepetibilidadTuboSection({
                   <MenuItem value="Gy">Gy</MenuItem>
                 </Select>
               </TableCell>
-
-              {/* Media Obs */}
-              <TableCell align="center" sx={{ py: 1.5, borderTop: "2px solid #fecdd3" }}>
-                <Tooltip title="Promedio calculado automáticamente">
-                  <IconButton size="small" disabled sx={{ color: "#fda4af" }}>
-                    <FunctionsIcon fontSize="small" />
-                  </IconButton>
-                </Tooltip>
-              </TableCell>
             </TableRow>
 
             {/* Fila 5: DESVIACIÓN ESTÁNDAR */}
@@ -687,15 +652,6 @@ export default function RepetibilidadTuboSection({
                   <MenuItem value="mGy">mGy</MenuItem>
                   <MenuItem value="Gy">Gy</MenuItem>
                 </Select>
-              </TableCell>
-
-              {/* Desv Obs */}
-              <TableCell align="center" sx={{ py: 1.5 }}>
-                <Tooltip title="Desviación estándar calculada automáticamente">
-                  <IconButton size="small" disabled sx={{ color: "#fda4af" }}>
-                    <AnalyticsIcon fontSize="small" />
-                  </IconButton>
-                </Tooltip>
               </TableCell>
             </TableRow>
           </TableBody>

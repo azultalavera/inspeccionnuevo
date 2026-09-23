@@ -16,8 +16,6 @@ import {
   Select,
 } from "@mui/material";
 import TuneIcon from "@mui/icons-material/Tune";
-import ChatBubbleIcon from "@mui/icons-material/ChatBubble";
-import ChatBubbleOutlineIcon from "@mui/icons-material/ChatBubbleOutlined";
 
 export default function PruebaFugaSection({
   fields = [],
@@ -242,9 +240,6 @@ export default function PruebaFugaSection({
               <TableCell sx={{ fontWeight: 900, color: "#0369a1", fontSize: "0.80rem", width: 130 }}>
                 Unidad
               </TableCell>
-              <TableCell align="center" sx={{ fontWeight: 900, color: "#0369a1", fontSize: "0.80rem", width: 70 }}>
-                Obs.
-              </TableCell>
             </TableRow>
           </TableHead>
 
@@ -253,7 +248,6 @@ export default function PruebaFugaSection({
               const medidoVal = getValue(row.medId, row.defaultMed);
               const corregidoVal = getValue(row.corrId, row.defaultCorr);
               const unidadVal = getValue(row.unitId, "µSv/h");
-              const obsVal = getObs(row.medId) || getObs(row.corrId);
 
               return (
                 <TableRow key={row.id} hover sx={{ "&:hover": { bgcolor: "#f8fafc" } }}>
@@ -322,26 +316,6 @@ export default function PruebaFugaSection({
                       <MenuItem value="µSv/h">µSv/h</MenuItem>
                       <MenuItem value="mSv/h">mSv/h</MenuItem>
                     </Select>
-                  </TableCell>
-
-                  {/* Observación */}
-                  <TableCell align="center" sx={{ py: 1.5 }}>
-                    <Tooltip title={obsVal ? `Observación: ${obsVal}` : `Observar ${row.lugar}`}>
-                      <IconButton
-                        size="small"
-                        onClick={() =>
-                          onOpenObs &&
-                          onOpenObs(row.medId, row.lugar, obsVal, "GENERAL")
-                        }
-                        sx={{ color: obsVal ? "#0ea5e9" : "#94a3b8" }}
-                      >
-                        {obsVal ? (
-                          <ChatBubbleIcon fontSize="small" />
-                        ) : (
-                          <ChatBubbleOutlineIcon fontSize="small" />
-                        )}
-                      </IconButton>
-                    </Tooltip>
                   </TableCell>
                 </TableRow>
               );
