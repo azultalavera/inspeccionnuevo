@@ -212,6 +212,7 @@ const CardFieldCheckItem = ({
   value,
   isObserved,
   onToggleObs,
+  noCheck = false,
 }) => {
   const isNoDeclarado =
     value === null ||
@@ -224,11 +225,11 @@ const CardFieldCheckItem = ({
 
   return (
     <Box sx={{ py: 0.5 }}>
-      <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 0.4 }}>
+      <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 0.4, minHeight: 24 }}>
         <Typography
           variant="caption"
           sx={{
-            color: isObserved ? "#0369a1" : "#64748b",
+            color: isObserved && !noCheck ? "#0369a1" : "#64748b",
             fontWeight: 700,
             fontSize: "0.75rem",
             textTransform: "uppercase",
@@ -237,9 +238,10 @@ const CardFieldCheckItem = ({
         >
           {label}
         </Typography>
-        <Tooltip title={isObserved ? `Quitar observación de ${label}` : `Observar ${label}`}>
-          <Box
-            onClick={() => onToggleObs(id, label, value)}
+        {!noCheck && (
+          <Tooltip title={isObserved ? `Quitar observación de ${label}` : `Observar ${label}`}>
+            <Box
+              onClick={() => onToggleObs(id, label, value)}
             sx={{
               display: "inline-flex",
               alignItems: "center",
@@ -281,6 +283,7 @@ const CardFieldCheckItem = ({
             </Typography>
           </Box>
         </Tooltip>
+        )}
       </Box>
       <Typography
         sx={{
@@ -309,7 +312,8 @@ const DatosTramiteRadiofisica = ({
   const [subTabResp, setSubTabResp] = useState("TODOS");
   const [expandedRespInst, setExpandedRespInst] = useState({ 1: true, 2: false, 3: false });
   const [expandedRespUso, setExpandedRespUso] = useState({ 1: true, 2: false, 3: false });
-  const [expandedPrestador, setExpandedPrestador] = useState(true);
+  const [expandedPadre, setExpandedPadre] = useState(true);
+  const [expandedHijo, setExpandedHijo] = useState(true);
   const [collapsedSubCards, setCollapsedSubCards] = useState({});
 
   const toggleSubCard = (cardKey) => {
@@ -346,273 +350,505 @@ const DatosTramiteRadiofisica = ({
   // 1. STEP: ESTABLECIMIENTO
   // ────────────────────────────────────────────────────────────
   if (category === "ESTABLECIMIENTO") {
+    const renderTableVal = (val) => {
+      const isNoDeclarado =
+        val === null ||
+        val === undefined ||
+        val === "" ||
+        val === "-" ||
+        val === "No declarado" ||
+        val === "No informado";
+
+      if (isNoDeclarado) {
+        return (
+          <Typography sx={{ color: "#94a3b8", fontStyle: "italic", fontSize: "0.85rem" }}>
+            No informado
+          </Typography>
+        );
+      }
+
+      return (
+        <Typography sx={{ color: "#1e293b", fontWeight: 700, fontSize: "0.88rem" }}>
+          {val}
+        </Typography>
+      );
+    };
+
+    const renderPisoDepto = (piso, depto) => {
+      const p = piso && piso !== "-" && piso !== "No informado" ? `Piso ${piso}` : "";
+      const d = depto && depto !== "-" && depto !== "No informado" ? `Dpto ${depto}` : "";
+      const combined = [p, d].filter(Boolean).join(" - ");
+
+      if (!combined) {
+        return (
+          <Typography sx={{ color: "#94a3b8", fontStyle: "italic", fontSize: "0.85rem" }}>
+            -
+          </Typography>
+        );
+      }
+
+      return (
+        <Typography sx={{ color: "#1e293b", fontWeight: 700, fontSize: "0.88rem" }}>
+          {combined}
+        </Typography>
+      );
+    };
+
     return (
       <Box sx={{ display: "flex", flexDirection: "column", gap: 3, mb: 4 }}>
-        {/* Contenedor 1: Datos generales */}
-        <EstablecimientoCard
-          id="rad_sec_datos_generales"
-          title="Datos generales"
-          icon={<ApartmentIcon sx={{ color: "#0ea5e9", fontSize: 22 }} />}
-          obs={getObs("rad_sec_datos_generales")}
-          onOpenObs={onOpenObs}
-        >
-          <CardFieldItem
-            id="rad_est_tipo_dependencia"
-            label="Tipo dependencia"
-            value={getValue("rad_est_tipo_dependencia", "PÚBLICA")}
-          />
-          <CardFieldItem
-            id="rad_est_denominacion"
-            label="Denominación"
-            value={getValue("rad_est_denominacion", "Hola")}
-          />
-          <CardFieldItem
-            id="rad_est_propiedad"
-            label="Propiedad"
-            value={getValue("rad_est_propiedad", "Molina Martin Roberto")}
-          />
-          <CardFieldItem
-            id="rad_est_cuit"
-            label="CUIT"
-            value={getValue("rad_est_cuit", "20-39624236-3")}
-          />
-          <CardFieldItem
-            id="rad_est_hab_municipal"
-            label="Posee habilitación municipal"
-            value={getValue("rad_est_hab_municipal", "Sí")}
-          />
-        </EstablecimientoCard>
-
-        {/* Contenedor 2: Datos de contacto del establecimiento */}
-        <EstablecimientoCard
-          id="rad_sec_contacto_establecimiento"
-          title="Datos de contacto del establecimiento"
-          icon={<PhoneIcon sx={{ color: "#0ea5e9", fontSize: 22 }} />}
-          obs={getObs("rad_sec_contacto_establecimiento")}
-          onOpenObs={onOpenObs}
-        >
-          <CardFieldItem
-            id="rad_est_celular"
-            label="Celular"
-            value={getValue("rad_est_celular", "3516123456")}
-          />
-          <CardFieldItem
-            id="rad_est_telefono"
-            label="Teléfono"
-            value={getValue("rad_est_telefono", null)}
-          />
-          <CardFieldItem
-            id="rad_est_correo"
-            label="Correo Electrónico"
-            value={getValue("rad_est_correo", "aaaa@gmail.com")}
-          />
-          <CardFieldItem
-            id="rad_est_celular_alt"
-            label="Celular Alternativo"
-            value={getValue("rad_est_celular_alt", null)}
-          />
-          <CardFieldItem
-            id="rad_est_telefono_alt"
-            label="Teléfono Alternativo"
-            value={getValue("rad_est_telefono_alt", null)}
-          />
-          <CardFieldItem
-            id="rad_est_correo_alt"
-            label="Correo Electrónico Alternativo"
-            value={getValue("rad_est_correo_alt", null)}
-          />
-        </EstablecimientoCard>
-
-        {/* Contenedor 3: Domicilio del establecimiento */}
-        <EstablecimientoCard
-          id="rad_sec_domicilio_establecimiento"
-          title="Domicilio del establecimiento"
-          icon={<PlaceIcon sx={{ color: "#0ea5e9", fontSize: 22 }} />}
-          obs={getObs("rad_sec_domicilio_establecimiento")}
-          onOpenObs={onOpenObs}
-        >
-          <CardFieldItem
-            id="rad_est_calle"
-            label="Calle"
-            value={getValue("rad_est_calle", "Chacabuco")}
-          />
-          <CardFieldItem
-            id="rad_est_numero"
-            label="Número"
-            value={getValue("rad_est_numero", "10")}
-          />
-          <CardFieldItem
-            id="rad_est_barrio"
-            label="Barrio"
-            value={getValue("rad_est_barrio", "Centro")}
-          />
-          <CardFieldItem
-            id="rad_est_piso"
-            label="Piso"
-            value={getValue("rad_est_piso", null)}
-          />
-          <CardFieldItem
-            id="rad_est_depto"
-            label="Depto"
-            value={getValue("rad_est_depto", null)}
-          />
-          <CardFieldItem
-            id="rad_est_cp"
-            label="Código Postal"
-            value={getValue("rad_est_cp", "5000")}
-          />
-          <CardFieldItem
-            id="rad_est_provincia"
-            label="Provincia"
-            value={getValue("rad_est_provincia", "CORDOBA")}
-          />
-          <CardFieldItem
-            id="rad_est_departamento"
-            label="Departamento"
-            value={getValue("rad_est_departamento", "CAPITAL")}
-          />
-          <CardFieldItem
-            id="rad_est_localidad"
-            label="Localidad"
-            value={getValue("rad_est_localidad", "CORDOBA")}
-          />
-        </EstablecimientoCard>
-
-        {/* Contenedor 4: Datos de contacto del propietario */}
-        <EstablecimientoCard
-          id="rad_sec_contacto_propietario"
-          title="Datos de contacto del propietario"
-          icon={<PersonIcon sx={{ color: "#0ea5e9", fontSize: 22 }} />}
-          obs={getObs("rad_sec_contacto_propietario")}
-          onOpenObs={onOpenObs}
-        >
-          <CardFieldItem
-            id="rad_prop_celular"
-            label="Celular"
-            value={getValue("rad_prop_celular", "000000")}
-          />
-          <CardFieldItem
-            id="rad_prop_telefono"
-            label="Teléfono"
-            value={getValue("rad_prop_telefono", null)}
-          />
-          <CardFieldItem
-            id="rad_prop_correo"
-            label="Correo Electrónico"
-            value={getValue("rad_prop_correo", "martinmolina1379@gmail.com")}
-          />
-        </EstablecimientoCard>
-
-        {/* Contenedor 5: Domicilio del propietario */}
-        <EstablecimientoCard
-          id="rad_sec_domicilio_propietario"
-          title="Domicilio del propietario"
-          icon={<PlaceIcon sx={{ color: "#0ea5e9", fontSize: 22 }} />}
-          obs={getObs("rad_sec_domicilio_propietario")}
-          onOpenObs={onOpenObs}
-        >
-          <CardFieldItem
-            id="rad_prop_calle"
-            label="Calle"
-            value={getValue("rad_prop_calle", "Moyano")}
-          />
-          <CardFieldItem
-            id="rad_prop_numero"
-            label="Número"
-            value={getValue("rad_prop_numero", "1182")}
-          />
-          <CardFieldItem
-            id="rad_prop_barrio"
-            label="Barrio"
-            value={getValue("rad_prop_barrio", "Nueva Córdoba")}
-          />
-          <CardFieldItem
-            id="rad_prop_piso"
-            label="Piso"
-            value={getValue("rad_prop_piso", null)}
-          />
-          <CardFieldItem
-            id="rad_prop_depto"
-            label="Depto"
-            value={getValue("rad_prop_depto", null)}
-          />
-          <CardFieldItem
-            id="rad_prop_cp"
-            label="Código Postal"
-            value={getValue("rad_prop_cp", "5016")}
-          />
-          <CardFieldItem
-            id="rad_prop_provincia"
-            label="Provincia"
-            value={getValue("rad_prop_provincia", "CORDOBA")}
-          />
-          <CardFieldItem
-            id="rad_prop_departamento"
-            label="Departamento"
-            value={getValue("rad_prop_departamento", "CAPITAL")}
-          />
-          <CardFieldItem
-            id="rad_prop_localidad"
-            label="Localidad"
-            value={getValue("rad_prop_localidad", "CORDOBA")}
-          />
-        </EstablecimientoCard>
-
-        {/* Contenedor 6: Prestador de servicio (desplegable) */}
+        {/* ──────────────────────────────────────────────────────────── */}
+        {/* ACORDEÓN: DATOS DEL TRÁMITE PADRE (ESTABLECIMIENTO BASE) */}
+        {/* ──────────────────────────────────────────────────────────── */}
         <Paper
           elevation={0}
           sx={{
             border: "1px solid #e2e8f0",
-            borderRadius: 4,
+            borderRadius: 3.5,
             overflow: "hidden",
             bgcolor: "#ffffff",
           }}
         >
-          {/* Header del desplegable Prestador de servicio */}
+          {/* Header desplegable Trámite Padre */}
           <Box
-            onClick={() => setExpandedPrestador((prev) => !prev)}
+            onClick={() => setExpandedPadre((prev) => !prev)}
             sx={{
-              bgcolor: expandedPrestador ? "#f8fafc" : "#ffffff",
+              bgcolor: "#f8fafc",
               px: 2.5,
               py: 1.8,
-              borderBottom: expandedPrestador ? "1px solid #e2e8f0" : "none",
+              borderBottom: expandedPadre ? "1px solid #e2e8f0" : "none",
               display: "flex",
               justifyContent: "space-between",
               alignItems: "center",
               cursor: "pointer",
               userSelect: "none",
-              transition: "all 0.2s ease-in-out",
+              transition: "all 0.15s ease",
+              "&:hover": { bgcolor: "#f1f5f9" },
             }}
           >
             <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-              <ApartmentIcon sx={{ color: "#0ea5e9", fontSize: 24 }} />
-              <Typography
-                sx={{
-                  fontWeight: 800,
-                  color: "#1e293b",
-                  fontSize: "0.95rem",
-                  textTransform: "uppercase",
-                }}
-              >
-                Prestador de servicio
-              </Typography>
+              <DomainIcon sx={{ color: "#475569", fontSize: 24 }} />
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
+                <Typography
+                  sx={{
+                    fontWeight: 800,
+                    color: "#1e293b",
+                    fontSize: "0.95rem",
+                    textTransform: "uppercase",
+                    letterSpacing: 0.3,
+                  }}
+                >
+                  Datos del Trámite Padre
+                </Typography>
+                <Chip
+                  label="TRÁMITE PADRE"
+                  size="small"
+                  sx={{
+                    fontWeight: 800,
+                    fontSize: "0.68rem",
+                    bgcolor: "#f1f5f9",
+                    color: "#475569",
+                    border: "1px solid #cbd5e1",
+                    height: 20,
+                  }}
+                />
+              </Box>
             </Box>
 
             <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+              <Typography variant="caption" sx={{ color: "#64748b", fontWeight: 600, display: { xs: "none", sm: "block" } }}>
+                5 apartados
+              </Typography>
+              <IconButton size="small" sx={{ color: "#64748b" }}>
+                {expandedPadre ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
+              </IconButton>
+            </Box>
+          </Box>
+
+          {/* Contenido desplegable Trámite Padre: las 5 tablas */}
+          <Collapse in={expandedPadre}>
+            <Box sx={{ p: { xs: 2, sm: 2.5 }, bgcolor: "#ffffff", display: "flex", flexDirection: "column", gap: 2.5 }}>
+              {/* Contenedor 1: Datos generales */}
+              <EstablecimientoCard
+                id="rad_sec_datos_generales"
+                title="Datos generales"
+                icon={<ApartmentIcon sx={{ color: "#64748b", fontSize: 20 }} />}
+                obs={getObs("rad_sec_datos_generales")}
+                onOpenObs={onOpenObs}
+                noGrid={true}
+              >
+                <TableContainer>
+                  <Table size="small">
+                    <TableHead>
+                      <TableRow sx={{ bgcolor: "#f8fafc" }}>
+                        <TableCell sx={{ fontWeight: 800, color: "#475569", fontSize: "0.76rem", py: 1.4, letterSpacing: 0.3 }}>
+                          DENOMINACIÓN
+                        </TableCell>
+                        <TableCell sx={{ fontWeight: 800, color: "#475569", fontSize: "0.76rem", letterSpacing: 0.3 }}>
+                          TIPO DEPENDENCIA
+                        </TableCell>
+                        <TableCell sx={{ fontWeight: 800, color: "#475569", fontSize: "0.76rem", letterSpacing: 0.3 }}>
+                          PROPIEDAD
+                        </TableCell>
+                        <TableCell sx={{ fontWeight: 800, color: "#475569", fontSize: "0.76rem", letterSpacing: 0.3 }}>
+                          CUIT
+                        </TableCell>
+                        <TableCell align="center" sx={{ fontWeight: 800, color: "#475569", fontSize: "0.76rem", letterSpacing: 0.3 }}>
+                          HABILITACIÓN MUNICIPAL
+                        </TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      <TableRow hover sx={{ "&:hover": { bgcolor: "#f8fafc" } }}>
+                        <TableCell sx={{ py: 1.6 }}>
+                          <Typography sx={{ fontWeight: 800, color: "#1e293b", fontSize: "0.90rem" }}>
+                            {getValue("rad_est_denominacion", "Hola")}
+                          </Typography>
+                        </TableCell>
+                        <TableCell sx={{ py: 1.6 }}>
+                          <Chip
+                            label={getValue("rad_est_tipo_dependencia", "PÚBLICA")}
+                            size="small"
+                            sx={{ fontWeight: 800, fontSize: "0.72rem", bgcolor: "#f1f5f9", color: "#334155", border: "1px solid #e2e8f0" }}
+                          />
+                        </TableCell>
+                        <TableCell sx={{ py: 1.6 }}>
+                          <Typography sx={{ fontWeight: 700, color: "#334155", fontSize: "0.86rem" }}>
+                            {getValue("rad_est_propiedad", "Molina Martin Roberto")}
+                          </Typography>
+                        </TableCell>
+                        <TableCell sx={{ py: 1.6 }}>
+                          <Typography sx={{ fontWeight: 700, color: "#334155", fontSize: "0.86rem" }}>
+                            {getValue("rad_est_cuit", "20-39624236-3")}
+                          </Typography>
+                        </TableCell>
+                        <TableCell align="center" sx={{ py: 1.6 }}>
+                          <Chip
+                            label={getValue("rad_est_hab_municipal", "Sí")}
+                            size="small"
+                            sx={{
+                              fontWeight: 800,
+                              fontSize: "0.72rem",
+                              bgcolor: "#f1f5f9",
+                              color: "#334155",
+                              border: "1px solid #e2e8f0",
+                            }}
+                          />
+                        </TableCell>
+                      </TableRow>
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </EstablecimientoCard>
+
+              {/* Contenedor 2: Datos de contacto del establecimiento */}
+              <EstablecimientoCard
+                id="rad_sec_contacto_establecimiento"
+                title="Datos de contacto del establecimiento"
+                icon={<PhoneIcon sx={{ color: "#64748b", fontSize: 20 }} />}
+                obs={getObs("rad_sec_contacto_establecimiento")}
+                onOpenObs={onOpenObs}
+                noGrid={true}
+              >
+                <TableContainer>
+                  <Table size="small">
+                    <TableHead>
+                      <TableRow sx={{ bgcolor: "#f8fafc" }}>
+                        <TableCell sx={{ fontWeight: 800, color: "#475569", fontSize: "0.76rem", py: 1.4, letterSpacing: 0.3 }}>
+                          CELULAR
+                        </TableCell>
+                        <TableCell sx={{ fontWeight: 800, color: "#475569", fontSize: "0.76rem", letterSpacing: 0.3 }}>
+                          TELÉFONO
+                        </TableCell>
+                        <TableCell sx={{ fontWeight: 800, color: "#475569", fontSize: "0.76rem", letterSpacing: 0.3 }}>
+                          CORREO ELECTRÓNICO
+                        </TableCell>
+                        <TableCell sx={{ fontWeight: 800, color: "#475569", fontSize: "0.76rem", letterSpacing: 0.3 }}>
+                          CELULAR ALTERNATIVO
+                        </TableCell>
+                        <TableCell sx={{ fontWeight: 800, color: "#475569", fontSize: "0.76rem", letterSpacing: 0.3 }}>
+                          TELÉFONO ALTERNATIVO
+                        </TableCell>
+                        <TableCell sx={{ fontWeight: 800, color: "#475569", fontSize: "0.76rem", letterSpacing: 0.3 }}>
+                          CORREO ALTERNATIVO
+                        </TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      <TableRow hover sx={{ "&:hover": { bgcolor: "#f8fafc" } }}>
+                        <TableCell sx={{ py: 1.6 }}>
+                          {renderTableVal(getValue("rad_est_celular", "3516123456"))}
+                        </TableCell>
+                        <TableCell sx={{ py: 1.6 }}>
+                          {renderTableVal(getValue("rad_est_telefono", null))}
+                        </TableCell>
+                        <TableCell sx={{ py: 1.6 }}>
+                          {renderTableVal(getValue("rad_est_correo", "aaaa@gmail.com"))}
+                        </TableCell>
+                        <TableCell sx={{ py: 1.6 }}>
+                          {renderTableVal(getValue("rad_est_celular_alt", null))}
+                        </TableCell>
+                        <TableCell sx={{ py: 1.6 }}>
+                          {renderTableVal(getValue("rad_est_telefono_alt", null))}
+                        </TableCell>
+                        <TableCell sx={{ py: 1.6 }}>
+                          {renderTableVal(getValue("rad_est_correo_alt", null))}
+                        </TableCell>
+                      </TableRow>
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </EstablecimientoCard>
+
+              {/* Contenedor 3: Domicilio del establecimiento */}
+              <EstablecimientoCard
+                id="rad_sec_domicilio_establecimiento"
+                title="Domicilio del establecimiento"
+                icon={<PlaceIcon sx={{ color: "#64748b", fontSize: 20 }} />}
+                obs={getObs("rad_sec_domicilio_establecimiento")}
+                onOpenObs={onOpenObs}
+                noGrid={true}
+              >
+                <TableContainer>
+                  <Table size="small">
+                    <TableHead>
+                      <TableRow sx={{ bgcolor: "#f8fafc" }}>
+                        <TableCell sx={{ fontWeight: 800, color: "#475569", fontSize: "0.76rem", py: 1.4, letterSpacing: 0.3 }}>
+                          CALLE Y NÚMERO
+                        </TableCell>
+                        <TableCell sx={{ fontWeight: 800, color: "#475569", fontSize: "0.76rem", letterSpacing: 0.3 }}>
+                          BARRIO
+                        </TableCell>
+                        <TableCell sx={{ fontWeight: 800, color: "#475569", fontSize: "0.76rem", letterSpacing: 0.3 }}>
+                          PISO / DEPTO
+                        </TableCell>
+                        <TableCell sx={{ fontWeight: 800, color: "#475569", fontSize: "0.76rem", letterSpacing: 0.3 }}>
+                          CÓDIGO POSTAL
+                        </TableCell>
+                        <TableCell sx={{ fontWeight: 800, color: "#475569", fontSize: "0.76rem", letterSpacing: 0.3 }}>
+                          LOCALIDAD
+                        </TableCell>
+                        <TableCell sx={{ fontWeight: 800, color: "#475569", fontSize: "0.76rem", letterSpacing: 0.3 }}>
+                          DEPARTAMENTO
+                        </TableCell>
+                        <TableCell sx={{ fontWeight: 800, color: "#475569", fontSize: "0.76rem", letterSpacing: 0.3 }}>
+                          PROVINCIA
+                        </TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      <TableRow hover sx={{ "&:hover": { bgcolor: "#f8fafc" } }}>
+                        <TableCell sx={{ py: 1.6 }}>
+                          <Typography sx={{ fontWeight: 800, color: "#1e293b", fontSize: "0.88rem" }}>
+                            {getValue("rad_est_calle", "Chacabuco")} {getValue("rad_est_numero", "10")}
+                          </Typography>
+                        </TableCell>
+                        <TableCell sx={{ py: 1.6 }}>
+                          {renderTableVal(getValue("rad_est_barrio", "Centro"))}
+                        </TableCell>
+                        <TableCell sx={{ py: 1.6 }}>
+                          {renderPisoDepto(getValue("rad_est_piso", null), getValue("rad_est_depto", null))}
+                        </TableCell>
+                        <TableCell sx={{ py: 1.6 }}>
+                          {renderTableVal(getValue("rad_est_cp", "5000"))}
+                        </TableCell>
+                        <TableCell sx={{ py: 1.6 }}>
+                          {renderTableVal(getValue("rad_est_localidad", "CORDOBA"))}
+                        </TableCell>
+                        <TableCell sx={{ py: 1.6 }}>
+                          {renderTableVal(getValue("rad_est_departamento", "CAPITAL"))}
+                        </TableCell>
+                        <TableCell sx={{ py: 1.6 }}>
+                          {renderTableVal(getValue("rad_est_provincia", "CORDOBA"))}
+                        </TableCell>
+                      </TableRow>
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </EstablecimientoCard>
+
+              {/* Contenedor 4: Datos de contacto del propietario */}
+              <EstablecimientoCard
+                id="rad_sec_contacto_propietario"
+                title="Datos de contacto del propietario"
+                icon={<PersonIcon sx={{ color: "#64748b", fontSize: 20 }} />}
+                obs={getObs("rad_sec_contacto_propietario")}
+                onOpenObs={onOpenObs}
+                noGrid={true}
+              >
+                <TableContainer>
+                  <Table size="small">
+                    <TableHead>
+                      <TableRow sx={{ bgcolor: "#f8fafc" }}>
+                        <TableCell sx={{ fontWeight: 800, color: "#475569", fontSize: "0.76rem", py: 1.4, letterSpacing: 0.3 }}>
+                          CELULAR
+                        </TableCell>
+                        <TableCell sx={{ fontWeight: 800, color: "#475569", fontSize: "0.76rem", letterSpacing: 0.3 }}>
+                          TELÉFONO
+                        </TableCell>
+                        <TableCell sx={{ fontWeight: 800, color: "#475569", fontSize: "0.76rem", letterSpacing: 0.3 }}>
+                          CORREO ELECTRÓNICO
+                        </TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      <TableRow hover sx={{ "&:hover": { bgcolor: "#f8fafc" } }}>
+                        <TableCell sx={{ py: 1.6 }}>
+                          {renderTableVal(getValue("rad_prop_celular", "000000"))}
+                        </TableCell>
+                        <TableCell sx={{ py: 1.6 }}>
+                          {renderTableVal(getValue("rad_prop_telefono", null))}
+                        </TableCell>
+                        <TableCell sx={{ py: 1.6 }}>
+                          {renderTableVal(getValue("rad_prop_correo", "martinmolina1379@gmail.com"))}
+                        </TableCell>
+                      </TableRow>
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </EstablecimientoCard>
+
+              {/* Contenedor 5: Domicilio del propietario */}
+              <EstablecimientoCard
+                id="rad_sec_domicilio_propietario"
+                title="Domicilio del propietario"
+                icon={<PlaceIcon sx={{ color: "#64748b", fontSize: 20 }} />}
+                obs={getObs("rad_sec_domicilio_propietario")}
+                onOpenObs={onOpenObs}
+                noGrid={true}
+              >
+                <TableContainer>
+                  <Table size="small">
+                    <TableHead>
+                      <TableRow sx={{ bgcolor: "#f8fafc" }}>
+                        <TableCell sx={{ fontWeight: 800, color: "#475569", fontSize: "0.76rem", py: 1.4, letterSpacing: 0.3 }}>
+                          CALLE Y NÚMERO
+                        </TableCell>
+                        <TableCell sx={{ fontWeight: 800, color: "#475569", fontSize: "0.76rem", letterSpacing: 0.3 }}>
+                          BARRIO
+                        </TableCell>
+                        <TableCell sx={{ fontWeight: 800, color: "#475569", fontSize: "0.76rem", letterSpacing: 0.3 }}>
+                          PISO / DEPTO
+                        </TableCell>
+                        <TableCell sx={{ fontWeight: 800, color: "#475569", fontSize: "0.76rem", letterSpacing: 0.3 }}>
+                          CÓDIGO POSTAL
+                        </TableCell>
+                        <TableCell sx={{ fontWeight: 800, color: "#475569", fontSize: "0.76rem", letterSpacing: 0.3 }}>
+                          LOCALIDAD
+                        </TableCell>
+                        <TableCell sx={{ fontWeight: 800, color: "#475569", fontSize: "0.76rem", letterSpacing: 0.3 }}>
+                          DEPARTAMENTO
+                        </TableCell>
+                        <TableCell sx={{ fontWeight: 800, color: "#475569", fontSize: "0.76rem", letterSpacing: 0.3 }}>
+                          PROVINCIA
+                        </TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      <TableRow hover sx={{ "&:hover": { bgcolor: "#f8fafc" } }}>
+                        <TableCell sx={{ py: 1.6 }}>
+                          <Typography sx={{ fontWeight: 800, color: "#1e293b", fontSize: "0.88rem" }}>
+                            {getValue("rad_prop_calle", "Moyano")} {getValue("rad_prop_numero", "1182")}
+                          </Typography>
+                        </TableCell>
+                        <TableCell sx={{ py: 1.6 }}>
+                          {renderTableVal(getValue("rad_prop_barrio", "Nueva Córdoba"))}
+                        </TableCell>
+                        <TableCell sx={{ py: 1.6 }}>
+                          {renderPisoDepto(getValue("rad_prop_piso", null), getValue("rad_prop_depto", null))}
+                        </TableCell>
+                        <TableCell sx={{ py: 1.6 }}>
+                          {renderTableVal(getValue("rad_prop_cp", "5016"))}
+                        </TableCell>
+                        <TableCell sx={{ py: 1.6 }}>
+                          {renderTableVal(getValue("rad_prop_localidad", "CORDOBA"))}
+                        </TableCell>
+                        <TableCell sx={{ py: 1.6 }}>
+                          {renderTableVal(getValue("rad_prop_departamento", "CAPITAL"))}
+                        </TableCell>
+                        <TableCell sx={{ py: 1.6 }}>
+                          {renderTableVal(getValue("rad_prop_provincia", "CORDOBA"))}
+                        </TableCell>
+                      </TableRow>
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </EstablecimientoCard>
+            </Box>
+          </Collapse>
+        </Paper>
+
+        {/* ──────────────────────────────────────────────────────────── */}
+        {/* ACORDEÓN: DATOS DEL TRÁMITE HIJO (PRESTADOR DE SERVICIO)   */}
+        {/* ──────────────────────────────────────────────────────────── */}
+        <Paper
+          elevation={0}
+          sx={{
+            border: "1px solid #e2e8f0",
+            borderRadius: 3.5,
+            overflow: "hidden",
+            bgcolor: "#ffffff",
+          }}
+        >
+          {/* Header desplegable Trámite Hijo */}
+          <Box
+            onClick={() => setExpandedHijo((prev) => !prev)}
+            sx={{
+              bgcolor: "#f8fafc",
+              px: 2.5,
+              py: 1.8,
+              borderBottom: expandedHijo ? "1px solid #e2e8f0" : "none",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              cursor: "pointer",
+              userSelect: "none",
+              transition: "all 0.15s ease",
+              "&:hover": { bgcolor: "#f1f5f9" },
+            }}
+          >
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+              <ApartmentIcon sx={{ color: "#475569", fontSize: 24 }} />
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
+                <Typography
+                  sx={{
+                    fontWeight: 800,
+                    color: "#1e293b",
+                    fontSize: "0.95rem",
+                    textTransform: "uppercase",
+                    letterSpacing: 0.3,
+                  }}
+                >
+                  Datos del Trámite Hijo (Prestador de servicio)
+                </Typography>
+                <Chip
+                  label="TRÁMITE HIJO • RADIOFÍSICA"
+                  size="small"
+                  sx={{
+                    fontWeight: 800,
+                    fontSize: "0.68rem",
+                    bgcolor: "#f1f5f9",
+                    color: "#475569",
+                    border: "1px solid #cbd5e1",
+                    height: 20,
+                  }}
+                />
+              </Box>
+            </Box>
+
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
               <Tooltip title={getObs("rad_sec_prestador_servicio") ? "Ver / Editar observación" : "Observar Prestador de servicio"}>
                 <IconButton
                   size="small"
                   onClick={(e) => {
                     e.stopPropagation();
-                    onOpenObs &&
-                      onOpenObs(
-                        "rad_sec_prestador_servicio",
-                        "Prestador de servicio",
-                        getObs("rad_sec_prestador_servicio"),
-                        "ESTABLECIMIENTO"
-                      );
+                    onOpenObs(
+                      "rad_sec_prestador_servicio",
+                      "Prestador de servicio",
+                      getObs("rad_sec_prestador_servicio"),
+                      "TRAMITE"
+                    );
                   }}
-                  sx={{ color: getObs("rad_sec_prestador_servicio") ? "#0ea5e9" : "#94a3b8" }}
+                  sx={{ color: getObs("rad_sec_prestador_servicio") ? "#1e293b" : "#94a3b8" }}
                 >
                   {getObs("rad_sec_prestador_servicio") ? (
                     <ChatBubbleIcon fontSize="small" />
@@ -623,392 +859,137 @@ const DatosTramiteRadiofisica = ({
               </Tooltip>
 
               <IconButton size="small" sx={{ color: "#64748b" }}>
-                {expandedPrestador ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
+                {expandedHijo ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
               </IconButton>
             </Box>
           </Box>
 
-          {/* Contenido desplegable: las 2 cards según la foto */}
-          <Collapse in={expandedPrestador}>
-            <Box sx={{ p: { xs: 2, sm: 3 }, bgcolor: "#f8fafc", display: "flex", flexDirection: "column", gap: 3 }}>
-              
-              {/* Card 1: Datos generales del prestador del servicio */}
-              <Box sx={{ width: "100%" }}>
-                <Box
-                  onClick={() => toggleSubCard("prest_gen")}
-                  sx={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    mb: 1.5,
-                    px: 0.5,
-                    cursor: "pointer",
-                    userSelect: "none",
-                  }}
-                >
-                  <Typography
-                    sx={{
-                      fontWeight: 800,
-                      color: "#0284c7",
-                      fontSize: "1.02rem",
-                    }}
-                  >
-                    Datos generales del prestador del servicio
-                  </Typography>
-                  <IconButton size="small" sx={{ color: "#0284c7", p: 0.5 }}>
-                    {collapsedSubCards["prest_gen"] ? (
-                      <KeyboardArrowDownIcon />
-                    ) : (
-                      <KeyboardArrowUpIcon />
-                    )}
-                  </IconButton>
-                </Box>
-
-                <Collapse in={!collapsedSubCards["prest_gen"]}>
-                  <Paper
-                    elevation={0}
-                    sx={{
-                      p: { xs: 2, sm: 3 },
-                      border: "1px solid #e2e8f0",
-                      borderRadius: 2.5,
-                      bgcolor: "#ffffff",
-                    }}
-                  >
-                    <Box
-                      sx={{
-                        display: "grid",
-                        gridTemplateColumns: { xs: "1fr", sm: "repeat(3, 1fr)" },
-                        gap: { xs: 2, sm: 3 },
-                      }}
-                    >
-                      {/* Nombre/s */}
-                      <Box>
-                        <Typography
-                          variant="caption"
-                          sx={{
-                            color: "#64748b",
-                            fontWeight: 600,
-                            fontSize: "0.78rem",
-                            display: "block",
-                            mb: 0.8,
-                          }}
-                        >
-                          Nombre/s
-                        </Typography>
-                        <Box sx={{ borderBottom: "1px dashed #cbd5e1", pb: 0.8 }}>
-                          <Typography sx={{ color: "#1e293b", fontWeight: 700, fontSize: "0.92rem" }}>
+          {/* Contenido desplegable Trámite Hijo: las 2 tablas */}
+          <Collapse in={expandedHijo}>
+            <Box sx={{ p: { xs: 2, sm: 2.5 }, bgcolor: "#ffffff", display: "flex", flexDirection: "column", gap: 2.5 }}>
+              {/* Tabla 1: Datos generales del prestador del servicio */}
+              <EstablecimientoCard
+                id="rad_prest_gen"
+                title="Datos generales del prestador del servicio"
+                icon={<PersonIcon sx={{ color: "#64748b", fontSize: 20 }} />}
+                obs={getObs("rad_prest_gen")}
+                onOpenObs={onOpenObs}
+                noGrid={true}
+              >
+                <TableContainer>
+                  <Table size="small">
+                    <TableHead>
+                      <TableRow sx={{ bgcolor: "#f8fafc" }}>
+                        <TableCell sx={{ fontWeight: 800, color: "#475569", fontSize: "0.76rem", py: 1.4, letterSpacing: 0.3 }}>
+                          NOMBRE/S
+                        </TableCell>
+                        <TableCell sx={{ fontWeight: 800, color: "#475569", fontSize: "0.76rem", letterSpacing: 0.3 }}>
+                          APELLIDO/S
+                        </TableCell>
+                        <TableCell sx={{ fontWeight: 800, color: "#475569", fontSize: "0.76rem", letterSpacing: 0.3 }}>
+                          CUIL
+                        </TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      <TableRow hover sx={{ "&:hover": { bgcolor: "#f8fafc" } }}>
+                        <TableCell sx={{ py: 1.6 }}>
+                          <Typography sx={{ fontWeight: 800, color: "#1e293b", fontSize: "0.90rem" }}>
                             {getValue("rad_prest_nombre", "Maximo Samir")}
                           </Typography>
-                        </Box>
-                      </Box>
-
-                      {/* Apellido/s */}
-                      <Box>
-                        <Typography
-                          variant="caption"
-                          sx={{
-                            color: "#64748b",
-                            fontWeight: 600,
-                            fontSize: "0.78rem",
-                            display: "block",
-                            mb: 0.8,
-                          }}
-                        >
-                          Apellido/s
-                        </Typography>
-                        <Box sx={{ borderBottom: "1px dashed #cbd5e1", pb: 0.8 }}>
-                          <Typography sx={{ color: "#1e293b", fontWeight: 700, fontSize: "0.92rem" }}>
+                        </TableCell>
+                        <TableCell sx={{ py: 1.6 }}>
+                          <Typography sx={{ fontWeight: 800, color: "#1e293b", fontSize: "0.90rem" }}>
                             {getValue("rad_prest_apellido", "Tabares")}
                           </Typography>
-                        </Box>
-                      </Box>
-
-                      {/* CUIL */}
-                      <Box>
-                        <Typography
-                          variant="caption"
-                          sx={{
-                            color: "#64748b",
-                            fontWeight: 600,
-                            fontSize: "0.78rem",
-                            display: "block",
-                            mb: 0.8,
-                          }}
-                        >
-                          CUIL
-                        </Typography>
-                        <Box sx={{ borderBottom: "1px dashed #cbd5e1", pb: 0.8 }}>
-                          <Typography sx={{ color: "#1e293b", fontWeight: 700, fontSize: "0.92rem" }}>
+                        </TableCell>
+                        <TableCell sx={{ py: 1.6 }}>
+                          <Typography sx={{ fontWeight: 700, color: "#334155", fontSize: "0.86rem" }}>
                             {getValue("rad_prest_cuil", "20460337691")}
                           </Typography>
-                        </Box>
-                      </Box>
-                    </Box>
-                  </Paper>
-                </Collapse>
-              </Box>
+                        </TableCell>
+                      </TableRow>
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </EstablecimientoCard>
 
-              {/* Card 2: Domicilio del prestador del servicio */}
-              <Box sx={{ width: "100%" }}>
-                <Box
-                  onClick={() => toggleSubCard("prest_dom")}
-                  sx={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    mb: 1.5,
-                    px: 0.5,
-                    cursor: "pointer",
-                    userSelect: "none",
-                  }}
-                >
-                  <Typography
-                    sx={{
-                      fontWeight: 800,
-                      color: "#0284c7",
-                      fontSize: "1.02rem",
-                    }}
-                  >
-                    Domicilio del prestador del servicio
-                  </Typography>
-                  <IconButton size="small" sx={{ color: "#0284c7", p: 0.5 }}>
-                    {collapsedSubCards["prest_dom"] ? (
-                      <KeyboardArrowDownIcon />
-                    ) : (
-                      <KeyboardArrowUpIcon />
-                    )}
-                  </IconButton>
-                </Box>
-
-                <Collapse in={!collapsedSubCards["prest_dom"]}>
-                  <Paper
-                    elevation={0}
-                    sx={{
-                      p: { xs: 2, sm: 3 },
-                      border: "1px solid #e2e8f0",
-                      borderRadius: 2.5,
-                      bgcolor: "#ffffff",
-                    }}
-                  >
-                    {/* Fila 1: Calle, Número, Barrio */}
-                    <Box
-                      sx={{
-                        display: "grid",
-                        gridTemplateColumns: { xs: "1fr", sm: "repeat(3, 1fr)" },
-                        gap: { xs: 2, sm: 3 },
-                        mb: 3,
-                      }}
-                    >
-                      <Box>
-                        <Typography
-                          variant="caption"
-                          sx={{
-                            color: "#64748b",
-                            fontWeight: 600,
-                            fontSize: "0.78rem",
-                            display: "block",
-                            mb: 0.8,
-                          }}
-                        >
-                          Calle
-                        </Typography>
-                        <Box sx={{ borderBottom: "1px dashed #cbd5e1", pb: 0.8 }}>
-                          <Typography sx={{ color: "#1e293b", fontWeight: 700, fontSize: "0.92rem" }}>
-                            {getValue("rad_prest_calle", "No informado")}
+              {/* Tabla 2: Domicilio del prestador del servicio */}
+              <EstablecimientoCard
+                id="rad_prest_dom"
+                title="Domicilio del prestador del servicio"
+                icon={<PlaceIcon sx={{ color: "#64748b", fontSize: 20 }} />}
+                obs={getObs("rad_prest_dom")}
+                onOpenObs={onOpenObs}
+                noGrid={true}
+              >
+                <TableContainer>
+                  <Table size="small">
+                    <TableHead>
+                      <TableRow sx={{ bgcolor: "#f8fafc" }}>
+                        <TableCell sx={{ fontWeight: 800, color: "#475569", fontSize: "0.76rem", py: 1.4, letterSpacing: 0.3 }}>
+                          CALLE Y NÚMERO
+                        </TableCell>
+                        <TableCell sx={{ fontWeight: 800, color: "#475569", fontSize: "0.76rem", letterSpacing: 0.3 }}>
+                          BARRIO
+                        </TableCell>
+                        <TableCell sx={{ fontWeight: 800, color: "#475569", fontSize: "0.76rem", letterSpacing: 0.3 }}>
+                          PISO / DEPTO
+                        </TableCell>
+                        <TableCell sx={{ fontWeight: 800, color: "#475569", fontSize: "0.76rem", letterSpacing: 0.3 }}>
+                          CÓDIGO POSTAL
+                        </TableCell>
+                        <TableCell sx={{ fontWeight: 800, color: "#475569", fontSize: "0.76rem", letterSpacing: 0.3 }}>
+                          LOCALIDAD
+                        </TableCell>
+                        <TableCell sx={{ fontWeight: 800, color: "#475569", fontSize: "0.76rem", letterSpacing: 0.3 }}>
+                          DEPARTAMENTO
+                        </TableCell>
+                        <TableCell sx={{ fontWeight: 800, color: "#475569", fontSize: "0.76rem", letterSpacing: 0.3 }}>
+                          PROVINCIA
+                        </TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      <TableRow hover sx={{ "&:hover": { bgcolor: "#f8fafc" } }}>
+                        <TableCell sx={{ py: 1.6 }}>
+                          <Typography sx={{ fontWeight: 800, color: "#1e293b", fontSize: "0.88rem" }}>
+                            {getValue("rad_prest_calle", "No informado") !== "No informado"
+                              ? `${getValue("rad_prest_calle", "")} ${getValue("rad_prest_numero", "")}`.trim()
+                              : "No informado"}
                           </Typography>
-                        </Box>
-                      </Box>
-
-                      <Box>
-                        <Typography
-                          variant="caption"
-                          sx={{
-                            color: "#64748b",
-                            fontWeight: 600,
-                            fontSize: "0.78rem",
-                            display: "block",
-                            mb: 0.8,
-                          }}
-                        >
-                          Número
-                        </Typography>
-                        <Box sx={{ borderBottom: "1px dashed #cbd5e1", pb: 0.8 }}>
-                          <Typography sx={{ color: "#1e293b", fontWeight: 700, fontSize: "0.92rem" }}>
-                            {getValue("rad_prest_numero", "No informado")}
-                          </Typography>
-                        </Box>
-                      </Box>
-
-                      <Box>
-                        <Typography
-                          variant="caption"
-                          sx={{
-                            color: "#64748b",
-                            fontWeight: 600,
-                            fontSize: "0.78rem",
-                            display: "block",
-                            mb: 0.8,
-                          }}
-                        >
-                          Barrio
-                        </Typography>
-                        <Box sx={{ borderBottom: "1px dashed #cbd5e1", pb: 0.8 }}>
-                          <Typography sx={{ color: "#1e293b", fontWeight: 700, fontSize: "0.92rem" }}>
-                            {getValue("rad_prest_barrio", "No informado")}
-                          </Typography>
-                        </Box>
-                      </Box>
-                    </Box>
-
-                    {/* Fila 2: Piso, Depto, Código postal */}
-                    <Box
-                      sx={{
-                        display: "grid",
-                        gridTemplateColumns: { xs: "1fr", sm: "repeat(3, 1fr)" },
-                        gap: { xs: 2, sm: 3 },
-                        mb: 3,
-                      }}
-                    >
-                      <Box>
-                        <Typography
-                          variant="caption"
-                          sx={{
-                            color: "#64748b",
-                            fontWeight: 600,
-                            fontSize: "0.78rem",
-                            display: "block",
-                            mb: 0.8,
-                          }}
-                        >
-                          Piso
-                        </Typography>
-                        <Box sx={{ borderBottom: "1px dashed #cbd5e1", pb: 0.8 }}>
-                          <Typography sx={{ color: "#1e293b", fontWeight: 700, fontSize: "0.92rem" }}>
-                            {getValue("rad_prest_piso", "No informado")}
-                          </Typography>
-                        </Box>
-                      </Box>
-
-                      <Box>
-                        <Typography
-                          variant="caption"
-                          sx={{
-                            color: "#64748b",
-                            fontWeight: 600,
-                            fontSize: "0.78rem",
-                            display: "block",
-                            mb: 0.8,
-                          }}
-                        >
-                          Depto
-                        </Typography>
-                        <Box sx={{ borderBottom: "1px dashed #cbd5e1", pb: 0.8 }}>
-                          <Typography sx={{ color: "#1e293b", fontWeight: 700, fontSize: "0.92rem" }}>
-                            {getValue("rad_prest_depto", "No informado")}
-                          </Typography>
-                        </Box>
-                      </Box>
-
-                      <Box>
-                        <Typography
-                          variant="caption"
-                          sx={{
-                            color: "#64748b",
-                            fontWeight: 600,
-                            fontSize: "0.78rem",
-                            display: "block",
-                            mb: 0.8,
-                          }}
-                        >
-                          Código postal
-                        </Typography>
-                        <Box sx={{ borderBottom: "1px dashed #cbd5e1", pb: 0.8 }}>
-                          <Typography sx={{ color: "#1e293b", fontWeight: 700, fontSize: "0.92rem" }}>
-                            {getValue("rad_prest_cp", "No informado")}
-                          </Typography>
-                        </Box>
-                      </Box>
-                    </Box>
-
-                    {/* Fila 3: Provincia, Departamento, Localidad */}
-                    <Box
-                      sx={{
-                        display: "grid",
-                        gridTemplateColumns: { xs: "1fr", sm: "repeat(3, 1fr)" },
-                        gap: { xs: 2, sm: 3 },
-                      }}
-                    >
-                      <Box>
-                        <Typography
-                          variant="caption"
-                          sx={{
-                            color: "#64748b",
-                            fontWeight: 600,
-                            fontSize: "0.78rem",
-                            display: "block",
-                            mb: 0.8,
-                          }}
-                        >
-                          Provincia
-                        </Typography>
-                        <Box sx={{ borderBottom: "1px dashed #cbd5e1", pb: 0.8 }}>
-                          <Typography sx={{ color: "#1e293b", fontWeight: 700, fontSize: "0.92rem" }}>
-                            {getValue("rad_prest_provincia", "No informado")}
-                          </Typography>
-                        </Box>
-                      </Box>
-
-                      <Box>
-                        <Typography
-                          variant="caption"
-                          sx={{
-                            color: "#64748b",
-                            fontWeight: 600,
-                            fontSize: "0.78rem",
-                            display: "block",
-                            mb: 0.8,
-                          }}
-                        >
-                          Departamento
-                        </Typography>
-                        <Box sx={{ borderBottom: "1px dashed #cbd5e1", pb: 0.8 }}>
-                          <Typography sx={{ color: "#1e293b", fontWeight: 700, fontSize: "0.92rem" }}>
-                            {getValue("rad_prest_departamento", "No informado")}
-                          </Typography>
-                        </Box>
-                      </Box>
-
-                      <Box>
-                        <Typography
-                          variant="caption"
-                          sx={{
-                            color: "#64748b",
-                            fontWeight: 600,
-                            fontSize: "0.78rem",
-                            display: "block",
-                            mb: 0.8,
-                          }}
-                        >
-                          Localidad
-                        </Typography>
-                        <Box sx={{ borderBottom: "1px dashed #cbd5e1", pb: 0.8 }}>
-                          <Typography sx={{ color: "#1e293b", fontWeight: 700, fontSize: "0.92rem" }}>
-                            {getValue("rad_prest_localidad", "No informado")}
-                          </Typography>
-                        </Box>
-                      </Box>
-                    </Box>
-
-                  </Paper>
-                </Collapse>
-              </Box>
-
+                        </TableCell>
+                        <TableCell sx={{ py: 1.6 }}>
+                          {renderTableVal(getValue("rad_prest_barrio", "No informado"))}
+                        </TableCell>
+                        <TableCell sx={{ py: 1.6 }}>
+                          {renderPisoDepto(getValue("rad_prest_piso", null), getValue("rad_prest_depto", null))}
+                        </TableCell>
+                        <TableCell sx={{ py: 1.6 }}>
+                          {renderTableVal(getValue("rad_prest_cp", "No informado"))}
+                        </TableCell>
+                        <TableCell sx={{ py: 1.6 }}>
+                          {renderTableVal(getValue("rad_prest_localidad", "No informado"))}
+                        </TableCell>
+                        <TableCell sx={{ py: 1.6 }}>
+                          {renderTableVal(getValue("rad_prest_departamento", "No informado"))}
+                        </TableCell>
+                        <TableCell sx={{ py: 1.6 }}>
+                          {renderTableVal(getValue("rad_prest_provincia", "No informado"))}
+                        </TableCell>
+                      </TableRow>
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </EstablecimientoCard>
             </Box>
           </Collapse>
         </Paper>
       </Box>
     );
   }
+
+
 
   // ────────────────────────────────────────────────────────────
   // STEP: RESPONSABLE (ex RESPONSABLE DE USO / DIRECTOR TÉCNICO)
@@ -1471,6 +1452,8 @@ const DatosTramiteRadiofisica = ({
                   const isExpanded = !!expandedRespUso[resp.id];
                   const docObsKey = `rad_resp_uso_${resp.id}_doc_obs`;
                   const docObs = getObs(docObsKey);
+                  const presenteFieldId = `rad_resp_uso_${resp.id}_presente`;
+                  const presenteVal = getValue(presenteFieldId, null);
 
                   return (
                     <Paper
@@ -1500,6 +1483,8 @@ const DatosTramiteRadiofisica = ({
                           cursor: "pointer",
                           borderBottom: isExpanded ? "1px solid #e2e8f0" : "none",
                           userSelect: "none",
+                          flexWrap: "wrap",
+                          gap: 1.5,
                         }}
                       >
                         <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
@@ -1508,8 +1493,8 @@ const DatosTramiteRadiofisica = ({
                               width: 32,
                               height: 32,
                               borderRadius: "50%",
-                              bgcolor: isExpanded ? "#e0f2fe" : "#f1f5f9",
-                              color: isExpanded ? "#0369a1" : "#64748b",
+                              bgcolor: isExpanded ? "#e2e8f0" : "#f1f5f9",
+                              color: "#334155",
                               display: "flex",
                               alignItems: "center",
                               justifyContent: "center",
@@ -1520,18 +1505,74 @@ const DatosTramiteRadiofisica = ({
                             {resp.id}
                           </Box>
                           <Box>
-                            <Typography sx={{ fontWeight: 800, color: "#1e293b", fontSize: "0.95rem" }}>
-                              {resp.titulo}
-                            </Typography>
+                            <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
+                              <Typography sx={{ fontWeight: 800, color: "#1e293b", fontSize: "0.95rem" }}>
+                                {resp.titulo}
+                              </Typography>
+                              {presenteVal && (
+                                <Chip
+                                  label={presenteVal === "SI" ? "PRESENTE" : "NO PRESENTE"}
+                                  size="small"
+                                  sx={{
+                                    height: 20,
+                                    fontSize: "0.68rem",
+                                    fontWeight: 900,
+                                    bgcolor: presenteVal === "SI" ? "#dcfce7" : "#fee2e2",
+                                    color: presenteVal === "SI" ? "#166534" : "#991b1b",
+                                    border: `1px solid ${presenteVal === "SI" ? "#86efac" : "#fecaca"}`,
+                                  }}
+                                />
+                              )}
+                            </Box>
                             <Typography variant="caption" sx={{ color: "#64748b", fontWeight: 600 }}>
                               {resp.nombre} {resp.apellido} • Matrícula: {resp.matricula} • CUIL: {resp.cuil}
                             </Typography>
                           </Box>
                         </Box>
 
-                        <IconButton size="small" sx={{ color: "#64748b" }}>
-                          {isExpanded ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
-                        </IconButton>
+                        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }} onClick={(e) => e.stopPropagation()}>
+                          <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
+                            <Typography sx={{ fontSize: "0.80rem", fontWeight: 700, color: "#475569" }}>
+                              ¿Se encuentra al momento de la inspección?
+                            </Typography>
+                            <ToggleButtonGroup
+                              size="small"
+                              value={presenteVal}
+                              exclusive
+                              onChange={(e, val) => {
+                                handleToggle(presenteFieldId, val);
+                              }}
+                              sx={{
+                                height: 32,
+                                bgcolor: "#ffffff",
+                                border: "1px solid #cbd5e1",
+                                borderRadius: 1.5,
+                                "& .MuiToggleButton-root": {
+                                  px: 1.8,
+                                  py: 0,
+                                  fontSize: "0.75rem",
+                                  fontWeight: 800,
+                                  border: "none",
+                                  color: "#64748b",
+                                  "&.Mui-selected": {
+                                    bgcolor: presenteVal === "SI" ? "#dcfce7" : "#fee2e2",
+                                    color: presenteVal === "SI" ? "#166534" : "#991b1b",
+                                    "&:hover": {
+                                      bgcolor: presenteVal === "SI" ? "#bbf7d0" : "#fecaca",
+                                    },
+                                  },
+                                },
+                              }}
+                            >
+                              <ToggleButton value="SI">SÍ</ToggleButton>
+                              <ToggleButton value="NO">NO</ToggleButton>
+                            </ToggleButtonGroup>
+                          </Box>
+
+                          <IconButton size="small" sx={{ color: "#64748b" }} onClick={() => toggleRespUso(resp.id)}>
+                            {isExpanded ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
+                          </IconButton>
+                        </Box>
                       </Box>
 
                       {/* Contenido desplegable: Mini cards según la imagen */}
@@ -1846,6 +1887,73 @@ const DatosTramiteRadiofisica = ({
                             </Paper>
                           </Box>
 
+                          {/* 4. Verificación de Presencia en Inspección */}
+                          <Box sx={{ width: "100%" }}>
+                            <Paper
+                              elevation={0}
+                              sx={{
+                                p: 2,
+                                border: "1px solid #e2e8f0",
+                                borderRadius: 2.5,
+                                bgcolor: "#ffffff",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "space-between",
+                                flexWrap: "wrap",
+                                gap: 2,
+                              }}
+                            >
+                              <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+                                <CheckCircleIcon
+                                  sx={{
+                                    color: presenteVal === "SI" ? "#16a34a" : presenteVal === "NO" ? "#dc2626" : "#94a3b8",
+                                    fontSize: 26,
+                                  }}
+                                />
+                                <Box>
+                                  <Typography sx={{ fontWeight: 800, color: "#1e293b", fontSize: "0.92rem" }}>
+                                    Constatación de presencia en la inspección
+                                  </Typography>
+                                  <Typography variant="caption" sx={{ color: "#64748b", fontWeight: 600 }}>
+                                    ¿El profesional responsable de uso se encuentra presente al momento de la inspección?
+                                  </Typography>
+                                </Box>
+                              </Box>
+
+                              <ToggleButtonGroup
+                                size="small"
+                                value={presenteVal}
+                                exclusive
+                                onChange={(e, val) => {
+                                  handleToggle(presenteFieldId, val);
+                                }}
+                                sx={{
+                                  height: 36,
+                                  bgcolor: "#f8fafc",
+                                  border: "1px solid #cbd5e1",
+                                  borderRadius: 2,
+                                  "& .MuiToggleButton-root": {
+                                    px: 2.5,
+                                    fontSize: "0.80rem",
+                                    fontWeight: 800,
+                                    border: "none",
+                                    color: "#64748b",
+                                    "&.Mui-selected": {
+                                      bgcolor: presenteVal === "SI" ? "#dcfce7" : "#fee2e2",
+                                      color: presenteVal === "SI" ? "#166534" : "#991b1b",
+                                      "&:hover": {
+                                        bgcolor: presenteVal === "SI" ? "#bbf7d0" : "#fecaca",
+                                      },
+                                    },
+                                  },
+                                }}
+                              >
+                                <ToggleButton value="SI">SÍ</ToggleButton>
+                                <ToggleButton value="NO">NO</ToggleButton>
+                              </ToggleButtonGroup>
+                            </Paper>
+                          </Box>
+
                         </Box>
                       </Collapse>
                     </Paper>
@@ -2010,7 +2118,7 @@ const DatosTramiteRadiofisica = ({
       { id: "rad_eq_corriente_max", label: "Corriente max", defaultVal: "50" },
       { id: "rad_eq_tension_max", label: "Tensión max", defaultVal: "50" },
       { id: "rad_eq_tipo_revelado", label: "Tipo revelado", defaultVal: "DIGITAL" },
-      { id: "rad_eq_pm_declarado", label: "Número de PM declarado", defaultVal: "-" },
+      { id: "rad_eq_pm_declarado", label: "Número de PM declarado", defaultVal: "-", noCheck: true },
     ];
 
     const computeGeneralObs = (observedLabels, existingObs = "") => {
@@ -2038,19 +2146,12 @@ const DatosTramiteRadiofisica = ({
         obs: willBeObs ? `Observado: ${targetLabel}` : "",
       });
 
-      const allFields = [
-        ...equipoFieldsConfig.map((f) => ({
+      const allFields = equipoFieldsConfig
+        .filter((f) => !f.noCheck)
+        .map((f) => ({
           label: f.label,
           isObs: f.id === targetId ? willBeObs : Boolean(getObs(f.id)),
-        })),
-        {
-          label: "Número de PM observado",
-          isObs:
-            "rad_equipo_pm_observado" === targetId
-              ? willBeObs
-              : Boolean(getObs("rad_equipo_pm_observado")),
-        },
-      ];
+        }));
 
       const observedLabels = allFields.filter((f) => f.isObs).map((f) => f.label);
 
@@ -2061,39 +2162,15 @@ const DatosTramiteRadiofisica = ({
     };
 
     const handlePmObservadoChange = (newVal) => {
-      const pmDeclarado = getValue("rad_eq_pm_declarado", "-");
-      const hasValue = newVal && newVal.trim() !== "";
-      const isDiff = hasValue && pmDeclarado !== "-" && newVal.trim() !== pmDeclarado;
-      const willBeObs = isDiff || Boolean(getObs("rad_equipo_pm_observado"));
-
       onChange("rad_equipo_pm_observado", {
         value: newVal,
-        obs: willBeObs ? "El número de PM observado no coincide con el declarado" : "",
-      });
-
-      const allFields = [
-        ...equipoFieldsConfig.map((f) => ({
-          label: f.label,
-          isObs: Boolean(getObs(f.id)),
-        })),
-        {
-          label: "Número de PM observado",
-          isObs: willBeObs,
-        },
-      ];
-
-      const observedLabels = allFields.filter((f) => f.isObs).map((f) => f.label);
-
-      onChange(fieldId, {
-        value: getValue(fieldId, ""),
-        obs: computeGeneralObs(observedLabels, getObs(fieldId)),
+        obs: "",
       });
     };
 
-    const activeObsCount = [
-      ...equipoFieldsConfig.filter((f) => Boolean(getObs(f.id))),
-      ...(Boolean(getObs("rad_equipo_pm_observado")) ? [{ label: "PM" }] : []),
-    ].length;
+    const activeObsCount = equipoFieldsConfig
+      .filter((f) => !f.noCheck && Boolean(getObs(f.id)))
+      .length;
 
     const eppList = [
       {
@@ -2186,15 +2263,16 @@ const DatosTramiteRadiofisica = ({
               value={getValue(field.id, field.defaultVal)}
               isObserved={Boolean(getObs(field.id))}
               onToggleObs={handleToggleFieldObs}
+              noCheck={field.noCheck}
             />
           ))}
 
           <Box sx={{ py: 0.5 }}>
-            <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 0.4 }}>
+            <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 0.4, minHeight: 24 }}>
               <Typography
                 variant="caption"
                 sx={{
-                  color: Boolean(getObs("rad_equipo_pm_observado")) ? "#0369a1" : "#64748b",
+                  color: "#64748b",
                   fontWeight: 700,
                   fontSize: "0.75rem",
                   textTransform: "uppercase",
@@ -2203,62 +2281,6 @@ const DatosTramiteRadiofisica = ({
               >
                 Número de PM observado
               </Typography>
-              <Tooltip
-                title={
-                  Boolean(getObs("rad_equipo_pm_observado"))
-                    ? "Quitar observación de PM observado"
-                    : "Observar PM observado"
-                }
-              >
-                <Box
-                  onClick={() =>
-                    handleToggleFieldObs(
-                      "rad_equipo_pm_observado",
-                      "Número de PM observado",
-                      pmObservadoVal
-                    )
-                  }
-                  sx={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 0.4,
-                    cursor: "pointer",
-                    px: 0.7,
-                    py: 0.2,
-                    borderRadius: 1.5,
-                    bgcolor: Boolean(getObs("rad_equipo_pm_observado")) ? "#e0f2fe" : "transparent",
-                    border: "1px solid",
-                    borderColor: Boolean(getObs("rad_equipo_pm_observado")) ? "#7dd3fc" : "#e2e8f0",
-                    "&:hover": {
-                      bgcolor: Boolean(getObs("rad_equipo_pm_observado")) ? "#bae6fd" : "#f1f5f9",
-                      borderColor: Boolean(getObs("rad_equipo_pm_observado")) ? "#38bdf8" : "#cbd5e1",
-                    },
-                    transition: "all 0.15s ease",
-                    userSelect: "none",
-                  }}
-                >
-                  <Checkbox
-                    size="small"
-                    checked={Boolean(getObs("rad_equipo_pm_observado"))}
-                    sx={{
-                      p: 0,
-                      color: "#94a3b8",
-                      "&.Mui-checked": { color: "#0284c7" },
-                      "& .MuiSvgIcon-root": { fontSize: 16 },
-                    }}
-                  />
-                  <Typography
-                    sx={{
-                      fontSize: "0.68rem",
-                      fontWeight: 800,
-                      color: Boolean(getObs("rad_equipo_pm_observado")) ? "#0369a1" : "#64748b",
-                      letterSpacing: 0.5,
-                    }}
-                  >
-                    OBS
-                  </Typography>
-                </Box>
-              </Tooltip>
             </Box>
             <TextField
               size="small"

@@ -21,7 +21,10 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  Snackbar,
+  Alert,
 } from "@mui/material";
+import SaveIcon from "@mui/icons-material/Save";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import DomainIcon from "@mui/icons-material/Domain";
 import ApartmentIcon from "@mui/icons-material/Apartment";
@@ -165,6 +168,19 @@ const PantallaInspeccion = ({
   const [closeActaModalOpen, setCloseActaModalOpen] = useState(false);
   const [closeActaAction, setCloseActaAction] = useState("");
   const [closeActaNote, setCloseActaNote] = useState("");
+
+  const [saveSuccessOpen, setSaveSuccessOpen] = useState(false);
+
+  const handleSaveInspection = () => {
+    try {
+      const storageKey = id ? `inspector_data_${id}` : "inspector_data";
+      localStorage.setItem(storageKey, JSON.stringify(inspectorData));
+      localStorage.setItem(`general_obs_${id || 'default'}`, generalObs);
+      setSaveSuccessOpen(true);
+    } catch (err) {
+      console.error("Error al guardar inspección:", err);
+    }
+  };
 
   const [expandedSectionsGenerales, setExpandedSectionsGenerales] = useState({});
   const [expandedSectionsMediciones, setExpandedSectionsMediciones] = useState({});
@@ -1632,10 +1648,6 @@ const PantallaInspeccion = ({
                   {registroMedicionesSrv.sections?.map((sec, index) => {
                     const sectionStats = getCompletionStats(sec.fields || [], inspectorData);
                     const sectionKey = sec.id || `med_sec_${index}`;
-                    const secData = inspectorData[sectionKey];
-                    const secObs = (secData && typeof secData === 'object' && !Array.isArray(secData))
-                      ? (secData.obs || "")
-                      : (typeof secData === 'string' ? secData : "");
 
                     return (
                       <Accordion
@@ -1671,26 +1683,6 @@ const PantallaInspeccion = ({
                             >
                               {sec.name}
                             </Typography>
-                            <Tooltip title={secObs ? "Ver / Editar observación" : `Observar ${sec.name}`}>
-                              <IconButton
-                                size="small"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleOpenObsDialog(sectionKey, sec.name, secObs, "GENERAL");
-                                }}
-                                sx={{
-                                  color: secObs ? "#0ea5e9" : "#94a3b8",
-                                  p: 0.5,
-                                  "&:hover": { color: "#0284c7" }
-                                }}
-                              >
-                                {secObs ? (
-                                  <ChatBubbleIcon fontSize="small" />
-                                ) : (
-                                  <ChatBubbleOutlineIcon fontSize="small" />
-                                )}
-                              </IconButton>
-                            </Tooltip>
                           </Box>
                           {renderProgressBar(sectionStats)}
                         </AccordionSummary>
@@ -2593,6 +2585,29 @@ const PantallaInspeccion = ({
 
             <Stack direction="row" spacing={1.5} sx={{ width: { xs: "100%", sm: "auto" } }}>
               <Button
+                variant="outlined"
+                startIcon={<SaveIcon />}
+                onClick={handleSaveInspection}
+                sx={{
+                  fontWeight: 900,
+                  px: 3,
+                  py: 1.2,
+                  borderRadius: 2.5,
+                  color: "#1e293b",
+                  borderColor: "#cbd5e1",
+                  borderWidth: 1.5,
+                  bgcolor: "#ffffff",
+                  "&:hover": {
+                    borderWidth: 1.5,
+                    borderColor: "#94a3b8",
+                    bgcolor: "#f8fafc",
+                  },
+                }}
+              >
+                GUARDAR
+              </Button>
+
+              <Button
                 variant="contained"
                 onClick={() => handleOpenCloseActa("RECHAZAR")}
                 sx={{
@@ -2726,6 +2741,24 @@ const PantallaInspeccion = ({
         initialSubservicio={subservicio}
         onConfirm={handleConfirmRadiofisica}
       />
+
+      {/* Notificación de Guardado */}
+      <Snackbar
+        open={saveSuccessOpen}
+        autoHideDuration={3000}
+        onClose={() => setSaveSuccessOpen(false)}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+        sx={{ mb: 10 }}
+      >
+        <Alert
+          onClose={() => setSaveSuccessOpen(false)}
+          severity="success"
+          variant="filled"
+          sx={{ width: "100%", fontWeight: 700, borderRadius: 2 }}
+        >
+          Progreso de la inspección guardado correctamente
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };
