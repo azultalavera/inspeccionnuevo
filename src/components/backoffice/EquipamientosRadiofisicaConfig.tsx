@@ -27,6 +27,7 @@ import {
   Check as CheckIcon,
   ArrowBack as ArrowBackIcon,
   Sensors as SensorsIcon,
+  RestartAlt as RestartAltIcon,
 } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
 import Layout from "../ui/Layout";
@@ -53,135 +54,28 @@ export interface EquipamientoRadiofisicaItem {
   minimo: number;
 }
 
-const INITIAL_RADIOFISICA_DATA: EquipamientoRadiofisicaItem[] = [
-  {
-    id: "rf-1",
-    servicio: "Rayos X",
-    subservicio: "Radiología Convencional Simple",
-    equipamiento: "TUBO DE RAYOS X Y GENERADOR DE ALTA FRECUENCIA",
-    minimo: 1,
-  },
-  {
-    id: "rf-2",
-    servicio: "Rayos X",
-    subservicio: "Radiología Convencional Simple",
-    equipamiento: "ESTATIVO DE PARED CON BUCKY VERTICAL",
-    minimo: 1,
-  },
-  {
-    id: "rf-3",
-    servicio: "Rayos X",
-    subservicio: "Mamografía",
-    equipamiento: "MAMÓGRAFO DIGITAL DIRECTO (FFDM)",
-    minimo: 1,
-  },
-  {
-    id: "rf-4",
-    servicio: "Rayos X",
-    subservicio: "Tomografía Computada / PET",
-    equipamiento: "TOMÓGRAFO COMPUTADO MULTISLICE",
-    minimo: 1,
-  },
-  {
-    id: "rf-5",
-    servicio: "Rayos X",
-    subservicio: "Tomografía Computada / PET",
-    equipamiento: "INVERSOR / INYECTOR AUTOMÁTICO DE CONTRASTE",
-    minimo: 1,
-  },
-  {
-    id: "rf-6",
-    servicio: "Rayos X",
-    subservicio: "Radiología Intervencionista: Arco en C",
-    equipamiento: "ARCO EN C CON INTENSIFICADOR DE IMAGEN / DETECTOR PLANO",
-    minimo: 1,
-  },
-  {
-    id: "rf-7",
-    servicio: "Rayos X",
-    subservicio: "Ortopantomografía",
-    equipamiento: "ORTOPANTOMÓGRAFO PANORÁMICO DIGITAL (OPG)",
-    minimo: 1,
-  },
-  {
-    id: "rf-8",
-    servicio: "Rayos X",
-    subservicio: "Radiología Dental: Periapical",
-    equipamiento: "EQUIPO DE RAYOS X DENTAL PERIAPICAL",
-    minimo: 1,
-  },
-  {
-    id: "rf-9",
-    servicio: "Rayos X",
-    subservicio: "Densitometría Ósea",
-    equipamiento: "DENSITÓMETRO ÓSEO DEXA",
-    minimo: 1,
-  },
-  {
-    id: "rf-10",
-    servicio: "Rayos X",
-    subservicio: "Radiología Rodante en Terapia",
-    equipamiento: "EQUIPO DE RAYOS X RODANTE PORTÁTIL",
-    minimo: 1,
-  },
-  {
-    id: "rf-11",
-    servicio: "Rayos X",
-    subservicio: "Acelerador Lineal de Electrones",
-    equipamiento: "ACELERADOR LINEAL DE ALTA ENERGÍA (LINAC)",
-    minimo: 1,
-  },
-  {
-    id: "rf-12",
-    servicio: "Láser / IPL",
-    subservicio: "Dermatología",
-    equipamiento: "EQUIPO LÁSER DERMATOLÓGICO CLASE 4 (CO2 / ND:YAG / ERBIO)",
-    minimo: 1,
-  },
-  {
-    id: "rf-13",
-    servicio: "Láser / IPL",
-    subservicio: "Depilación",
-    equipamiento: "SISTEMA LÁSER DE DEPILACIÓN MÉDICA / DIODO",
-    minimo: 1,
-  },
-  {
-    id: "rf-14",
-    servicio: "Láser / IPL",
-    subservicio: "Oftalmología",
-    equipamiento: "LÁSER OFTALMOLÓGICO DE FOTOCOAGULACIÓN (ARGÓN / SLT / YAG)",
-    minimo: 1,
-  },
-  {
-    id: "rf-15",
-    servicio: "Resonancia Magnética",
-    subservicio: "Resonancia Magnética Nuclear",
-    equipamiento: "RESONADOR MAGNÉTICO NUCLEAR DE ALTO CAMPO (1.5T / 3T)",
-    minimo: 1,
-  },
-  {
-    id: "rf-16",
-    servicio: "Radiación Ultravioleta",
-    subservicio: "Cama Solar",
-    equipamiento: "CAMA SOLAR EMISORA DE RADIACIÓN ULTRAVIOLETA (UVA)",
-    minimo: 1,
-  },
-  {
-    id: "rf-17",
-    servicio: "Radiación Ultravioleta",
-    subservicio: "Cabina Solar",
-    equipamiento: "CABINA SOLAR VERTICAL EMISORA UV",
-    minimo: 1,
-  },
-];
+const INITIAL_RADIOFISICA_DATA: EquipamientoRadiofisicaItem[] = RADIOFISICA_CATALOG.flatMap(
+  (tipo) =>
+    tipo.subservicios.map((sub) => ({
+      id: `rf-${tipo.id}-${sub.id}`,
+      servicio: tipo.nombre,
+      subservicio: sub.nombre,
+      equipamiento: `EQUIPO GENERADOR DE ${sub.nombre.toUpperCase()}`,
+      minimo: 1,
+    }))
+);
 
-const LOCAL_STORAGE_KEY = "EQUIPAMIENTOS_RADIOFISICA_DATA_V2";
+const LOCAL_STORAGE_KEY = "EQUIPAMIENTOS_RADIOFISICA_DATA_V3";
 
 export default function EquipamientosRadiofisicaConfig() {
   const navigate = useNavigate();
 
   const [data, setData] = useState<EquipamientoRadiofisicaItem[]>(() => {
     try {
+      // Limpiar versiones anteriores obsoletas
+      localStorage.removeItem("EQUIPAMIENTOS_RADIOFISICA_DATA_V2");
+      localStorage.removeItem("EQUIPAMIENTOS_RADIOFISICA_DATA");
+
       const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
@@ -275,11 +169,11 @@ export default function EquipamientosRadiofisicaConfig() {
 
   const handleGuardar = () => {
     if (!currentItem.servicio?.trim()) {
-      alert("Por favor seleccione o ingrese el Tipo de Servicio");
+      alert("Por favor seleccione o ingrese el Tipo Servicio Radiofísica");
       return;
     }
     if (!currentItem.subservicio?.trim()) {
-      alert("Por favor seleccione o ingrese el Servicio");
+      alert("Por favor seleccione o ingrese el Subtipo Radiofísica");
       return;
     }
     if (!currentItem.equipamiento?.trim()) {
@@ -345,11 +239,13 @@ export default function EquipamientosRadiofisicaConfig() {
           >
             <ArrowBackIcon fontSize="small" />
           </IconButton>
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-            <SensorsIcon sx={{ fontSize: 26, opacity: 0.9 }} />
-            <Typography variant="h5" sx={{ fontWeight: 500 }}>
-              Gestión de Equipamientos de Radiofísica
-            </Typography>
+          <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 0.8 }}>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+              <SensorsIcon sx={{ fontSize: 26, opacity: 0.9 }} />
+              <Typography variant="h5" sx={{ fontWeight: 500 }}>
+                Gestión de Equipamientos de Radiofísica
+              </Typography>
+            </Box>
           </Box>
         </Box>
 
@@ -379,7 +275,7 @@ export default function EquipamientosRadiofisicaConfig() {
                     renderInput={(params) => (
                       <TextField
                         {...params}
-                        label="Tipo de Servicio"
+                        label="Tipo Servicio Radiofísica"
                         variant="standard"
                         fullWidth
                       />
@@ -391,7 +287,7 @@ export default function EquipamientosRadiofisicaConfig() {
                     options={
                       filtroServicio
                         ? RADIOFISICA_CATALOG.find((c) => c.nombre === filtroServicio)
-                            ?.subservicios.map((s) => s.nombre) || opcionesSubservicio
+                          ?.subservicios.map((s) => s.nombre) || opcionesSubservicio
                         : opcionesSubservicio
                     }
                     value={filtroSubservicio}
@@ -399,7 +295,7 @@ export default function EquipamientosRadiofisicaConfig() {
                     renderInput={(params) => (
                       <TextField
                         {...params}
-                        label="Servicio"
+                        label="Subtipo Radiofísica"
                         variant="standard"
                         fullWidth
                       />
@@ -484,24 +380,26 @@ export default function EquipamientosRadiofisicaConfig() {
             >
               EQUIPOS ({dataFiltrada.length})
             </Typography>
-            <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              sx={{ bgcolor: "#29b6f6", fontWeight: "bold" }}
-              onClick={() => {
-                setCurrentItem({
-                  id: "",
-                  servicio: "Rayos X",
-                  subservicio: "",
-                  equipamiento: "",
-                  minimo: 1,
-                });
-                setIsEditing(false);
-                setOpen(true);
-              }}
-            >
-              NUEVO EQUIPO
-            </Button>
+            <Box sx={{ display: "flex", gap: 1.5 }}>
+              <Button
+                variant="contained"
+                startIcon={<AddIcon />}
+                sx={{ bgcolor: "#29b6f6", fontWeight: "bold" }}
+                onClick={() => {
+                  setCurrentItem({
+                    id: "",
+                    servicio: "Rayos X",
+                    subservicio: "",
+                    equipamiento: "",
+                    minimo: 1,
+                  });
+                  setIsEditing(false);
+                  setOpen(true);
+                }}
+              >
+                NUEVO EQUIPO
+              </Button>
+            </Box>
           </Box>
 
           <TableContainer
@@ -520,8 +418,8 @@ export default function EquipamientosRadiofisicaConfig() {
                     },
                   }}
                 >
-                  <TableCell sx={{ width: "22%" }}>TIPO DE SERVICIO</TableCell>
-                  <TableCell sx={{ width: "28%" }}>SERVICIO</TableCell>
+                  <TableCell sx={{ width: "25%" }}>TIPO SERVICIO RADIOFÍSICA</TableCell>
+                  <TableCell sx={{ width: "25%" }}>SUBTIPO RADIOFÍSICA</TableCell>
                   <TableCell sx={{ width: "35%" }}>EQUIPAMIENTO</TableCell>
                   <TableCell align="center" sx={{ width: "10%" }}>MÍNIMO</TableCell>
                   <TableCell align="center" sx={{ width: "15%" }}>ACCIONES</TableCell>
@@ -655,7 +553,7 @@ export default function EquipamientosRadiofisicaConfig() {
                 renderInput={(params) => (
                   <TextField
                     {...params}
-                    label="Tipo de Servicio"
+                    label="Tipo Servicio Radiofísica"
                     variant="standard"
                     fullWidth
                     required
@@ -671,16 +569,21 @@ export default function EquipamientosRadiofisicaConfig() {
                   )?.subservicios.map((s) => s.nombre) || opcionesSubservicio
                 }
                 value={currentItem.subservicio || ""}
-                onChange={(_, val) =>
-                  setCurrentItem((prev) => ({ ...prev, subservicio: val || "" }))
-                }
+                onChange={(_, val) => {
+                  const sub = val || "";
+                  setCurrentItem((prev) => ({
+                    ...prev,
+                    subservicio: sub,
+                    equipamiento: sub ? `EQUIPO GENERADOR DE ${sub.toUpperCase()}` : prev.equipamiento,
+                  }));
+                }}
                 onInputChange={(_, val) =>
                   setCurrentItem((prev) => ({ ...prev, subservicio: val || "" }))
                 }
                 renderInput={(params) => (
                   <TextField
                     {...params}
-                    label="Servicio"
+                    label="Subtipo Radiofísica"
                     variant="standard"
                     fullWidth
                     required

@@ -55,6 +55,7 @@ import { useAuth } from "../../../context/AuthContext";
 import { getMasterConfig, DEFAULT_EFECTOR_DATA } from "../../../data/masterConfig";
 import ModalRadiofisicaServicios from "../../../components/ModalRadiofisicaServicios";
 import { getRadiofisicaConfig } from "../../../data/radiofisicaConfig";
+import ModalOrigenFoto from "./components/ModalOrigenFoto";
 
 import {
   normalize,
@@ -284,8 +285,10 @@ const PantallaInspeccion = ({
 
   const [viewerPhoto, setViewerPhoto] = useState(null);
   const [targetPhotoField, setTargetPhotoField] = useState(null);
+  const [modalOrigenObsOpen, setModalOrigenObsOpen] = useState(false);
 
-  const photoInputRef = useRef(null);
+  const photoCameraInputRef = useRef(null);
+  const photoGalleryInputRef = useRef(null);
 
   const handleFileSelect = (e) => {
     const files = Array.from(e.target.files || []);
@@ -2199,7 +2202,7 @@ const PantallaInspeccion = ({
                                     setViewerPhoto(obs.photo);
                                   } else {
                                     setTargetPhotoField(obs.id);
-                                    if (photoInputRef.current) photoInputRef.current.click();
+                                    setModalOrigenObsOpen(true);
                                   }
                                 }}
                                 sx={{ ml: 1, color: obs.hasPhoto ? '#0ea5e9' : '#94a3b8', '&:hover': { color: '#0ea5e9' } }}
@@ -2269,7 +2272,7 @@ const PantallaInspeccion = ({
                                     setViewerPhoto(obs.photo);
                                   } else {
                                     setTargetPhotoField(obs.id);
-                                    if (photoInputRef.current) photoInputRef.current.click();
+                                    setModalOrigenObsOpen(true);
                                   }
                                 }}
                                 sx={{ ml: 1, color: obs.hasPhoto ? '#0ea5e9' : '#94a3b8', '&:hover': { color: '#0ea5e9' } }}
@@ -2320,7 +2323,10 @@ const PantallaInspeccion = ({
             <Box sx={{ display: "flex", gap: 2, mb: 3 }}>
               <Button
                 variant="outlined"
-                onClick={() => photoInputRef.current?.click()}
+                onClick={() => {
+                  setTargetPhotoField(null);
+                  setModalOrigenObsOpen(true);
+                }}
                 startIcon={<PhotoCamera />}
                 sx={{
                   borderRadius: 3,
@@ -2333,14 +2339,21 @@ const PantallaInspeccion = ({
                   "&:hover": { bgcolor: "#f1f5f9", borderColor: "#cbd5e1" },
                 }}
               >
-                Abrir Cámara / Adjuntar Evidencia
+                Sacar foto / Adjuntar imagen
               </Button>
               <input
-                ref={photoInputRef}
+                ref={photoCameraInputRef}
                 type="file"
                 hidden
                 accept="image/*"
                 capture="environment"
+                onChange={handleFileSelect}
+              />
+              <input
+                ref={photoGalleryInputRef}
+                type="file"
+                hidden
+                accept="image/*"
                 onChange={handleFileSelect}
               />
             </Box>
@@ -2749,6 +2762,26 @@ const PantallaInspeccion = ({
         initialTipo={tipoServicio}
         initialSubservicio={subservicio}
         onConfirm={handleConfirmRadiofisica}
+      />
+
+      {/* Modal Selección Origen Foto (Observaciones Generales) */}
+      <ModalOrigenFoto
+        open={modalOrigenObsOpen}
+        onClose={() => setModalOrigenObsOpen(false)}
+        onSelectCamera={() => {
+          if (photoCameraInputRef.current) {
+            photoCameraInputRef.current.value = "";
+            photoCameraInputRef.current.click();
+          }
+        }}
+        onSelectGallery={() => {
+          if (photoGalleryInputRef.current) {
+            photoGalleryInputRef.current.value = "";
+            photoGalleryInputRef.current.click();
+          }
+        }}
+        title="Evidencia de Observaciones Generales"
+        description="Elija si desea tomar una fotografía con la cámara o adjuntar una imagen desde su dispositivo:"
       />
 
       {/* Notificación de Guardado */}

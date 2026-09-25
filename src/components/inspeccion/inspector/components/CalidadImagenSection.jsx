@@ -13,6 +13,7 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import AddPhotoAlternateIcon from "@mui/icons-material/AddPhotoAlternate";
 import PhotoViewer from "./PhotoViewer";
+import ModalOrigenFoto from "./ModalOrigenFoto";
 
 const MAX_PHOTOS = 5;
 
@@ -21,8 +22,10 @@ export default function CalidadImagenSection({
   inspectorData = {},
   onChange,
 }) {
-  const fileInputRef = useRef(null);
+  const fileInputCameraRef = useRef(null);
+  const fileInputGalleryRef = useRef(null);
   const [selectedPhoto, setSelectedPhoto] = useState(null);
+  const [modalOrigenOpen, setModalOrigenOpen] = useState(false);
 
   const fieldId = fields[0]?.id || "f-cal-img-fotos";
 
@@ -43,13 +46,10 @@ export default function CalidadImagenSection({
 
   const isMaxReached = photos.length >= MAX_PHOTOS;
 
-  // Disparar input de cámara / archivo
+  // Disparar apertura del modal de selección
   const handleOpenPicker = () => {
     if (isMaxReached) return;
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-      fileInputRef.current.click();
-    }
+    setModalOrigenOpen(true);
   };
 
   // Compresión y guardado de archivos seleccionados
@@ -127,12 +127,20 @@ export default function CalidadImagenSection({
 
   return (
     <Box sx={{ width: "100%", py: 1 }}>
-      {/* Input nativo oculto para cámara/archivo */}
+      {/* Inputs nativos ocultos para cámara y galería */}
       <input
-        ref={fileInputRef}
+        ref={fileInputCameraRef}
         type="file"
         accept="image/*"
         capture="environment"
+        multiple
+        onChange={handleFileChange}
+        style={{ display: "none" }}
+      />
+      <input
+        ref={fileInputGalleryRef}
+        type="file"
+        accept="image/*"
         multiple
         onChange={handleFileChange}
         style={{ display: "none" }}
@@ -187,7 +195,7 @@ export default function CalidadImagenSection({
               },
             }}
           >
-            Abrir Cámara
+            Sacar foto / Adjuntar imagen
           </Button>
 
           {/* Chip de contador de fotos */}
@@ -266,7 +274,7 @@ export default function CalidadImagenSection({
             Sin fotografías de calidad de imagen
           </Typography>
           <Typography variant="body2" sx={{ color: "#64748b", maxWidth: 460, mx: "auto" }}>
-            Hacé clic en <strong>«Abrir Cámara»</strong> para registrar fotos de control de calidad (con 2 fotos se alcanza el 100%, admitiendo hasta 5 fotos).
+            Hacé clic en <strong>«Sacar foto / Adjuntar imagen»</strong> para registrar fotos de control de calidad (con 2 fotos se alcanza el 100%, admitiendo hasta 5 fotos).
           </Typography>
         </Paper>
       ) : (
@@ -493,6 +501,26 @@ export default function CalidadImagenSection({
         open={Boolean(selectedPhoto)}
         photo={selectedPhoto}
         onClose={() => setSelectedPhoto(null)}
+      />
+
+      {/* Modal para elegir si sacar foto o adjuntar imagen */}
+      <ModalOrigenFoto
+        open={modalOrigenOpen}
+        onClose={() => setModalOrigenOpen(false)}
+        onSelectCamera={() => {
+          if (fileInputCameraRef.current) {
+            fileInputCameraRef.current.value = "";
+            fileInputCameraRef.current.click();
+          }
+        }}
+        onSelectGallery={() => {
+          if (fileInputGalleryRef.current) {
+            fileInputGalleryRef.current.value = "";
+            fileInputGalleryRef.current.click();
+          }
+        }}
+        title="Fotos de Calidad de Imagen"
+        description="Elija si desea tomar una fotografía con la cámara o adjuntar una imagen desde su dispositivo:"
       />
     </Box>
   );

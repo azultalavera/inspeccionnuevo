@@ -124,11 +124,11 @@ const EstablecimientoCard = ({
           noGrid
             ? { p: 0 }
             : {
-                p: 2.5,
-                display: "grid",
-                gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr", md: "1fr 1fr 1fr" },
-                gap: 2.5,
-              }
+              p: 2.5,
+              display: "grid",
+              gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr", md: "1fr 1fr 1fr" },
+              gap: 2.5,
+            }
         }
       >
         {children}
@@ -242,47 +242,47 @@ const CardFieldCheckItem = ({
           <Tooltip title={isObserved ? `Quitar observación de ${label}` : `Observar ${label}`}>
             <Box
               onClick={() => onToggleObs(id, label, value)}
-            sx={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 0.4,
-              cursor: "pointer",
-              px: 0.7,
-              py: 0.2,
-              borderRadius: 1.5,
-              bgcolor: isObserved ? "#e0f2fe" : "transparent",
-              border: "1px solid",
-              borderColor: isObserved ? "#7dd3fc" : "#e2e8f0",
-              "&:hover": {
-                bgcolor: isObserved ? "#bae6fd" : "#f1f5f9",
-                borderColor: isObserved ? "#38bdf8" : "#cbd5e1",
-              },
-              transition: "all 0.15s ease",
-              userSelect: "none",
-            }}
-          >
-            <Checkbox
-              size="small"
-              checked={isObserved}
               sx={{
-                p: 0,
-                color: "#94a3b8",
-                "&.Mui-checked": { color: "#0284c7" },
-                "& .MuiSvgIcon-root": { fontSize: 16 },
-              }}
-            />
-            <Typography
-              sx={{
-                fontSize: "0.68rem",
-                fontWeight: 800,
-                color: isObserved ? "#0369a1" : "#64748b",
-                letterSpacing: 0.5,
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 0.4,
+                cursor: "pointer",
+                px: 0.7,
+                py: 0.2,
+                borderRadius: 1.5,
+                bgcolor: isObserved ? "#e0f2fe" : "transparent",
+                border: "1px solid",
+                borderColor: isObserved ? "#7dd3fc" : "#e2e8f0",
+                "&:hover": {
+                  bgcolor: isObserved ? "#bae6fd" : "#f1f5f9",
+                  borderColor: isObserved ? "#38bdf8" : "#cbd5e1",
+                },
+                transition: "all 0.15s ease",
+                userSelect: "none",
               }}
             >
-              OBS
-            </Typography>
-          </Box>
-        </Tooltip>
+              <Checkbox
+                size="small"
+                checked={isObserved}
+                sx={{
+                  p: 0,
+                  color: "#94a3b8",
+                  "&.Mui-checked": { color: "#0284c7" },
+                  "& .MuiSvgIcon-root": { fontSize: 16 },
+                }}
+              />
+              <Typography
+                sx={{
+                  fontSize: "0.68rem",
+                  fontWeight: 800,
+                  color: isObserved ? "#0369a1" : "#64748b",
+                  letterSpacing: 0.5,
+                }}
+              >
+                OBS
+              </Typography>
+            </Box>
+          </Tooltip>
         )}
       </Box>
       <Typography
@@ -437,20 +437,8 @@ const DatosTramiteRadiofisica = ({
                     letterSpacing: 0.3,
                   }}
                 >
-                  Datos del Trámite Padre
+                  Datos del Trámite [PADRE]
                 </Typography>
-                <Chip
-                  label="TRÁMITE PADRE"
-                  size="small"
-                  sx={{
-                    fontWeight: 800,
-                    fontSize: "0.68rem",
-                    bgcolor: "#f1f5f9",
-                    color: "#475569",
-                    border: "1px solid #cbd5e1",
-                    height: 20,
-                  }}
-                />
               </Box>
             </Box>
 
@@ -818,20 +806,8 @@ const DatosTramiteRadiofisica = ({
                     letterSpacing: 0.3,
                   }}
                 >
-                  Datos del Trámite Hijo (Prestador de servicio)
+                  Datos del Trámite [HIJO]
                 </Typography>
-                <Chip
-                  label="TRÁMITE HIJO • RADIOFÍSICA"
-                  size="small"
-                  sx={{
-                    fontWeight: 800,
-                    fontSize: "0.68rem",
-                    bgcolor: "#f1f5f9",
-                    color: "#475569",
-                    border: "1px solid #cbd5e1",
-                    height: 20,
-                  }}
-                />
               </Box>
             </Box>
 
@@ -1142,7 +1118,7 @@ const DatosTramiteRadiofisica = ({
                 "&:hover": { bgcolor: subTabResp === "INSTALACION" ? "#ffffff" : "rgba(0,0,0,0.04)" },
               }}
             >
-              Responsable de Instalación (3)
+              Responsable de Instalación - [TRÁMITE PADRE] (3)
             </Button>
             <Button
               size="small"
@@ -1168,7 +1144,7 @@ const DatosTramiteRadiofisica = ({
         {(subTabResp === "TODOS" || subTabResp === "INSTALACION") && (
           <EstablecimientoCard
             id="rad_sub_resp_instalacion"
-            title="Responsable de Instalación"
+            title="Responsable de Instalación - [TRÁMITE PADRE]"
             icon={<EngineeringIcon sx={{ color: "#0ea5e9", fontSize: 22 }} />}
             obs={getObs("rad_sub_resp_instalacion")}
             onOpenObs={onOpenObs}
@@ -1290,137 +1266,137 @@ const DatosTramiteRadiofisica = ({
                                 bgcolor: "#ffffff",
                               }}
                             >
-                            {/* Fila 1: Nombre/s *, Apellido/s *, CUIL * */}
-                            <Box
-                              sx={{
-                                display: "grid",
-                                gridTemplateColumns: { xs: "1fr", sm: "repeat(3, 1fr)" },
-                                gap: { xs: 2, sm: 3 },
-                                mb: 3,
-                              }}
-                            >
-                              {/* Nombre/s */}
-                              <Box>
-                                <Typography
-                                  variant="caption"
-                                  sx={{
-                                    color: "#64748b",
-                                    fontWeight: 600,
-                                    fontSize: "0.78rem",
-                                    display: "block",
-                                    mb: 0.8,
-                                  }}
-                                >
-                                  Nombre/s *
-                                </Typography>
-                                <Box sx={{ borderBottom: "1px dashed #cbd5e1", pb: 0.8 }}>
-                                  <Typography sx={{ color: "#1e293b", fontWeight: 700, fontSize: "0.92rem" }}>
-                                    {resp.nombre}
+                              {/* Fila 1: Nombre/s *, Apellido/s *, CUIL * */}
+                              <Box
+                                sx={{
+                                  display: "grid",
+                                  gridTemplateColumns: { xs: "1fr", sm: "repeat(3, 1fr)" },
+                                  gap: { xs: 2, sm: 3 },
+                                  mb: 3,
+                                }}
+                              >
+                                {/* Nombre/s */}
+                                <Box>
+                                  <Typography
+                                    variant="caption"
+                                    sx={{
+                                      color: "#64748b",
+                                      fontWeight: 600,
+                                      fontSize: "0.78rem",
+                                      display: "block",
+                                      mb: 0.8,
+                                    }}
+                                  >
+                                    Nombre/s *
                                   </Typography>
+                                  <Box sx={{ borderBottom: "1px dashed #cbd5e1", pb: 0.8 }}>
+                                    <Typography sx={{ color: "#1e293b", fontWeight: 700, fontSize: "0.92rem" }}>
+                                      {resp.nombre}
+                                    </Typography>
+                                  </Box>
+                                </Box>
+
+                                {/* Apellido/s */}
+                                <Box>
+                                  <Typography
+                                    variant="caption"
+                                    sx={{
+                                      color: "#64748b",
+                                      fontWeight: 600,
+                                      fontSize: "0.78rem",
+                                      display: "block",
+                                      mb: 0.8,
+                                    }}
+                                  >
+                                    Apellido/s *
+                                  </Typography>
+                                  <Box sx={{ borderBottom: "1px dashed #cbd5e1", pb: 0.8 }}>
+                                    <Typography sx={{ color: "#1e293b", fontWeight: 700, fontSize: "0.92rem" }}>
+                                      {resp.apellido}
+                                    </Typography>
+                                  </Box>
+                                </Box>
+
+                                {/* CUIL */}
+                                <Box>
+                                  <Typography
+                                    variant="caption"
+                                    sx={{
+                                      color: "#64748b",
+                                      fontWeight: 600,
+                                      fontSize: "0.78rem",
+                                      display: "block",
+                                      mb: 0.8,
+                                    }}
+                                  >
+                                    CUIL *
+                                  </Typography>
+                                  <Box sx={{ borderBottom: "1px dashed #cbd5e1", pb: 0.8 }}>
+                                    <Typography sx={{ color: "#1e293b", fontWeight: 700, fontSize: "0.92rem" }}>
+                                      {resp.cuil}
+                                    </Typography>
+                                  </Box>
                                 </Box>
                               </Box>
 
-                              {/* Apellido/s */}
-                              <Box>
-                                <Typography
-                                  variant="caption"
-                                  sx={{
-                                    color: "#64748b",
-                                    fontWeight: 600,
-                                    fontSize: "0.78rem",
-                                    display: "block",
-                                    mb: 0.8,
-                                  }}
-                                >
-                                  Apellido/s *
-                                </Typography>
-                                <Box sx={{ borderBottom: "1px dashed #cbd5e1", pb: 0.8 }}>
-                                  <Typography sx={{ color: "#1e293b", fontWeight: 700, fontSize: "0.92rem" }}>
-                                    {resp.apellido}
+                              {/* Fila 2: Celular *, Correo Electrónico * */}
+                              <Box
+                                sx={{
+                                  display: "grid",
+                                  gridTemplateColumns: { xs: "1fr", sm: "repeat(3, 1fr)" },
+                                  gap: { xs: 2, sm: 3 },
+                                }}
+                              >
+                                {/* Celular */}
+                                <Box>
+                                  <Typography
+                                    variant="caption"
+                                    sx={{
+                                      color: "#64748b",
+                                      fontWeight: 600,
+                                      fontSize: "0.78rem",
+                                      display: "block",
+                                      mb: 0.8,
+                                    }}
+                                  >
+                                    Celular *
                                   </Typography>
+                                  <Box sx={{ borderBottom: "1px dashed #cbd5e1", pb: 0.8 }}>
+                                    <Typography sx={{ color: "#1e293b", fontWeight: 700, fontSize: "0.92rem" }}>
+                                      {resp.celular}
+                                    </Typography>
+                                  </Box>
                                 </Box>
-                              </Box>
 
-                              {/* CUIL */}
-                              <Box>
-                                <Typography
-                                  variant="caption"
-                                  sx={{
-                                    color: "#64748b",
-                                    fontWeight: 600,
-                                    fontSize: "0.78rem",
-                                    display: "block",
-                                    mb: 0.8,
-                                  }}
-                                >
-                                  CUIL *
-                                </Typography>
-                                <Box sx={{ borderBottom: "1px dashed #cbd5e1", pb: 0.8 }}>
-                                  <Typography sx={{ color: "#1e293b", fontWeight: 700, fontSize: "0.92rem" }}>
-                                    {resp.cuil}
+                                {/* Correo Electrónico */}
+                                <Box>
+                                  <Typography
+                                    variant="caption"
+                                    sx={{
+                                      color: "#64748b",
+                                      fontWeight: 600,
+                                      fontSize: "0.78rem",
+                                      display: "block",
+                                      mb: 0.8,
+                                    }}
+                                  >
+                                    Correo Electrónico *
                                   </Typography>
+                                  <Box sx={{ borderBottom: "1px dashed #cbd5e1", pb: 0.8 }}>
+                                    <Typography sx={{ color: "#1e293b", fontWeight: 700, fontSize: "0.92rem" }}>
+                                      {resp.email}
+                                    </Typography>
+                                  </Box>
                                 </Box>
                               </Box>
-                            </Box>
-
-                            {/* Fila 2: Celular *, Correo Electrónico * */}
-                            <Box
-                              sx={{
-                                display: "grid",
-                                gridTemplateColumns: { xs: "1fr", sm: "repeat(3, 1fr)" },
-                                gap: { xs: 2, sm: 3 },
-                              }}
-                            >
-                              {/* Celular */}
-                              <Box>
-                                <Typography
-                                  variant="caption"
-                                  sx={{
-                                    color: "#64748b",
-                                    fontWeight: 600,
-                                    fontSize: "0.78rem",
-                                    display: "block",
-                                    mb: 0.8,
-                                  }}
-                                >
-                                  Celular *
-                                </Typography>
-                                <Box sx={{ borderBottom: "1px dashed #cbd5e1", pb: 0.8 }}>
-                                  <Typography sx={{ color: "#1e293b", fontWeight: 700, fontSize: "0.92rem" }}>
-                                    {resp.celular}
-                                  </Typography>
-                                </Box>
-                              </Box>
-
-                              {/* Correo Electrónico */}
-                              <Box>
-                                <Typography
-                                  variant="caption"
-                                  sx={{
-                                    color: "#64748b",
-                                    fontWeight: 600,
-                                    fontSize: "0.78rem",
-                                    display: "block",
-                                    mb: 0.8,
-                                  }}
-                                >
-                                  Correo Electrónico *
-                                </Typography>
-                                <Box sx={{ borderBottom: "1px dashed #cbd5e1", pb: 0.8 }}>
-                                  <Typography sx={{ color: "#1e293b", fontWeight: 700, fontSize: "0.92rem" }}>
-                                    {resp.email}
-                                  </Typography>
-                                </Box>
-                              </Box>
-                            </Box>
-                          </Paper>
-                        </Collapse>
+                            </Paper>
+                          </Collapse>
+                        </Box>
                       </Box>
-                    </Box>
-                  </Collapse>
-                </Paper>
-              );
-            })}
+                    </Collapse>
+                  </Paper>
+                );
+              })}
             </Box>
           </EstablecimientoCard>
         )}
@@ -1450,8 +1426,6 @@ const DatosTramiteRadiofisica = ({
 
                 {RESPONSABLES_USO.map((resp) => {
                   const isExpanded = !!expandedRespUso[resp.id];
-                  const docObsKey = `rad_resp_uso_${resp.id}_doc_obs`;
-                  const docObs = getObs(docObsKey);
                   const presenteFieldId = `rad_resp_uso_${resp.id}_presente`;
                   const presenteVal = getValue(presenteFieldId, null);
 
@@ -1526,7 +1500,7 @@ const DatosTramiteRadiofisica = ({
                       {/* Contenido desplegable: Mini cards según la imagen */}
                       <Collapse in={isExpanded}>
                         <Box sx={{ p: { xs: 2, sm: 3 }, bgcolor: "#f8fafc", display: "flex", flexDirection: "column", gap: 2.5 }}>
-                          
+
                           {/* 1. Datos personales responsable de uso */}
                           <Box sx={{ width: "100%" }}>
                             <Box
@@ -1813,24 +1787,6 @@ const DatosTramiteRadiofisica = ({
                                     <VisibilityIcon fontSize="small" />
                                   </IconButton>
                                 </Tooltip>
-
-                                <Tooltip title={docObs ? "Ver / Editar observación" : "Agregar observación"}>
-                                  <IconButton
-                                    size="small"
-                                    onClick={() =>
-                                      onOpenObs &&
-                                      onOpenObs(
-                                        docObsKey,
-                                        `Autorización Individual - ${resp.nombre} ${resp.apellido}`,
-                                        docObs,
-                                        "TRAMITE"
-                                      )
-                                    }
-                                    sx={{ color: docObs ? "#0ea5e9" : "#94a3b8" }}
-                                  >
-                                    {docObs ? <ChatBubbleIcon fontSize="small" /> : <ChatBubbleOutlineIcon fontSize="small" />}
-                                  </IconButton>
-                                </Tooltip>
                               </Box>
                             </Paper>
                           </Box>
@@ -1925,7 +1881,7 @@ const DatosTramiteRadiofisica = ({
         nombre: "Lic. Martín S. Benítez",
         titulo: "Lic. en Producción de Bioimágenes",
         especialidad: "Radiofísica y Protección Radiológica",
-        dni: "28.450.912",
+        cuil: "20284509123",
         matricula: "MP-84920",
         dosimetro: "SI",
       },
@@ -1934,7 +1890,7 @@ const DatosTramiteRadiofisica = ({
         nombre: "Tec. Andrea Romero",
         titulo: "Técnica Radióloga",
         especialidad: "Operadora de Equipo de Rayos X",
-        dni: "34.120.450",
+        cuil: "27341204504",
         matricula: "MP-12480",
         dosimetro: "SI",
       },
@@ -1943,7 +1899,7 @@ const DatosTramiteRadiofisica = ({
         nombre: "Dr. Gustavo F. Morales",
         titulo: "Médico Cirujano",
         especialidad: "Especialista en Diagnóstico por Imágenes",
-        dni: "22.981.340",
+        cuil: "20229813407",
         matricula: "ME-7412",
         dosimetro: "SI",
       },
@@ -1970,7 +1926,7 @@ const DatosTramiteRadiofisica = ({
                     TITULO/ESPECIALIDAD
                   </TableCell>
                   <TableCell sx={{ fontWeight: 900, color: "#0369a1", fontSize: "0.80rem" }}>
-                    DNI/MATRICULA
+                    CUIL/MATRICULA
                   </TableCell>
                   <TableCell align="center" sx={{ fontWeight: 900, color: "#0369a1", fontSize: "0.80rem", width: 140 }}>
                     DOSIMETRO
@@ -1996,7 +1952,7 @@ const DatosTramiteRadiofisica = ({
                       </TableCell>
                       <TableCell sx={{ py: 1.8 }}>
                         <Typography sx={{ fontWeight: 700, color: "#1e293b", fontSize: "0.85rem" }}>
-                          DNI: {person.dni}
+                          CUIL: {person.cuil || person.dni}
                         </Typography>
                         <Chip
                           label={person.matricula}
@@ -2053,59 +2009,105 @@ const DatosTramiteRadiofisica = ({
   // ────────────────────────────────────────────────────────────
   if (category === "EQUIPAMIENTO") {
     const fieldId = "rad_equipo_rx";
-    const obsVal = getObs(fieldId);
-    const pmObservadoVal = getValue("rad_equipo_pm_observado", "");
 
-    const equipoFieldsConfig = [
-      { id: "rad_eq_marca", label: "Marca", defaultVal: "marca" },
-      { id: "rad_eq_modelo", label: "Modelo", defaultVal: "modelo" },
-      { id: "rad_eq_serie", label: "Serie", defaultVal: "12345" },
-      { id: "rad_eq_condicion", label: "Condición", defaultVal: "Propio" },
-      { id: "rad_eq_ano_fab", label: "Año fabricación", defaultVal: "2000" },
-      { id: "rad_eq_tipo", label: "Tipo de equipo", defaultVal: "Fijo" },
-      { id: "rad_eq_corriente_max", label: "Corriente max", defaultVal: "50" },
-      { id: "rad_eq_tension_max", label: "Tensión max", defaultVal: "50" },
-      { id: "rad_eq_tipo_revelado", label: "Tipo revelado", defaultVal: "DIGITAL" },
-      { id: "rad_eq_pm_declarado", label: "Número de PM declarado", defaultVal: "-", noCheck: true },
-    ];
-
-    const computeGeneralObs = (observedLabels, existingObs = "") => {
-      if (observedLabels.length === 0) {
-        if (!existingObs || existingObs.startsWith("Se observan los siguientes campos del equipo:")) {
-          return "";
-        }
-        return existingObs;
+    const getFieldObs = (id, fallbackObs = "") => {
+      const item = inspectorData[id];
+      if (item && typeof item === "object" && !Array.isArray(item)) {
+        return item.obs !== undefined ? item.obs : fallbackObs;
       }
-      const baseText = `Se observan los siguientes campos del equipo: ${observedLabels.join(", ")}.`;
-      if (!existingObs || existingObs.startsWith("Se observan los siguientes campos del equipo:")) {
-        const match = existingObs.match(/^Se observan los siguientes campos del equipo:[^.]*\.\s*(.*)$/);
-        const extra = match && match[1] ? ` ${match[1]}` : "";
-        return `${baseText}${extra}`;
-      }
-      return `${baseText} ${existingObs}`;
+      return fallbackObs;
     };
 
+    const equipoFieldsConfig = [
+      { id: "rad_eq_marca", label: "Marca", defaultVal: "SIEMENS" },
+      { id: "rad_eq_modelo", label: "Modelo", defaultVal: "Multix Impact" },
+      { id: "rad_eq_serie", label: "Serie", defaultVal: "SN-684291-DE" },
+      { id: "rad_eq_condicion", label: "Condición", defaultVal: "Propio" },
+      { id: "rad_eq_ano_fab", label: "Año fabricación", defaultVal: "2022" },
+      { id: "rad_eq_tipo", label: "Tipo de equipo", defaultVal: "Radiología Digital Directa (DR)" },
+      { id: "rad_eq_movilidad", label: "Movilidad", defaultVal: "Fijo" },
+      { id: "rad_eq_corriente_max", label: "Corriente max", defaultVal: "630 mA" },
+      { id: "rad_eq_tension_max", label: "Tensión max", defaultVal: "150 kV" },
+      { id: "rad_eq_tipo_revelado", label: "Tipo revelado", defaultVal: "DIGITAL" },
+      { id: "rad_eq_pm_declarado", label: "Número de PM declarado", defaultVal: "PM-1458-42", noCheck: true },
+    ];
+
+    const getEquipoValue = (id, fallback) => {
+      const item = inspectorData[id];
+      let val = undefined;
+      if (item && typeof item === "object" && !Array.isArray(item)) {
+        val = item.value;
+      } else if (item !== undefined) {
+        val = item;
+      }
+
+      // Descartar placeholders genéricos antiguos guardados en localStorage
+      const isPlaceholder =
+        val === "marca" ||
+        val === "modelo" ||
+        val === "12345" ||
+        val === "condicion" ||
+        val === "tipo" ||
+        val === "SONY" ||
+        val === "UP-DF550" ||
+        val === "SN-849201";
+
+      if (val === undefined || val === null || val === "" || isPlaceholder) {
+        return fallback;
+      }
+
+      return val;
+    };
+
+    const computeGeneralObs = (observedFields) => {
+      if (observedFields.length === 0) {
+        return "";
+      }
+      return observedFields.map((f) => `${f.label}: ${f.value}`).join(", ");
+    };
+
+    const activeObsCount = equipoFieldsConfig
+      .filter((f) => !f.noCheck && Boolean(getFieldObs(f.id, "")))
+      .length;
+
+    // Si no tiene nada seleccionado (activeObsCount === 0), la observación queda vacía
+    const storedObs = getFieldObs(fieldId, "");
+    const obsVal = activeObsCount === 0
+      ? ""
+      : (storedObs || computeGeneralObs(
+          equipoFieldsConfig
+            .filter((f) => !f.noCheck && Boolean(getFieldObs(f.id, "")))
+            .map((f) => ({ label: f.label, value: getEquipoValue(f.id, f.defaultVal) }))
+        ));
+
+    const pmObservadoVal = getValue("rad_equipo_pm_observado", "");
+
     const handleToggleFieldObs = (targetId, targetLabel, currentVal) => {
-      const isCurrentlyObs = Boolean(getObs(targetId));
+      const isCurrentlyObs = Boolean(getFieldObs(targetId, ""));
       const willBeObs = !isCurrentlyObs;
 
       onChange(targetId, {
-        value: currentVal !== undefined ? currentVal : getValue(targetId, ""),
+        value: currentVal !== undefined ? currentVal : getEquipoValue(targetId, ""),
         obs: willBeObs ? `Observado: ${targetLabel}` : "",
       });
 
       const allFields = equipoFieldsConfig
         .filter((f) => !f.noCheck)
-        .map((f) => ({
-          label: f.label,
-          isObs: f.id === targetId ? willBeObs : Boolean(getObs(f.id)),
-        }));
+        .map((f) => {
+          const isObs = f.id === targetId ? willBeObs : Boolean(getFieldObs(f.id, ""));
+          const val = getEquipoValue(f.id, f.defaultVal);
+          return {
+            label: f.label,
+            value: val,
+            isObs,
+          };
+        });
 
-      const observedLabels = allFields.filter((f) => f.isObs).map((f) => f.label);
+      const observedFields = allFields.filter((f) => f.isObs);
 
       onChange(fieldId, {
         value: getValue(fieldId, ""),
-        obs: computeGeneralObs(observedLabels, getObs(fieldId)),
+        obs: computeGeneralObs(observedFields),
       });
     };
 
@@ -2116,18 +2118,14 @@ const DatosTramiteRadiofisica = ({
       });
     };
 
-    const activeObsCount = equipoFieldsConfig
-      .filter((f) => !f.noCheck && Boolean(getObs(f.id)))
-      .length;
-
     const eppList = [
       {
         id: "mampara_plomada",
         nombre: "Mampara plomada",
         declarada: 8,
         unidades: [
-          { unidad: "#1", marca: "marca", antiguedad: "10", cantidad: 5 },
-          { unidad: "#2", marca: "marca", antiguedad: "2", cantidad: 3 },
+          { unidad: "#1", marca: "Bar-Ray", antiguedad: "4", cantidad: 5 },
+          { unidad: "#2", marca: "Mavig", antiguedad: "2", cantidad: 3 },
         ],
       },
       {
@@ -2135,8 +2133,8 @@ const DatosTramiteRadiofisica = ({
         nombre: "Chalecos plomados (0.5 mm Pb eq)",
         declarada: 3,
         unidades: [
-          { unidad: "#1", marca: "marca", antiguedad: "3", cantidad: 2 },
-          { unidad: "#2", marca: "marca", antiguedad: "1", cantidad: 1 },
+          { unidad: "#1", marca: "Wolf X-Ray", antiguedad: "3", cantidad: 2 },
+          { unidad: "#2", marca: "Bar-Ray", antiguedad: "1", cantidad: 1 },
         ],
       },
       {
@@ -2144,7 +2142,7 @@ const DatosTramiteRadiofisica = ({
         nombre: "Protectores tiroideos (0.5 mm Pb eq)",
         declarada: 3,
         unidades: [
-          { unidad: "#1", marca: "marca", antiguedad: "2", cantidad: 3 },
+          { unidad: "#1", marca: "Mavig", antiguedad: "2", cantidad: 3 },
         ],
       },
       {
@@ -2152,7 +2150,7 @@ const DatosTramiteRadiofisica = ({
         nombre: "Protectores gonadales (0.5 mm Pb eq)",
         declarada: 2,
         unidades: [
-          { unidad: "#1", marca: "marca", antiguedad: "4", cantidad: 2 },
+          { unidad: "#1", marca: "Infab", antiguedad: "4", cantidad: 2 },
         ],
       },
       {
@@ -2160,7 +2158,7 @@ const DatosTramiteRadiofisica = ({
         nombre: "Antiparras / Lentes plomados con protección lateral",
         declarada: 2,
         unidades: [
-          { unidad: "#1", marca: "marca", antiguedad: "1", cantidad: 2 },
+          { unidad: "#1", marca: "ProtecX", antiguedad: "1", cantidad: 2 },
         ],
       },
       {
@@ -2168,7 +2166,7 @@ const DatosTramiteRadiofisica = ({
         nombre: "Guantes plomados (0.5 mm Pb eq)",
         declarada: 1,
         unidades: [
-          { unidad: "#1", marca: "marca", antiguedad: "2", cantidad: 1 },
+          { unidad: "#1", marca: "KAV Medical", antiguedad: "2", cantidad: 1 },
         ],
       },
     ];
@@ -2203,17 +2201,20 @@ const DatosTramiteRadiofisica = ({
           }
           obs={obsVal}
         >
-          {equipoFieldsConfig.map((field) => (
-            <CardFieldCheckItem
-              key={field.id}
-              id={field.id}
-              label={field.label}
-              value={getValue(field.id, field.defaultVal)}
-              isObserved={Boolean(getObs(field.id))}
-              onToggleObs={handleToggleFieldObs}
-              noCheck={field.noCheck}
-            />
-          ))}
+          {equipoFieldsConfig.map((field) => {
+            const isObs = Boolean(getFieldObs(field.id, ""));
+            return (
+              <CardFieldCheckItem
+                key={field.id}
+                id={field.id}
+                label={field.label}
+                value={getEquipoValue(field.id, field.defaultVal)}
+                isObserved={isObs}
+                onToggleObs={handleToggleFieldObs}
+                noCheck={field.noCheck}
+              />
+            );
+          })}
 
           <Box sx={{ py: 0.5 }}>
             <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 0.4, minHeight: 24 }}>
@@ -2502,121 +2503,329 @@ const DatosTramiteRadiofisica = ({
   // 6. STEP: DOCUMENTOS ADJUNTOS
   // ────────────────────────────────────────────────────────────
   if (category === "DOCUMENTACION") {
-    const radioDocs = [
+    const documentTypes = [
       {
-        id: "plano-blindaje",
-        fieldId: "rad_arq_plano_blindaje",
-        name: "Plano estructural con cálculo de blindaje",
+        id: "tipo-plano-blindaje",
+        title: "Plano estructural con cálculo de blindaje",
         emisor: "Especialista en Radiofísica Médica Matriculado",
-        detalle: "Memoria descriptiva, planos con espesor de plomo / baritado y certificación del responsable de instalación.",
-        pdf: "plano_blindaje.pdf",
+        detalle: "Memoria descriptiva, cálculo analítico de blindajes y certificación técnica de espesores de plomo / baritado.",
+        files: [
+          {
+            id: "plano-1",
+            name: "Memoria_Descriptiva_Calculo_Blindaje_RX.pdf",
+            detalle: "Cálculo de blindaje analítico y barreras de protección de sala de Rayos X",
+            size: "3.4 MB",
+            fecha: "12/03/2026",
+            pdf: "plano_blindaje.pdf",
+            fieldId: "rad_doc_plano_blindaje_1",
+            legacyFieldId: "rad_arq_plano_blindaje",
+          },
+          {
+            id: "plano-2",
+            name: "Plano_Planta_Cortes_Espesor_Plomo.pdf",
+            detalle: "Planos arquitectónicos con cortes y blindaje de plomo/baritado certificado",
+            size: "4.8 MB",
+            fecha: "14/03/2026",
+            pdf: "plano_blindaje.pdf",
+            fieldId: "rad_doc_plano_blindaje_2",
+          },
+        ],
       },
       {
-        id: "tasa-retributiva",
-        fieldId: "rad_doc_tasa_retributiva",
-        name: "Tasa retributiva de servicios",
+        id: "tipo-tasa-retributiva",
+        title: "Tasa retributiva de servicios",
         emisor: "Dirección de Jurisdicción Farmacia y Radiofísica",
-        pdf: "tasa_retributiva.pdf",
+        detalle: "Arancel oficial y comprobantes de liquidación para habilitación de equipos generadores de radiación.",
+        files: [
+          {
+            id: "tasa-1",
+            name: "Comprobante_Pago_Tasa_Retributiva.pdf",
+            detalle: "Comprobante de pago arancelario habilitación de equipo RX",
+            size: "850 KB",
+            fecha: "20/03/2026",
+            pdf: "tasa_retributiva.pdf",
+            fieldId: "rad_doc_tasa_retributiva_1",
+            legacyFieldId: "rad_doc_tasa_retributiva",
+          },
+          {
+            id: "tasa-2",
+            name: "Constancia_Liquidacion_DGR_Timbrado.pdf",
+            detalle: "Formulario de liquidación tributaria oficial DGR con timbrado",
+            size: "620 KB",
+            fecha: "20/03/2026",
+            pdf: "tasa_retributiva.pdf",
+            fieldId: "rad_doc_tasa_retributiva_2",
+          },
+        ],
       },
       {
-        id: "constancia-dosimetria",
-        fieldId: "rad_doc_constancia_dosimetria",
-        name: "Constancia de prestación de dosimetría",
-        emisor: "Empresa de Dosimetría Acreditada",
-        pdf: "constancia_dosimetria.pdf",
+        id: "tipo-constancia-dosimetria",
+        title: "Constancia de prestación de dosimetría",
+        emisor: "Empresa de Dosimetría Acreditada (CNEA / ARN)",
+        detalle: "Contrato de vigilancia radiológica y registros dosimétricos para el personal expuesto.",
+        files: [
+          {
+            id: "dosimetria-1",
+            name: "Contrato_Vigente_Servicio_Dosimetria.pdf",
+            detalle: "Contrato vigente de servicio dosimétrico individual para el plantel",
+            size: "1.2 MB",
+            fecha: "05/01/2026",
+            pdf: "constancia_dosimetria.pdf",
+            fieldId: "rad_doc_constancia_dosimetria_1",
+            legacyFieldId: "rad_doc_constancia_dosimetria",
+          },
+          {
+            id: "dosimetria-2",
+            name: "Ultimo_Informe_Dosimetrico_Trimestral.pdf",
+            detalle: "Reporte y lectura dosimétrica acumulada del último trimestre",
+            size: "980 KB",
+            fecha: "10/03/2026",
+            pdf: "constancia_dosimetria.pdf",
+            fieldId: "rad_doc_constancia_dosimetria_2",
+          },
+        ],
       },
       {
-        id: "residuos-peligrosos",
-        fieldId: "rad_doc_residuos_peligrosos",
-        name: "Convenio actualizado de residuos peligrosos",
-        emisor: "Operador de Residuos Peligrosos",
-        pdf: "convenio_residuos.pdf",
+        id: "tipo-residuos-peligrosos",
+        title: "Convenio actualizado de residuos peligrosos",
+        emisor: "Operador de Residuos Peligrosos Autorizado",
+        detalle: "Convenio y certificaciones ambientales para la gestión de efluentes fotográficos y residuos químicos.",
+        files: [
+          {
+            id: "residuos-1",
+            name: "Convenio_Recoleccion_Residuos_Peligrosos.pdf",
+            detalle: "Convenio con empresa de recolección y tratamiento de residuos biopatogénicos y químicos",
+            size: "1.5 MB",
+            fecha: "15/02/2026",
+            pdf: "convenio_residuos.pdf",
+            fieldId: "rad_doc_residuos_peligrosos_1",
+            legacyFieldId: "rad_doc_residuos_peligrosos",
+          },
+          {
+            id: "residuos-2",
+            name: "Certificado_Ambiental_Disposicion_Final.pdf",
+            detalle: "Certificado de tratamiento y disposición ambiental de líquidos fijadores/reveladores",
+            size: "740 KB",
+            fecha: "18/02/2026",
+            pdf: "convenio_residuos.pdf",
+            fieldId: "rad_doc_residuos_peligrosos_2",
+          },
+        ],
       },
       {
-        id: "manual-usuario",
-        fieldId: "rad_doc_manual_usuario",
-        name: "Manual de usuario",
-        emisor: "Fabricante / Proveedor del Equipamiento RX",
-        pdf: "manual_usuario.pdf",
+        id: "tipo-manual-usuario",
+        title: "Manual de usuario",
+        emisor: "Fabricante / Proveedor del Equipamiento RX (Siemens Healthineers)",
+        detalle: "Documentación técnica oficial, especificaciones del fabricante y protocolos de calibración y seguridad.",
+        files: [
+          {
+            id: "manual-1",
+            name: "Manual_Operacion_Tecnica_Siemens_Multix_Impact.pdf",
+            detalle: "Manual de usuario y especificaciones de operación técnica del equipamiento SIEMENS Multix Impact",
+            size: "5.1 MB",
+            fecha: "08/11/2025",
+            pdf: "manual_usuario.pdf",
+            fieldId: "rad_doc_manual_usuario_1",
+            legacyFieldId: "rad_doc_manual_usuario",
+          },
+          {
+            id: "manual-2",
+            name: "Guia_Seguridad_Radiologica_Mantenimiento.pdf",
+            detalle: "Protocolo de mantenimiento preventivo, seguridad y tolerancias radiológicas",
+            size: "2.8 MB",
+            fecha: "12/01/2026",
+            pdf: "manual_usuario.pdf",
+            fieldId: "rad_doc_manual_usuario_2",
+          },
+        ],
       },
       {
-        id: "documentacion-general",
-        fieldId: "rad_doc_documentacion_general",
-        name: "Documentación general",
+        id: "tipo-documentacion-general",
+        title: "Documentación general",
         emisor: "Establecimiento / Titular",
-        pdf: "documentacion_general.pdf",
+        detalle: "Constancias institucionales, habilitaciones locales y coberturas de seguro vigentes.",
+        files: [
+          {
+            id: "gral-1",
+            name: "Habilitacion_Municipal_Vigente.pdf",
+            detalle: "Certificado de habilitación municipal del establecimiento",
+            size: "1.1 MB",
+            fecha: "10/01/2026",
+            pdf: "documentacion_general.pdf",
+            fieldId: "rad_doc_documentacion_general_1",
+            legacyFieldId: "rad_doc_documentacion_general",
+          },
+          {
+            id: "gral-2",
+            name: "Poliza_Seguro_Responsabilidad_Civil.pdf",
+            detalle: "Póliza de seguro vigente de responsabilidad civil y coberturas",
+            size: "1.7 MB",
+            fecha: "01/02/2026",
+            pdf: "documentacion_general.pdf",
+            fieldId: "rad_doc_documentacion_general_2",
+          },
+        ],
       },
     ];
 
     return (
-      <Box sx={{ display: "flex", flexDirection: "column", gap: 2.5, mb: 4 }}>
-        <TableContainer
-          component={Paper}
-          elevation={0}
-          sx={{ border: "1px solid #e2e8f0", borderRadius: 4, overflow: "hidden" }}
-        >
-          <Table size="small">
-            <TableHead>
-              <TableRow sx={{ bgcolor: "#f8fafc" }}>
-                <TableCell sx={{ fontWeight: 900, color: "#0369a1", fontSize: "0.80rem", py: 2 }}>
-                  DOCUMENTO PARTICULAR DE RADIOFÍSICA
-                </TableCell>
-                <TableCell align="center" sx={{ fontWeight: 900, color: "#0369a1", fontSize: "0.80rem" }}>
-                  VISUALIZAR DOCUMENTO
-                </TableCell>
-                <TableCell align="center" sx={{ fontWeight: 900, color: "#0369a1", fontSize: "0.80rem", width: 70 }}>
-                  OBS.
-                </TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {radioDocs.map((doc) => {
-                const fieldId = doc.fieldId || `rad_doc_${doc.id}`;
-                const obsVal = getObs(fieldId);
+      <Box sx={{ display: "flex", flexDirection: "column", gap: 3, mb: 4 }}>
+        {documentTypes.map((tipo) => (
+          <Paper
+            key={tipo.id}
+            elevation={0}
+            sx={{
+              border: "1px solid #e2e8f0",
+              borderRadius: 3.5,
+              overflow: "hidden",
+              bgcolor: "#ffffff",
+            }}
+          >
+            {/* Subtítulo del tipo de documento */}
+            <Box
+              sx={{
+                bgcolor: "#f8fafc",
+                px: 2.5,
+                py: 1.8,
+                borderBottom: "1px solid #e2e8f0",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                flexWrap: "wrap",
+                gap: 1.5,
+              }}
+            >
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1.2 }}>
+                <DescriptionIcon sx={{ color: "#0284c7", fontSize: 22 }} />
+                <Box>
+                  <Typography
+                    sx={{
+                      fontWeight: 800,
+                      color: "#1e293b",
+                      fontSize: "0.92rem",
+                      textTransform: "uppercase",
+                      letterSpacing: 0.3,
+                    }}
+                  >
+                    {tipo.title}
+                  </Typography>
+                  {tipo.detalle && (
+                    <Typography variant="caption" sx={{ color: "#64748b", fontWeight: 500, display: "block", mt: 0.2 }}>
+                      {tipo.detalle}
+                    </Typography>
+                  )}
+                </Box>
+              </Box>
 
-                return (
-                  <TableRow key={doc.id} hover sx={{ "&:hover": { bgcolor: "#f8fafc" } }}>
-                    <TableCell sx={{ py: 1.8 }}>
-                      <Typography sx={{ fontWeight: 800, color: "#1e293b", fontSize: "0.88rem" }}>
-                        {doc.name}
-                      </Typography>
-                      {doc.detalle && (
-                        <Typography variant="caption" sx={{ color: "#64748b", fontWeight: 600, display: "block", mt: 0.3 }}>
-                          {doc.detalle}
-                        </Typography>
-                      )}
+              {tipo.emisor && (
+                <Chip
+                  label={tipo.emisor}
+                  size="small"
+                  sx={{
+                    fontWeight: 700,
+                    fontSize: "0.70rem",
+                    bgcolor: "#ffffff",
+                    color: "#475569",
+                    border: "1px solid #cbd5e1",
+                    height: 24,
+                  }}
+                />
+              )}
+            </Box>
+
+            {/* 2 ejemplos de archivos dentro de este subtítulo */}
+            <TableContainer>
+              <Table size="small">
+                <TableHead>
+                  <TableRow sx={{ bgcolor: "#ffffff" }}>
+                    <TableCell sx={{ fontWeight: 800, color: "#64748b", fontSize: "0.74rem", py: 1.2, letterSpacing: 0.2 }}>
+                      ARCHIVO ADJUNTO
                     </TableCell>
-                    <TableCell align="center">
-                      <Tooltip title={`Ver ${doc.name}`}>
-                        <IconButton
-                          size="small"
-                          onClick={() => onOpenViewer && onOpenViewer(doc.pdf)}
-                          sx={{ color: "#0284c7", bgcolor: "#e0f2fe", "&:hover": { bgcolor: "#bae6fd" } }}
-                        >
-                          <VisibilityIcon fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
+                    <TableCell sx={{ fontWeight: 800, color: "#64748b", fontSize: "0.74rem", letterSpacing: 0.2, width: 160 }}>
+                      DETALLE / TAMAÑO
                     </TableCell>
-                    <TableCell align="center">
-                      <Tooltip title={obsVal ? "Ver / Editar observación" : "Agregar observación"}>
-                        <IconButton
-                          size="small"
-                          onClick={() =>
-                            onOpenObs &&
-                            onOpenObs(fieldId, doc.name, obsVal, "TRAMITE")
-                          }
-                          sx={{ color: obsVal ? "#0ea5e9" : "#94a3b8" }}
-                        >
-                          {obsVal ? <ChatBubbleIcon fontSize="small" /> : <ChatBubbleOutlineIcon fontSize="small" />}
-                        </IconButton>
-                      </Tooltip>
+                    <TableCell align="center" sx={{ fontWeight: 800, color: "#64748b", fontSize: "0.74rem", letterSpacing: 0.2, width: 110 }}>
+                      VISUALIZAR
+                    </TableCell>
+                    <TableCell align="center" sx={{ fontWeight: 800, color: "#64748b", fontSize: "0.74rem", letterSpacing: 0.2, width: 70 }}>
+                      OBS.
                     </TableCell>
                   </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </TableContainer>
+                </TableHead>
+                <TableBody>
+                  {tipo.files.map((file) => {
+                    const fileObs = getObs(file.fieldId) || (file.legacyFieldId ? getObs(file.legacyFieldId) : "");
+                    return (
+                      <TableRow key={file.id} hover sx={{ "&:hover": { bgcolor: "#f8fafc" } }}>
+                        <TableCell sx={{ py: 1.5 }}>
+                          <Box sx={{ display: "flex", alignItems: "flex-start", gap: 1.2 }}>
+                            <Box
+                              sx={{
+                                p: 0.7,
+                                borderRadius: 1.5,
+                                bgcolor: "#f0f9ff",
+                                color: "#0284c7",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                mt: 0.2,
+                              }}
+                            >
+                              <DescriptionIcon sx={{ fontSize: 18 }} />
+                            </Box>
+                            <Box>
+                              <Typography sx={{ fontWeight: 700, color: "#1e293b", fontSize: "0.86rem" }}>
+                                {file.name}
+                              </Typography>
+                              {file.detalle && (
+                                <Typography variant="caption" sx={{ color: "#64748b", fontWeight: 500, display: "block", mt: 0.2 }}>
+                                  {file.detalle}
+                                </Typography>
+                              )}
+                            </Box>
+                          </Box>
+                        </TableCell>
+                        <TableCell sx={{ py: 1.5 }}>
+                          <Typography sx={{ color: "#475569", fontSize: "0.80rem", fontWeight: 600 }}>
+                            {file.size}
+                          </Typography>
+                          <Typography variant="caption" sx={{ color: "#94a3b8", display: "block" }}>
+                            {file.fecha}
+                          </Typography>
+                        </TableCell>
+                        <TableCell align="center">
+                          <Tooltip title={`Visualizar ${file.name}`}>
+                            <IconButton
+                              size="small"
+                              onClick={() => onOpenViewer && onOpenViewer(file.pdf)}
+                              sx={{ color: "#0284c7", bgcolor: "#e0f2fe", "&:hover": { bgcolor: "#bae6fd" } }}
+                            >
+                              <VisibilityIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                        </TableCell>
+                        <TableCell align="center">
+                          <Tooltip title={fileObs ? "Ver / Editar observación" : "Agregar observación"}>
+                            <IconButton
+                              size="small"
+                              onClick={() =>
+                                onOpenObs &&
+                                onOpenObs(file.fieldId, file.name, fileObs, "TRAMITE")
+                              }
+                              sx={{ color: fileObs ? "#0ea5e9" : "#94a3b8" }}
+                            >
+                              {fileObs ? <ChatBubbleIcon fontSize="small" /> : <ChatBubbleOutlineIcon fontSize="small" />}
+                            </IconButton>
+                          </Tooltip>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </Paper>
+        ))}
       </Box>
     );
   }

@@ -302,11 +302,11 @@ export default function TiposEquiposConfig() {
   };
 
   const handleEliminar = (id: number) => {
-    if (window.confirm("¿Confirma que desea eliminar este tipo de servicio / equipo?")) {
+    if (window.confirm("¿Confirma que desea eliminar este tipo de servicio radiofísica?")) {
       const updated = data.filter((it) => it.id !== id);
       setData(updated);
       localStorage.setItem("TIPOS_EQUIPOS_DATABASE", JSON.stringify(updated));
-      setSnackbar({ open: true, message: "Servicio eliminado correctamente" });
+      setSnackbar({ open: true, message: "Tipo de servicio radiofísica eliminado correctamente" });
     }
   };
 
@@ -413,9 +413,9 @@ export default function TiposEquiposConfig() {
 
   const validateForm = (): boolean => {
     const errors: Record<string, string> = {};
-    if (!formData.tipologia) errors.tipologia = "El servicio externo es obligatorio.";
+    if (!formData.tipologia) errors.tipologia = "El servicio diferenciado es obligatorio.";
     if (!formData.nombre.trim())
-      errors.nombre = "El nombre del servicio es obligatorio.";
+      errors.nombre = "El tipo de servicio radiofísica es obligatorio.";
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -511,9 +511,11 @@ export default function TiposEquiposConfig() {
           >
             <ArrowBackIcon fontSize="small" />
           </IconButton>
-          <Typography variant="h5" sx={{ fontWeight: 500 }}>
-            Gestión de Características por Equipo
-          </Typography>
+          <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 0.8 }}>
+            <Typography variant="h5" sx={{ fontWeight: 500 }}>
+              Gestión de Características por Equipo
+            </Typography>
+          </Box>
         </Box>
 
         <Box sx={{ p: 4, bgcolor: "white" }}>
@@ -547,7 +549,7 @@ export default function TiposEquiposConfig() {
                     renderInput={(params) => (
                       <TextField
                         {...params}
-                        label="Servicio Externo"
+                        label="Servicio Diferenciado"
                         variant="standard"
                         fullWidth
                       />
@@ -732,7 +734,7 @@ export default function TiposEquiposConfig() {
               variant="h6"
               sx={{ color: "#0090d0", fontWeight: "bold" }}
             >
-              REQUERIMIENTOS POR SERVICIO EXTERNO
+              REQUERIMIENTOS POR SERVICIO DIFERENCIADO
             </Typography>
             <Box sx={{ display: "flex", gap: 1.5 }}>
               <Button
@@ -741,7 +743,7 @@ export default function TiposEquiposConfig() {
                 sx={{ bgcolor: "#29b6f6", fontWeight: "bold" }}
                 onClick={handleOpenNuevo}
               >
-                NUEVO SUBSERVICIO
+                NUEVO TIPO SERVICIO
               </Button>
             </Box>
           </Box>
@@ -763,7 +765,7 @@ export default function TiposEquiposConfig() {
                     },
                   }}
                 >
-                  <TableCell sx={{ minWidth: "250px" }}>SUBSERVICIO</TableCell>
+                  <TableCell sx={{ minWidth: "250px" }}>TIPO SERVICIO RADIOFÍSICA</TableCell>
                   <TableCell sx={{ minWidth: "350px" }}>
                     CARACTERÍSTICAS ACTIVAS
                   </TableCell>
@@ -927,7 +929,7 @@ export default function TiposEquiposConfig() {
             <Typography variant="h6" sx={{ fontWeight: "bold", fontSize: "1.1rem" }}>
               {isEditing
                 ? `CONFIGURACIÓN DE CARACTERÍSTICAS: ${formData.nombre}`
-                : "NUEVO SERVICIO EXTERNO"}
+                : "NUEVO TIPO SERVICIO"}
             </Typography>
             <IconButton
               size="small"
@@ -950,7 +952,7 @@ export default function TiposEquiposConfig() {
                 textTransform: "uppercase",
               }}
             >
-              1. Identificación del Servicio Externo / Equipo
+              1. Identificación del Servicio Diferenciado y Tipo de Servicio
             </Typography>
 
             <Box
@@ -967,7 +969,7 @@ export default function TiposEquiposConfig() {
                 required
                 error={!!formErrors.tipologia}
               >
-                <InputLabel>Servicio Externo</InputLabel>
+                <InputLabel>Servicio Diferenciado</InputLabel>
                 <Select
                   value={formData.tipologia}
                   onChange={(e) =>
@@ -1007,9 +1009,9 @@ export default function TiposEquiposConfig() {
                 renderInput={(params) => (
                   <TextField
                     {...params}
-                    label="Subservicio"
+                    label="Tipo Servicio Radiofísica"
                     variant="standard"
-                    placeholder="Ej. RESONANCIA MAGNÉTICA, RAYOS X..."
+                    placeholder="Ej. RAYOS X, RESONANCIA MAGNÉTICA, LÁSER..."
                     fullWidth
                     required
                     error={!!formErrors.nombre}

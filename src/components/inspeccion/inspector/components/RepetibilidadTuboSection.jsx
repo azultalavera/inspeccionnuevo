@@ -396,18 +396,18 @@ export default function RepetibilidadTuboSection({
             })}
 
             {/* Fila 4: MEDIA */}
-            <TableRow sx={{ bgcolor: "#fff1f2", borderTop: "2px solid #fecdd3", "&:hover": { bgcolor: "#ffe4e6" } }}>
-              <TableCell sx={{ py: 1.5, borderTop: "2px solid #fecdd3" }}>
+            <TableRow sx={{ bgcolor: "#f0f9ff", borderTop: "2px solid #bae6fd", "&:hover": { bgcolor: "#e0f2fe" } }}>
+              <TableCell sx={{ py: 1.5, borderTop: "2px solid #bae6fd" }}>
                 <Box sx={{ display: "flex", alignItems: "center", gap: 0.8 }}>
-                  <FunctionsIcon sx={{ fontSize: 18, color: "#be123c" }} />
-                  <Typography sx={{ fontWeight: 900, color: "#9f1239", fontSize: "0.88rem" }}>
+                  <FunctionsIcon sx={{ fontSize: 18, color: "#0284c7" }} />
+                  <Typography sx={{ fontWeight: 900, color: "#0369a1", fontSize: "0.88rem" }}>
                     Media
                   </Typography>
                 </Box>
               </TableCell>
 
               {/* Media kV */}
-              <TableCell sx={{ py: 1.5, borderTop: "2px solid #fecdd3" }}>
+              <TableCell sx={{ py: 1.5, borderTop: "2px solid #bae6fd" }}>
                 <TextField
                   size="small"
                   value={statsKv.mean}
@@ -425,14 +425,14 @@ export default function RepetibilidadTuboSection({
                       fontWeight: 800,
                       fontSize: "0.88rem",
                       py: 0.8,
-                      color: "#9f1239",
+                      color: "#0369a1",
                     },
                   }}
                 />
               </TableCell>
 
               {/* Media Tiempo */}
-              <TableCell sx={{ py: 1.5, borderTop: "2px solid #fecdd3" }}>
+              <TableCell sx={{ py: 1.5, borderTop: "2px solid #bae6fd" }}>
                 <TextField
                   size="small"
                   value={statsT.mean}
@@ -450,14 +450,14 @@ export default function RepetibilidadTuboSection({
                       fontWeight: 800,
                       fontSize: "0.88rem",
                       py: 0.8,
-                      color: "#9f1239",
+                      color: "#0369a1",
                     },
                   }}
                 />
               </TableCell>
 
               {/* Media Unidad Tiempo */}
-              <TableCell sx={{ py: 1.5, borderTop: "2px solid #fecdd3" }}>
+              <TableCell sx={{ py: 1.5, borderTop: "2px solid #bae6fd" }}>
                 <Select
                   size="small"
                   value={mediaTUnit}
@@ -468,7 +468,7 @@ export default function RepetibilidadTuboSection({
                     fontWeight: 700,
                     height: 36,
                     bgcolor: "#ffffff",
-                    color: "#9f1239",
+                    color: "#0369a1",
                   }}
                 >
                   <MenuItem value="µSeg">µSeg</MenuItem>
@@ -478,7 +478,7 @@ export default function RepetibilidadTuboSection({
               </TableCell>
 
               {/* Media Dosis */}
-              <TableCell sx={{ py: 1.5, borderTop: "2px solid #fecdd3" }}>
+              <TableCell sx={{ py: 1.5, borderTop: "2px solid #bae6fd" }}>
                 <TextField
                   size="small"
                   value={statsDosis.mean}
@@ -496,14 +496,14 @@ export default function RepetibilidadTuboSection({
                       fontWeight: 800,
                       fontSize: "0.88rem",
                       py: 0.8,
-                      color: "#9f1239",
+                      color: "#0369a1",
                     },
                   }}
                 />
               </TableCell>
 
               {/* Media Unidad Dosis */}
-              <TableCell sx={{ py: 1.5, borderTop: "2px solid #fecdd3" }}>
+              <TableCell sx={{ py: 1.5, borderTop: "2px solid #bae6fd" }}>
                 <Select
                   size="small"
                   value={mediaDosisUnit}
@@ -514,7 +514,7 @@ export default function RepetibilidadTuboSection({
                     fontWeight: 700,
                     height: 36,
                     bgcolor: "#ffffff",
-                    color: "#9f1239",
+                    color: "#0369a1",
                   }}
                 >
                   <MenuItem value="nGy">nGy</MenuItem>
@@ -526,11 +526,11 @@ export default function RepetibilidadTuboSection({
             </TableRow>
 
             {/* Fila 5: DESVIACIÓN ESTÁNDAR */}
-            <TableRow sx={{ bgcolor: "#fff1f2", "&:hover": { bgcolor: "#ffe4e6" } }}>
+            <TableRow sx={{ bgcolor: "#f5f3ff", borderTop: "1px solid #e0e7ff", "&:hover": { bgcolor: "#ede9fe" } }}>
               <TableCell sx={{ py: 1.5 }}>
                 <Box sx={{ display: "flex", alignItems: "center", gap: 0.8 }}>
-                  <AnalyticsIcon sx={{ fontSize: 18, color: "#be123c" }} />
-                  <Typography sx={{ fontWeight: 900, color: "#9f1239", fontSize: "0.88rem" }}>
+                  <AnalyticsIcon sx={{ fontSize: 18, color: "#6366f1" }} />
+                  <Typography sx={{ fontWeight: 900, color: "#4338ca", fontSize: "0.88rem" }}>
                     Desviación Estándar
                   </Typography>
                 </Box>
@@ -555,7 +555,7 @@ export default function RepetibilidadTuboSection({
                       fontWeight: 800,
                       fontSize: "0.88rem",
                       py: 0.8,
-                      color: "#9f1239",
+                      color: "#4338ca",
                     },
                   }}
                 />
@@ -580,7 +580,7 @@ export default function RepetibilidadTuboSection({
                       fontWeight: 800,
                       fontSize: "0.88rem",
                       py: 0.8,
-                      color: "#9f1239",
+                      color: "#4338ca",
                     },
                   }}
                 />
@@ -598,7 +598,7 @@ export default function RepetibilidadTuboSection({
                     fontWeight: 700,
                     height: 36,
                     bgcolor: "#ffffff",
-                    color: "#9f1239",
+                    color: "#4338ca",
                   }}
                 >
                   <MenuItem value="µSeg">µSeg</MenuItem>
@@ -626,7 +626,7 @@ export default function RepetibilidadTuboSection({
                       fontWeight: 800,
                       fontSize: "0.88rem",
                       py: 0.8,
-                      color: "#9f1239",
+                      color: "#4338ca",
                     },
                   }}
                 />
@@ -644,7 +644,7 @@ export default function RepetibilidadTuboSection({
                     fontWeight: 700,
                     height: 36,
                     bgcolor: "#ffffff",
-                    color: "#9f1239",
+                    color: "#4338ca",
                   }}
                 >
                   <MenuItem value="nGy">nGy</MenuItem>

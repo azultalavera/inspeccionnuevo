@@ -311,30 +311,38 @@ function getRadiologiaConvencionalSimpleGeneralSections(): MasterConfigSection[]
       id: "sec-rad-cs-equipos",
       name: "EQUIPOS GENERADORES DE RAYOS X",
       fields: [
+        { id: "f-eq-rx-marca", label: "Marca del equipo", type: "text", origin: "TRÁMITE", tramiteField: "EQUIPAMIENTO > Marca", valorTramiteMock: "SIEMENS" },
+        { id: "f-eq-rx-modelo", label: "Modelo del equipo", type: "text", origin: "TRÁMITE", tramiteField: "EQUIPAMIENTO > Modelo", valorTramiteMock: "Multix Impact" },
+        { id: "f-eq-rx-serie", label: "Número de Serie", type: "text", origin: "TRÁMITE", tramiteField: "EQUIPAMIENTO > Serie", valorTramiteMock: "SN-684291-DE" },
+        { id: "f-eq-rx-tipo", label: "Tipo de equipo", type: "text", origin: "TRÁMITE", tramiteField: "EQUIPAMIENTO > Tipo de equipo", valorTramiteMock: "Radiología Digital Directa (DR)" },
+        { id: "f-eq-rx-movilidad", label: "Movilidad", type: "text", origin: "TRÁMITE", tramiteField: "EQUIPAMIENTO > Movilidad", valorTramiteMock: "Fijo" },
+        { id: "f-eq-rx-tension-max", label: "Tensión máxima", type: "text", origin: "TRÁMITE", tramiteField: "EQUIPAMIENTO > Tensión max", valorTramiteMock: "150 kV" },
+        { id: "f-eq-rx-corriente-max", label: "Corriente máxima", type: "text", origin: "TRÁMITE", tramiteField: "EQUIPAMIENTO > Corriente max", valorTramiteMock: "630 mA" },
+        { id: "f-eq-rx-pm", label: "N° de Producto Médico (PM)", type: "text", origin: "TRÁMITE", tramiteField: "EQUIPAMIENTO > PM", valorTramiteMock: "PM-1458-42" },
         { id: "f-rx-rev-digital", label: "Revelado Digital", type: "sino_na", options: "SI, NO, NO APLICA", valorTramiteMock: "SI" },
-        { id: "f-rx-cr", label: "CR", type: "sino_na", options: "SI, NO, NO APLICA", valorTramiteMock: "SI" },
-        { id: "f-rx-dr", label: "DR", type: "sino_na", options: "SI, NO, NO APLICA", valorTramiteMock: "NO" },
+        { id: "f-rx-dr", label: "DR", type: "sino_na", options: "SI, NO, NO APLICA", valorTramiteMock: "SI" },
+        { id: "f-rx-cr", label: "CR", type: "sino_na", options: "SI, NO, NO APLICA", valorTramiteMock: "NO" },
         {
           id: "f-rx-rev-pelicula",
           label: "Revelado por película",
           type: "sino_na",
           options: "SI, NO, NO APLICA",
           disabledWhen: { fieldId: "f-rx-rev-digital", value: "SI", label: "Revelado digital = SI" },
-          valorTramiteMock: "SI"
+          valorTramiteMock: "NO"
         },
         {
           id: "f-rx-marca",
           label: "Marca",
           type: "text",
           disabledWhen: { fieldId: "f-rx-rev-digital", value: "SI", label: "Revelado digital = SI" },
-          valorTramiteMock: "Kodak Medical"
+          valorTramiteMock: "SIEMENS"
         },
         {
           id: "f-rx-modelo",
           label: "Modelo",
           type: "text",
           disabledWhen: { fieldId: "f-rx-rev-digital", value: "SI", label: "Revelado digital = SI" },
-          valorTramiteMock: "M35-X OMAT"
+          valorTramiteMock: "Multix Impact"
         },
         {
           id: "f-rx-cuarto-rev",
@@ -342,7 +350,7 @@ function getRadiologiaConvencionalSimpleGeneralSections(): MasterConfigSection[]
           type: "sino_na",
           options: "SI, NO, NO APLICA",
           disabledWhen: { fieldId: "f-rx-rev-digital", value: "SI", label: "Revelado digital = SI" },
-          valorTramiteMock: "SI"
+          valorTramiteMock: "NO APLICA"
         },
         {
           id: "f-rx-contrato-liq",
@@ -350,14 +358,14 @@ function getRadiologiaConvencionalSimpleGeneralSections(): MasterConfigSection[]
           type: "sino_na",
           options: "SI, NO, NO APLICA",
           disabledWhen: { fieldId: "f-rx-rev-digital", value: "SI", label: "Revelado digital = SI" },
-          valorTramiteMock: "SI"
+          valorTramiteMock: "NO APLICA"
         },
         {
           id: "f-rx-emp-residuos",
           label: "Empresa residuos",
           type: "text",
           disabledWhen: { fieldId: "f-rx-rev-digital", value: "SI", label: "Revelado digital = SI" },
-          valorTramiteMock: "Hábitat Ecológico S.A."
+          valorTramiteMock: "No aplica (Sistema Digital Directo DR)"
         }
       ]
     },
@@ -461,10 +469,10 @@ function getRadiologiaConvencionalSimpleMedicionesSections(): MasterConfigSectio
       id: "sec-rad-cs-dispersa",
       name: "RADIACIÓN DISPERSA",
       fields: [
-        { id: "f-disp-ma", label: "Condiciones de la prueba - mA", type: "text", valorTramiteMock: "100 mA" },
-        { id: "f-disp-kv", label: "Condiciones de la prueba - kV", type: "text", valorTramiteMock: "80 kV" },
-        { id: "f-disp-t", label: "Condiciones de la prueba - T", type: "text", valorTramiteMock: "0.2 Seg" },
-        { id: "f-disp-fondo", label: "Condiciones de la prueba - Radiación de fondo", type: "number", valorTramiteMock: 0.10 },
+        { id: "f-disp-ma", label: "Condiciones de la prueba - mA", type: "text", valorTramiteMock: "" },
+        { id: "f-disp-kv", label: "Condiciones de la prueba - kV", type: "text", valorTramiteMock: "" },
+        { id: "f-disp-t", label: "Condiciones de la prueba - T", type: "text", valorTramiteMock: "" },
+        { id: "f-disp-fondo", label: "Condiciones de la prueba - Radiación de fondo", type: "number", valorTramiteMock: "" },
         { id: "f-disp-fondo-unit", label: "Condiciones de la prueba - Radiación de fondo - Unidad", type: "button_group", options: "µSv/h, mSv/h", valorTramiteMock: "µSv/h" }
       ]
     },
