@@ -370,8 +370,7 @@ function getRadiologiaConvencionalSimpleGeneralSections(): MasterConfigSection[]
         { id: "f-dos-empresa", label: "Empresa", type: "text", valorTramiteMock: "Tecnodosis S.R.L." },
         { id: "f-dos-cuerpo-entero", label: "Cuerpo entero", type: "text", valorTramiteMock: "Dosímetro TLD tórax mensual" },
         { id: "f-dos-cristalino", label: "Cristalino", type: "text", valorTramiteMock: "Dosímetro de anillo / gafas plomadas" },
-        { id: "f-dos-cant-personal", label: "Cantidad de personal declarado en el servicio", type: "number", valorTramiteMock: 4 },
-        { id: "f-dos-obs", label: "Observaciones", type: "textarea", valorTramiteMock: "Se verifican registros dosimétricos sin superación de límites de dosis para el personal ocupacionalmente expuesto." }
+        { id: "f-dos-cant-personal", label: "Cantidad de personal declarado en el servicio", type: "number", valorTramiteMock: 4 }
       ]
     },
 
@@ -480,6 +479,20 @@ function getRadiologiaConvencionalSimpleMedicionesSections(): MasterConfigSectio
         { id: "f-dosis-duracion-disp", label: "Duración del disparo (Seg)", type: "number", valorTramiteMock: 0.1 },
         { id: "f-dosis-recibida-lic", label: "Dosis recibida por el licenciado (µSv/h)", type: "number", valorTramiteMock: 1.2 },
         { id: "f-dosis-anual-estimada", label: "Dosis anual estimada (µSv/Año)", type: "number", valorTramiteMock: 156.0 }
+      ]
+    },
+
+    // 9. CALIDAD DE IMAGEN
+    {
+      id: "sec-rad-cs-calidad-imagen",
+      name: "CALIDAD DE IMAGEN",
+      fields: [
+        {
+          id: "f-cal-img-fotos",
+          label: "Fotos de Calidad de Imagen",
+          type: "text",
+          valorTramiteMock: ""
+        }
       ]
     }
   ];

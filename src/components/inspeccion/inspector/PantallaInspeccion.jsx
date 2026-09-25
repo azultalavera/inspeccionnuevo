@@ -77,6 +77,7 @@ import DatosTramiteRadiofisica from "./components/DatosTramiteRadiofisica";
 import RadiacionDispersaSection from "./components/RadiacionDispersaSection";
 import PruebaFugaSection from "./components/PruebaFugaSection";
 import RepetibilidadTuboSection from "./components/RepetibilidadTuboSection";
+import CalidadImagenSection from "./components/CalidadImagenSection";
 
 const PantallaInspeccion = ({
   serviciosEfector: propsServicios = null,
@@ -349,10 +350,12 @@ const PantallaInspeccion = ({
       id === "sec-rad-cs-fuga" ||
       id === "sec-rad-cs-dispersa" ||
       id === "sec-rad-cs-dosis-anual" ||
+      id === "sec-rad-cs-calidad-imagen" ||
       name.includes("REPETIBILIDAD") ||
       name.includes("PRUEBA DE FUGA") ||
       name.includes("RADIACION DISPERSA") ||
-      name.includes("DOSIS ANUAL")
+      name.includes("DOSIS ANUAL") ||
+      name.includes("CALIDAD DE IMAGEN")
     );
   }, []);
 
@@ -1701,6 +1704,12 @@ const PantallaInspeccion = ({
                             />
                           ) : sec.id === "sec-rad-cs-repetibilidad" || sec.name === "REPETIBILIDAD DEL TUBO" ? (
                             <RepetibilidadTuboSection
+                              fields={sec.fields}
+                              inspectorData={inspectorData}
+                              onChange={handleFieldChange}
+                            />
+                          ) : sec.id === "sec-rad-cs-calidad-imagen" || normalize(sec.name).includes("CALIDAD DE IMAGEN") ? (
+                            <CalidadImagenSection
                               fields={sec.fields}
                               inspectorData={inspectorData}
                               onChange={handleFieldChange}

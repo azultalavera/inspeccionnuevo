@@ -1509,20 +1509,6 @@ const DatosTramiteRadiofisica = ({
                               <Typography sx={{ fontWeight: 800, color: "#1e293b", fontSize: "0.95rem" }}>
                                 {resp.titulo}
                               </Typography>
-                              {presenteVal && (
-                                <Chip
-                                  label={presenteVal === "SI" ? "PRESENTE" : "NO PRESENTE"}
-                                  size="small"
-                                  sx={{
-                                    height: 20,
-                                    fontSize: "0.68rem",
-                                    fontWeight: 900,
-                                    bgcolor: presenteVal === "SI" ? "#dcfce7" : "#fee2e2",
-                                    color: presenteVal === "SI" ? "#166534" : "#991b1b",
-                                    border: `1px solid ${presenteVal === "SI" ? "#86efac" : "#fecaca"}`,
-                                  }}
-                                />
-                              )}
                             </Box>
                             <Typography variant="caption" sx={{ color: "#64748b", fontWeight: 600 }}>
                               {resp.nombre} {resp.apellido} • Matrícula: {resp.matricula} • CUIL: {resp.cuil}
@@ -1530,46 +1516,8 @@ const DatosTramiteRadiofisica = ({
                           </Box>
                         </Box>
 
-                        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }} onClick={(e) => e.stopPropagation()}>
-                          <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
-                            <Typography sx={{ fontSize: "0.80rem", fontWeight: 700, color: "#475569" }}>
-                              ¿Se encuentra al momento de la inspección?
-                            </Typography>
-                            <ToggleButtonGroup
-                              size="small"
-                              value={presenteVal}
-                              exclusive
-                              onChange={(e, val) => {
-                                handleToggle(presenteFieldId, val);
-                              }}
-                              sx={{
-                                height: 32,
-                                bgcolor: "#ffffff",
-                                border: "1px solid #cbd5e1",
-                                borderRadius: 1.5,
-                                "& .MuiToggleButton-root": {
-                                  px: 1.8,
-                                  py: 0,
-                                  fontSize: "0.75rem",
-                                  fontWeight: 800,
-                                  border: "none",
-                                  color: "#64748b",
-                                  "&.Mui-selected": {
-                                    bgcolor: presenteVal === "SI" ? "#dcfce7" : "#fee2e2",
-                                    color: presenteVal === "SI" ? "#166534" : "#991b1b",
-                                    "&:hover": {
-                                      bgcolor: presenteVal === "SI" ? "#bbf7d0" : "#fecaca",
-                                    },
-                                  },
-                                },
-                              }}
-                            >
-                              <ToggleButton value="SI">SÍ</ToggleButton>
-                              <ToggleButton value="NO">NO</ToggleButton>
-                            </ToggleButtonGroup>
-                          </Box>
-
-                          <IconButton size="small" sx={{ color: "#64748b" }} onClick={() => toggleRespUso(resp.id)}>
+                        <Box sx={{ display: "flex", alignItems: "center" }}>
+                          <IconButton size="small" sx={{ color: "#64748b" }}>
                             {isExpanded ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
                           </IconButton>
                         </Box>
