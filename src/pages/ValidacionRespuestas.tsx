@@ -220,6 +220,12 @@ export default function ValidacionRespuestas() {
   const [revisiones, setRevisiones] = useState<Record<string, RevisionEstado>>({})
   const [visorId, setVisorId] = useState<string | null>(null)
 
+  React.useEffect(() => {
+    if (id?.includes('RAD')) {
+      navigate(`/inspector/revision-acta/${id}`, { replace: true })
+    }
+  }, [id, navigate])
+
   // Modal state
   const [showReInspeccion, setShowReInspeccion] = useState(false)
   const [showNuevoEmplaz, setShowNuevoEmplaz] = useState(false)

@@ -36,6 +36,9 @@ Esta pantalla expone un panel de filtros avanzados para el rol `Consultor Extern
   - El cartel de advertencia del flujo restringido (punto 2.3) debe indicar claramente el siguiente mensaje:
     > _Se encontró más de un resultado. Por favor, refine su búsqueda hasta llegar a un solo establecimiento."_
   - La grilla solo se desbloqueará y renderizará el registro si el conjunto de filtros aplicados arroja **exactamente 1 sola coincidencia**.
+- **2.5 Restricción por Estado del Establecimiento:**
+  - El sistema solo debe retornar en los resultados aquellos establecimientos cuyo estado sea **`HABILITADO`**.
+  - Los establecimientos en cualquier otro estado deben ser excluidos de la búsqueda y no podrán visualizarse bajo ninguna combinación de filtros.
 
 ---
 
@@ -61,6 +64,7 @@ Se encontro coincidiencia exacta, se muestra la card del establecimiento.
 
 ## 🕛 HISTORIAL DE CAMBIOS
 
-| VERSIÓN | FECHA      | BREVE DESCRIPCIÓN        | NOMBRE DEL AUTOR      |
-| :-----: | :--------- | :----------------------- | :-------------------- |
-|   0.1   | 08/06/2026 | Versión inicial de la HU | Talavera, María Azul. |
+| VERSIÓN | FECHA      | BREVE DESCRIPCIÓN                                              | NOMBRE DEL AUTOR      |
+| :-----: | :--------- | :------------------------------------------------------------- | :-------------------- |
+|   0.1   | 08/06/2026 | Versión inicial de la HU                                       | Talavera, María Azul. |
+|   0.2   | 28/07/2026 | Se restringe la consulta a establecimientos en estado HABILITADO | Talavera, María Azul. |

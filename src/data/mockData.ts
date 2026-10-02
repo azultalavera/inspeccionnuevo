@@ -19,6 +19,7 @@ export type EstadoTramite =
   | 'RECTIFICADO_AUD'
   | 'ACEPTADO_DOC_AUD'
   | 'OBSERVADO_INSP'
+  | 'EN_INSPECCION'
   | 'DESCARGO_INSP'
   | 'ACEPTADO_INSP'
   | 'RECHAZADO_INSP'
@@ -47,6 +48,7 @@ export interface Tramite {
   localidad: string;
   departamento?: string;
   estado: EstadoTramite;
+  estadoActa?: string;
   fechaIngreso: string;
   inspectorAsignado: string;
   inspectoresAsignados?: string[];
@@ -56,6 +58,8 @@ export interface Tramite {
   agenteAsignado?: string; // Para asignación del coordinador
   esAdecuacion?: boolean; // Para bandeja de adecuación del coordinador
   tipoTramite?: 'ALTA_DIGITAL' | 'HABILITACION' | 'RENOVACION' | 'MODIFICACION' | 'ADECUACION';
+  tipoServicio?: string;
+  subservicio?: string;
   alertaRutina?: 'ALERTA_T30' | 'ALERTA_T15' | 'CRITICO_VENCIDO' | 'AL_DIA';
   solapamientoTramiteId?: string;
   solapamientoTramiteNro?: string;
@@ -227,6 +231,40 @@ export const TRAMITES: Tramite[] = [
     nroActa: 1,
   },
   {
+    id: 'TRM-RAD-002',
+    nroTramite: '2026-HAB-009102',
+    nroExpediente: 'EX-2026-0091020-APN-MS#CBA',
+    denominacion: 'Centro Radiológico San Francisco - Radiofísica',
+    cuit: '30-71829340-5',
+    tipologia: 'RADIOFÍSICA',
+    domicilio: 'Av. Vélez Sarsfield 1450',
+    localidad: 'Córdoba',
+    departamento: 'Capital',
+    estado: 'DESCARGO_INSP',
+    estadoActa: 'RESPUESTA EMPLAZAMIENTO',
+    fechaIngreso: '2026-06-15',
+    fechaUltimaInspeccion: '15/07/2026',
+    inspectorAsignado: 'Dr. Valeria Romero',
+    agenteAsignado: 'Dr. Valeria Romero',
+    inspectoresAsignados: ['Dr. Valeria Romero'],
+    tipoInspeccion: 'HABILITACION',
+    formatoInspeccion: 'PRESENCIAL',
+    tipoTramite: 'HABILITACION',
+    nroActa: 105,
+    emplazamiento: {
+      actaNumero: '105/2026',
+      diasRestantes: 5,
+      fechaVencimiento: '21/07/2026',
+      faltasCriticasCount: 4,
+      observaciones: [
+        'Dosimetría: Empresa',
+        'Materialidad de la sala: Búnker NO CUMPLE',
+        'Responsable de uso: documento de autorizacion individual no es correcto',
+        'Equipamiento: no corresponden Marca: SIEMENS, Condición: Propio, Año fabricación: 2000, Tipo revelado: DIGITAL'
+      ]
+    },
+  },
+  {
     id: 'TRM-1420',
     nroTramite: '1420',
     nroExpediente: '0425-014523/2026',
@@ -269,15 +307,19 @@ export const TRAMITES: Tramite[] = [
     domicilio: 'Estrada 350',
     localidad: 'Córdoba',
     departamento: 'Capital',
-    estado: 'ACEPTADO_DOC_AUD',
+    estado: 'EN_ANALISIS_AUD',
+    estadoActa: 'EN_PROCESO',
     fechaIngreso: '2025-07-22',
-    fechaUltimaInspeccion: '22/07/2025',
-    inspectorAsignado: 'Sin asignar',
-    agenteAsignado: 'Sin asignar',
-    inspectoresAsignados: [],
-    tipoInspeccion: 'HABILITACION',
+    fechaUltimaInspeccion: '28/09/2026',
+    inspectorAsignado: 'Athina Bringas',
+    agenteAsignado: 'Athina Bringas',
+    inspectoresAsignados: ['Athina Bringas'],
+    tipoInspeccion: 'RE_INSPECCION',
     formatoInspeccion: 'PRESENCIAL',
     tipoTramite: 'HABILITACION',
+    nroActa: 2,
+    fechaLimiteReInspeccion: '2026-10-15',
+    motivoReInspeccion: 'Acta 2: Constatación in situ de correcciones de Acta 1 y verificación física de documentación validada.',
   },
   {
     id: 'TRM-HAB-001',
@@ -297,6 +339,42 @@ export const TRAMITES: Tramite[] = [
     formatoInspeccion: 'PRESENCIAL',
     tipoTramite: 'HABILITACION',
     nroActa: 1,
+  },
+  {
+    id: 'TRM-HAB-RF-001',
+    nroTramite: '2026-HAB-004410',
+    nroExpediente: 'EX-2026-0044100-APN-MS#CBA',
+    denominacion: 'Centro de Diagnóstico por Imágenes y Radiofísica San Miguel',
+    cuit: '30-71649281-4',
+    tipologia: 'RADIOFÍSICA',
+    domicilio: 'Av. Vélez Sarsfield 1450',
+    localidad: 'Córdoba',
+    departamento: 'Capital',
+    estado: 'DESCARGO_INSP',
+    fechaIngreso: '2026-08-15',
+    inspectorAsignado: 'Ing. Carlos Varela',
+    agenteAsignado: 'Ing. Carlos Varela',
+    tipoInspeccion: 'HABILITACION',
+    formatoInspeccion: 'PRESENCIAL',
+    tipoTramite: 'HABILITACION',
+    nroActa: 1,
+    tipoServicio: 'Rayos X',
+    subservicio: 'Radiología Convencional Simple',
+    emplazamiento: {
+      actaNumero: 'ACTA-001/2026-RF',
+      faltasCriticasCount: 5,
+      diasRestantes: 8,
+      fechaVencimiento: '2026-10-15',
+      respuestaEmplazamientoRealizada: true,
+      observaciones: [
+        'Lámina de plomo en muros: Falta blindaje continuo de 2.0 mm Pb en tabique colindante',
+        'Puerta y visor de sala RX sin atenuación homologada ni burlete plomado',
+        'Delantales plomados de protección radiológica fisurados y sin collares tiroideos',
+        'Señalización lumínica de advertencia exterior desconectada del disparo',
+        'Radiación de fuga en cabezal SIEMENS Multix superior a 1 mGy/h a 1 metro',
+        'Permiso Individual de Uso ARN del Responsable de Uso vencido'
+      ]
+    }
   },
   {
     id: 'TRM-HAB-002',
@@ -1301,6 +1379,7 @@ export const ESTADO_CONFIG: Record<EstadoTramite, { label: string; badge: string
   RECTIFICADO_AUD: { label: 'Rectificado Auditoría', badge: 'badge-warning', icon: 'edit_note' },
   ACEPTADO_DOC_AUD: { label: 'Aceptado Doc. Auditoría', badge: 'badge-success', icon: 'check_circle' },
   OBSERVADO_INSP: { label: 'Observado Inspección', badge: 'badge-danger', icon: 'warning' },
+  EN_INSPECCION: { label: 'En Inspección', badge: 'badge-warning', icon: 'pending_actions' },
   DESCARGO_INSP: { label: 'Respuesta Emplazamiento', badge: 'badge-warning', icon: 'assignment_returned' },
   ACEPTADO_INSP: { label: 'Aceptado Inspección', badge: 'badge-success', icon: 'check_circle' },
   RECHAZADO_INSP: { label: 'Rechazado Inspección', badge: 'badge-danger', icon: 'cancel' },

@@ -68,6 +68,7 @@ const FieldItem = ({ field, value, onChange, onOpenObs, infraEfector, serviciosE
     const hasRealValue = realValue !== undefined && realValue !== null;
     const isTramite = field.origin === "TRÁMITE";
     const tramiteVal = field.valorTramite || field.valorTramiteMock;
+    const safeVal = (hasRealValue ? realValue : (specialValue !== undefined ? specialValue : (isTramite ? tramiteVal : ""))) ?? "";
 
     switch (field.type) {
       case "chip":
@@ -279,7 +280,7 @@ const FieldItem = ({ field, value, onChange, onOpenObs, infraEfector, serviciosE
             variant="outlined"
             size="small"
             disabled={isEffectiveDisabled}
-            value={hasRealValue ? realValue : (specialValue !== undefined ? specialValue : (isTramite ? tramiteVal : ""))}
+            value={safeVal}
             onChange={(e) => onChange(field.id, e.target.value)}
             sx={{
               "& .MuiInputBase-root": {
@@ -290,12 +291,14 @@ const FieldItem = ({ field, value, onChange, onOpenObs, infraEfector, serviciosE
                 bgcolor: isEffectiveDisabled ? "#f8fafc" : "white",
               },
             }}
-            SelectProps={{
-              MenuProps: {
-                PaperProps: {
-                  sx: {
-                    borderRadius: 2,
-                    boxShadow: "0 4px 10px rgba(0,0,0,0.1)",
+            slotProps={{
+              select: {
+                MenuProps: {
+                  PaperProps: {
+                    sx: {
+                      borderRadius: 2,
+                      boxShadow: "0 4px 10px rgba(0,0,0,0.1)",
+                    },
                   },
                 },
               },
@@ -325,7 +328,7 @@ const FieldItem = ({ field, value, onChange, onOpenObs, infraEfector, serviciosE
             size="small"
             placeholder={isConditionallyDisabled ? "Deshabilitado" : "0"}
             disabled={isEffectiveDisabled}
-            value={hasRealValue ? realValue : (specialValue !== undefined ? specialValue : (isTramite ? tramiteVal : ""))}
+            value={safeVal}
             onChange={(e) => onChange(field.id, e.target.value)}
             slotProps={{
               input: {
@@ -348,7 +351,7 @@ const FieldItem = ({ field, value, onChange, onOpenObs, infraEfector, serviciosE
             size="small"
             placeholder={isConditionallyDisabled ? disabledLabel : "Escriba aquí..."}
             disabled={isEffectiveDisabled}
-            value={hasRealValue ? realValue : (specialValue !== undefined ? specialValue : (isTramite ? tramiteVal : ""))}
+            value={safeVal}
             multiline={field.type === "textarea"}
             rows={field.type === "textarea" ? 3 : 1}
             onChange={(e) => onChange(field.id, e.target.value)}

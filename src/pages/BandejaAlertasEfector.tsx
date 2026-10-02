@@ -23,9 +23,39 @@ export interface AlertaEfectorItem {
   estadoVentana: 'URGENTE' | 'PROXIMO' | 'EN_PLAZO'
   motivos: string[]
   accionRequerida?: 'RESPONDER_EMPLAZAMIENTO' | 'INICIAR_RENOVACION' | 'INICIAR_MODIFICACION'
+  estadoTramite?: string
+  estadoActa?: string
+  esRadiofisica?: boolean
+  tramiteId?: string
 }
 
 export const ALERTAS_EFECTOR_MOCK: AlertaEfectorItem[] = [
+  {
+    id: 'ALR-RAD-001',
+    actaNumero: '105/2026',
+    nroExpediente: 'EX-2026-0091010-APN-MS#CBA',
+    denominacion: 'Centro Radiológico San Francisco - Radiofísica',
+    cuit: '30-71829340-5',
+    tipologia: 'RADIOFÍSICA',
+    localidad: 'Córdoba',
+    departamento: 'Capital',
+    tipoOrigen: 'HABILITACION',
+    frecuenciaAnual: 1,
+    diasRestantes: 5,
+    fechaVencimiento: '21/07/2026',
+    estadoVentana: 'URGENTE',
+    estadoTramite: 'EN INSPECCION',
+    estadoActa: 'RESPUESTA EMPLAZAMIENTO',
+    motivos: [
+      'Dosimetría: Empresa',
+      'Materialidad de la sala: Búnker NO CUMPLE',
+      'Responsable de uso: documento de autorizacion individual no es correcto',
+      'Equipamiento: no corresponden Marca: SIEMENS, Condición: Propio, Año fabricación: 2000, Tipo revelado: DIGITAL'
+    ],
+    accionRequerida: 'RESPONDER_EMPLAZAMIENTO',
+    esRadiofisica: true,
+    tramiteId: 'TRM-RAD-002'
+  },
   {
     id: 'ALR-EF-001',
     actaNumero: '102/2026',
@@ -169,6 +199,11 @@ export default function BandejaAlertasEfector() {
   }
 
   const handleOpenResponderEmplazamiento = (alerta: AlertaEfectorItem) => {
+    if (alerta.esRadiofisica || alerta.tipologia?.toUpperCase().includes('RADIOFÍSICA') || alerta.tipologia?.toUpperCase().includes('RADIOFISICA') || alerta.id === 'ALR-RAD-001') {
+      navigate(`/efector/respuesta-emplazamiento?tipo=radiofisica&tramiteId=${alerta.tramiteId || 'TRM-RAD-002'}&acta=${encodeURIComponent(alerta.actaNumero)}`)
+      return
+    }
+
     const tramiteObj: Tramite = tramites.find(t => t.cuit === alerta.cuit) || {
       id: 'TRM-HAB-102',
       nroTramite: '2026-8812',
@@ -666,6 +701,52 @@ export default function BandejaAlertasEfector() {
                     <td style={{ padding: '14px 18px', verticalAlign: 'top' }}>
                       <div style={{ fontWeight: 700, color: '#0F172A', fontSize: 14 }}>{alerta.denominacion}</div>
                       <div style={{ fontSize: 11.5, color: '#64748B', fontFamily: 'monospace', marginTop: 2 }}>CUIT: {alerta.cuit}</div>
+                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 6, alignItems: 'center' }}>
+                        <span style={{
+                          background: '#F1F5F9',
+                          color: '#475569',
+                          fontSize: 10,
+                          fontWeight: 750,
+                          padding: '2px 7px',
+                          borderRadius: 6
+                        }}>
+                          {alerta.tipologia}
+                        </span>
+                        {alerta.estadoTramite && (
+                          <span style={{
+                            background: '#FEF3C7',
+                            color: '#B45309',
+                            border: '1px solid #FDE68A',
+                            fontSize: 10,
+                            fontWeight: 800,
+                            padding: '2px 7px',
+                            borderRadius: 6,
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 3
+                          }}>
+                            <span className="material-icons" style={{ fontSize: 12 }}>pending_actions</span>
+                            {alerta.estadoTramite}
+                          </span>
+                        )}
+                        {alerta.estadoActa && (
+                          <span style={{
+                            background: '#FEE2E2',
+                            color: '#991B1B',
+                            border: '1px solid #FCA5A5',
+                            fontSize: 10,
+                            fontWeight: 800,
+                            padding: '2px 7px',
+                            borderRadius: 6,
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 3
+                          }}>
+                            <span className="material-icons" style={{ fontSize: 12 }}>rate_review</span>
+                            {alerta.estadoActa}
+                          </span>
+                        )}
+                      </div>
                     </td>
 
                     {/* Expediente */}

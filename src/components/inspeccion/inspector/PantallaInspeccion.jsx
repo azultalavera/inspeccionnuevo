@@ -49,6 +49,13 @@ import UnfoldLessIcon from "@mui/icons-material/UnfoldLess";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import ChatBubbleIcon from "@mui/icons-material/ChatBubble";
 import ChatBubbleOutlineIcon from "@mui/icons-material/ChatBubbleOutlined";
+import MapIcon from "@mui/icons-material/Map";
+import AccessTimeIcon from "@mui/icons-material/AccessTime";
+import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
+import CloudUploadOutlinedIcon from "@mui/icons-material/CloudUploadOutlined";
+import AddBoxOutlinedIcon from "@mui/icons-material/AddBoxOutlined";
+import PersonOutlinedIcon from "@mui/icons-material/PersonOutlined";
+import PeopleOutlinedIcon from "@mui/icons-material/PeopleOutlined";
 
 import { useApp } from "../../../context/AppContext";
 import { useAuth } from "../../../context/AuthContext";
@@ -105,10 +112,10 @@ const PantallaInspeccion = ({
     Boolean(searchParams.get("tipoServicio"));
 
   const [tipoServicio, setTipoServicio] = useState(
-    searchParams.get("tipoServicio") || "Rayos X"
+    searchParams.get("tipoServicio") || tramiteActual?.tipoServicio || "Rayos X"
   );
   const [subservicio, setSubservicio] = useState(
-    searchParams.get("subservicio") || "Radiología Convencional Simple"
+    searchParams.get("subservicio") || tramiteActual?.subservicio || "Radiología Convencional Simple"
   );
   const [modalRadioOpen, setModalRadioOpen] = useState(false);
 
@@ -163,6 +170,23 @@ const PantallaInspeccion = ({
   }, [paramView, isDescargo]);
   const [historyAnchorEl, setHistoryAnchorEl] = useState(null);
   const historyMenuOpen = Boolean(historyAnchorEl);
+
+  const [activeTabActa, setActiveTabActa] = useState(
+    searchParams.get("acta") === "2" ? "ACTA_2" : "ACTA_1"
+  );
+  const [selectedStepActa1, setSelectedStepActa1] = useState("ARQUITECTURA");
+  const [expandedGeneralesActa1, setExpandedGeneralesActa1] = useState(false);
+  const [expandedTramiteActa1, setExpandedTramiteActa1] = useState(true);
+
+  const STEPPER_ACTA_1 = [
+    { id: "ARQUITECTURA", label: "ARQUITECTURA", icon: <MapIcon sx={{ fontSize: 22 }} /> },
+    { id: "SERVICIOS", label: "SERVICIOS", icon: <MedicalServicesIcon sx={{ fontSize: 22 }} /> },
+    { id: "DIRECTOR_TECNICO", label: "DIRECTOR TÉCNICO", icon: <PersonOutlinedIcon sx={{ fontSize: 22 }} /> },
+    { id: "SALAS_Y_CAMAS", label: "SALAS Y CAMAS", icon: <BedIcon sx={{ fontSize: 22 }} /> },
+    { id: "PERSONAL", label: "PERSONAL", icon: <PeopleOutlinedIcon sx={{ fontSize: 22 }} /> },
+    { id: "EQUIPAMIENTO", label: "EQUIPAMIENTO", icon: <AddBoxOutlinedIcon sx={{ fontSize: 22 }} /> },
+    { id: "DOCUMENTOS_ADJUNTOS", label: "DOCUMENTOS ADJUNTOS", icon: <CloudUploadOutlinedIcon sx={{ fontSize: 22 }} /> },
+  ];
 
   const [autoFillAnchorEl, setAutoFillAnchorEl] = useState(null);
   const autoFillMenuOpen = Boolean(autoFillAnchorEl);
@@ -439,9 +463,10 @@ const PantallaInspeccion = ({
     if (savedData) {
       setInspectorData(JSON.parse(savedData));
     } else if (isRadiofisica) {
+      const isDescargoRadio = isRadiofisica && (tramiteActual?.estado === 'DESCARGO_INSP' || tramiteActual?.id === 'TRM-HAB-RF-001');
       setInspectorData({
-        "f-rad-exp": tramiteActual?.nroExpediente || "EX-2026-0089100-APN-MS#CBA",
-        "f-rad-denominacion": tramiteActual?.denominacion || "HABILITACION - RADIOFÍSICA",
+        "f-rad-exp": tramiteActual?.nroExpediente || "EX-2026-0044100-APN-MS#CBA",
+        "f-rad-denominacion": tramiteActual?.denominacion || "Centro de Diagnóstico por Imágenes y Radiofísica San Miguel",
         "f-rad-tipologia": "RADIOFÍSICA",
         "f-rad-tipo-tramite": "HABILITACIÓN",
         "f-rad-tipo-servicio": tipoServicio,
@@ -452,19 +477,22 @@ const PantallaInspeccion = ({
         "f-rad-email": "radiofisica.salud@cordoba.gob.ar",
         "f-rad-resp-nombre": "Lic. Martín S. Benítez (Físico Médico)",
         "f-rad-resp-matricula": "MP-5892 / Especialista en Radiofísica",
-        "f-rad-permiso-arn": true,
-        "f-rad-dosimetria": true,
-        "f-rad-memoria-blindaje": true,
+        "f-rad-permiso-arn": isDescargoRadio ? { value: false, obs: "Permiso Individual de Uso ARN del Responsable de Uso Lic. Martín S. Benítez vencido al momento de la inspección." } : true,
+        "f-rad-dosimetria": isDescargoRadio ? { value: false, obs: "Falta reporte de dosimetría de cuerpo entero de los últimos dos bimestres para 3 técnicos radiólogos." } : true,
+        "f-rad-memoria-blindaje": isDescargoRadio ? { value: false, obs: "El muro divisorio colindante a sala de espera pública carece de la atenuación de 2.0 mm Pb equivalente." } : true,
         "f-rad-garantia-calidad": true,
         "f-rad-senales-iram": true,
         "f-rad-luces-emergencia": true,
         "f-rad-extintores": true,
         "f-rad-residuos": true,
         "f-rad-botiquin": true,
-        "rf-rx-blindaje-sala": true,
-        "rf-rx-senal-luminosa": true,
-        "rf-rx-epp-plomados": true,
-        "rf-rx-calibracion-haz": true,
+        "rf-rx-blindaje-sala": isDescargoRadio ? { value: false, obs: "Puerta de acceso batiente presenta fuga en umbral inferior y visor no plomado." } : true,
+        "rf-rx-senal-luminosa": isDescargoRadio ? { value: false, obs: "No funciona la luz roja de advertencia exterior sincronizada con el comando de disparo del equipo." } : true,
+        "rf-rx-epp-plomados": isDescargoRadio ? { value: false, obs: "Dos delantales plomados presentaron fisuras internas por plegado inadecuado bajo escopía; falta protector de tiroides." } : true,
+        "rf-rx-calibracion-haz": isDescargoRadio ? { value: false, obs: "La medición de radiación de fuga a 1 metro en flanco lateral derecho arrojó 1.35 mGy/h (límite: 1.0 mGy/h)." } : true,
+        "sec-rad-cs-fuga": isDescargoRadio ? { value: false, obs: "Prueba de fuga superó tolerancia reglamentaria en cabezal SIEMENS Multix." } : true,
+        "f-mat-muros-blindados": isDescargoRadio ? { value: false, obs: "El muro divisorio con sala de espera no alcanza 2.0 mm Pb equivalente." } : true,
+        "f-mat-aberturas-blindadas": isDescargoRadio ? { value: false, obs: "Puerta de acceso sin visor de vidrio plomado de 2.0 mm Pb." } : true,
         "rf-las-gafas-certificadas": true,
         "rf-las-aviso-puerta": true,
         "rf-las-llave-seguridad": true,
@@ -675,10 +703,12 @@ const PantallaInspeccion = ({
     localStorage.setItem(`inspector_emplazamientos_${id || 'default'}`, JSON.stringify(emplazamientos));
   }, [inspectorData, config, datosGeneralesSrv, registroMedicionesSrv, otherServices, infraEfector, equiposEfector, id]);
 
-  const hasObservations =
-    (obsDatosGenerales?.length || 0) > 0 ||
-    (obsDatosTramite?.length || 0) > 0 ||
-    (generalObs || "").trim().length > 0;
+  const obsCount =
+    (obsDatosGenerales?.length || 0) +
+    (obsDatosTramite?.length || 0) +
+    ((generalObs || "").trim().length > 0 ? 1 : 0);
+
+  const hasObservations = obsCount > 0;
 
   const getFormatoInspeccion = () => {
     if (tramiteActual?.formatoInspeccion) return tramiteActual.formatoInspeccion.toUpperCase();
@@ -719,24 +749,24 @@ const PantallaInspeccion = ({
         if (localCfg) {
           setConfig(localCfg);
           localStorage.setItem("master_config", JSON.stringify(localCfg));
-        }
-
-        // 2. Intentar API externa si estuviese levantada
-        try {
-          const res = await fetch(
-            `http://localhost:3001/configuraciones_maestras?tipologia=${encodeURIComponent(
-              tipologia,
-            )}`,
-          );
-          if (res.ok) {
-            const data = await res.json();
-            if (data && data.length > 0) {
-              setConfig(data[0]);
-              localStorage.setItem("master_config", JSON.stringify(data[0]));
+        } else {
+          // 2. Intentar API externa solo si no existe configuración local
+          try {
+            const res = await fetch(
+              `http://localhost:3001/configuraciones_maestras?tipologia=${encodeURIComponent(
+                tipologia,
+              )}`,
+            );
+            if (res.ok) {
+              const data = await res.json();
+              if (data && data.length > 0) {
+                setConfig(data[0]);
+                localStorage.setItem("master_config", JSON.stringify(data[0]));
+              }
             }
+          } catch {
+            // masterConfig local es el fallback
           }
-        } catch {
-          // Si no hay json-server, usamos el masterConfig local
         }
       } catch (err) {
         console.error("Error al cargar configuración", err);
@@ -989,7 +1019,7 @@ const PantallaInspeccion = ({
     ? '/auditor/expedientes'
     : '/inspector/inspeccion-tipo/habilitacion';
 
-  if (activeView === "REVISION") {
+  if (isRadiofisica && activeView === "REVISION") {
     return (
       <Box
         sx={{
@@ -1009,6 +1039,10 @@ const PantallaInspeccion = ({
           obsGenerales={obsDatosGenerales}
           obsTramite={obsDatosTramite}
           rol={user?.rol}
+          tramite={tramiteActual}
+          isRadiofisica={isRadiofisica}
+          tipoServicio={tipoServicio}
+          subservicio={subservicio}
           onVolver={() => navigate(backPath)}
           onAceptarReinspeccion={() => {
             if (id) {
@@ -1263,133 +1297,690 @@ const PantallaInspeccion = ({
         )}
       </Paper>
 
-      {/* Selector de Acta / Revisión / Historial */}
-      <Box
-        sx={{
-          bgcolor: '#ebeef2',
-          borderRadius: 6,
-          p: 0.8,
-          mb: 4,
-          display: 'flex',
-          alignItems: 'center',
-          gap: 0.5,
-          boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.02)'
-        }}
-      >
-        {currentActaNum > 1 && (
-          <>
-            <Button
-              onClick={handleHistoryClick}
-              startIcon={<HistoryIcon sx={{ color: '#0ea5e9' }} />}
-              endIcon={historyMenuOpen ? <KeyboardArrowUpIcon sx={{ color: '#0ea5e9' }} /> : <KeyboardArrowDownIcon sx={{ color: '#0ea5e9' }} />}
-              sx={{
-                bgcolor: historyMenuOpen ? 'white' : 'transparent',
-                borderRadius: 5,
-                px: 3,
-                py: 1,
-                fontWeight: 900,
-                color: '#0ea5e9',
-                boxShadow: historyMenuOpen ? '0 2px 8px rgba(0,0,0,0.08)' : 'none',
-                textTransform: 'uppercase',
-                fontSize: '0.85rem',
-                letterSpacing: '0.02em',
-                '&:hover': { bgcolor: historyMenuOpen ? '#ffffff' : 'rgba(0,0,0,0.04)' }
-              }}
-            >
-              HISTORIAL ({currentActaNum - 1})
-            </Button>
+      {/* Selector de Acta para Radiofísica */}
+      {isRadiofisica && (
+        <Box
+          sx={{
+            bgcolor: '#ebeef2',
+            borderRadius: 6,
+            p: 0.8,
+            mb: 4,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 0.5,
+            boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.02)'
+          }}
+        >
+          {currentActaNum > 1 && (
+            <>
+              <Button
+                onClick={handleHistoryClick}
+                startIcon={<HistoryIcon sx={{ color: '#0ea5e9' }} />}
+                endIcon={historyMenuOpen ? <KeyboardArrowUpIcon sx={{ color: '#0ea5e9' }} /> : <KeyboardArrowDownIcon sx={{ color: '#0ea5e9' }} />}
+                sx={{
+                  bgcolor: historyMenuOpen ? 'white' : 'transparent',
+                  borderRadius: 5,
+                  px: 3,
+                  py: 1,
+                  fontWeight: 900,
+                  color: '#0ea5e9',
+                  boxShadow: historyMenuOpen ? '0 2px 8px rgba(0,0,0,0.08)' : 'none',
+                  textTransform: 'uppercase',
+                  fontSize: '0.85rem',
+                  letterSpacing: '0.02em',
+                  '&:hover': { bgcolor: historyMenuOpen ? '#ffffff' : 'rgba(0,0,0,0.04)' }
+                }}
+              >
+                HISTORIAL ({currentActaNum - 1})
+              </Button>
 
-            <Menu
-              anchorEl={historyAnchorEl}
-              open={historyMenuOpen}
-              onClose={handleHistoryClose}
-              PaperProps={{
-                elevation: 0,
-                sx: {
-                  mt: 1.5,
-                  borderRadius: 4,
-                  minWidth: 180,
-                  boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1)',
-                  border: '1px solid #f1f5f9',
-                  '& .MuiMenuItem-root': {
-                    fontWeight: 800,
-                    color: '#64748b',
-                    fontSize: '0.9rem',
-                    py: 1.5,
-                    px: 3,
-                    mx: 1,
-                    borderRadius: 2,
-                    '&:hover': {
-                      bgcolor: '#f0f9ff',
-                      color: '#0ea5e9'
+              <Menu
+                anchorEl={historyAnchorEl}
+                open={historyMenuOpen}
+                onClose={handleHistoryClose}
+                PaperProps={{
+                  elevation: 0,
+                  sx: {
+                    mt: 1.5,
+                    borderRadius: 4,
+                    minWidth: 180,
+                    boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1)',
+                    border: '1px solid #f1f5f9',
+                    '& .MuiMenuItem-root': {
+                      fontWeight: 800,
+                      color: '#64748b',
+                      fontSize: '0.9rem',
+                      py: 1.5,
+                      px: 3,
+                      mx: 1,
+                      borderRadius: 2,
+                      '&:hover': {
+                        bgcolor: '#f0f9ff',
+                        color: '#0ea5e9'
+                      }
                     }
                   }
-                }
+                }}
+                transformOrigin={{ horizontal: 'left', vertical: 'top' }}
+                anchorOrigin={{ horizontal: 'left', vertical: 'bottom' }}
+              >
+                {Array.from({ length: Math.max(0, currentActaNum - 1) }, (_, i) => (
+                  <MenuItem key={i} onClick={handleHistoryClose}>
+                    ACTA {i + 1} {i === 0 ? '(INICIAL)' : ''}
+                  </MenuItem>
+                ))}
+              </Menu>
+            </>
+          )}
+
+          {(isDescargo || currentActaNum > 1) && (
+            <Button
+              variant="text"
+              onClick={() => setActiveView("REVISION")}
+              sx={{
+                flex: 1,
+                borderRadius: 5,
+                fontWeight: 900,
+                py: 1,
+                color: activeView === "REVISION" ? "#0f172a" : "#64748b",
+                bgcolor: activeView === "REVISION" ? "white" : "transparent",
+                boxShadow: activeView === "REVISION" ? "0 2px 8px rgba(0,0,0,0.08)" : "none",
+                textTransform: 'none',
+                fontSize: '0.85rem',
+                '&:hover': { bgcolor: activeView === "REVISION" ? 'white' : 'rgba(0,0,0,0.04)' }
               }}
-              transformOrigin={{ horizontal: 'left', vertical: 'top' }}
-              anchorOrigin={{ horizontal: 'left', vertical: 'bottom' }}
             >
-              {Array.from({ length: Math.max(0, currentActaNum - 1) }, (_, i) => (
-                <MenuItem key={i} onClick={handleHistoryClose}>
-                  ACTA {i + 1} {i === 0 ? '(INICIAL)' : ''}
-                </MenuItem>
-              ))}
-            </Menu>
-          </>
-        )}
+              {isAgentEvaluation
+                ? "RESPUESTA EMPLAZAMIENTO: REVISIÓN DE DESCARGO"
+                : isDescargo && currentActaNum === 1
+                ? "ACTA 1: REVISIÓN"
+                : `ACTA ${currentActaNum - 1}: REVISIÓN`}
+            </Button>
+          )}
 
-        {(isDescargo || currentActaNum > 1) && (
+          {!isDescargo && (
+            <Button
+              variant="text"
+              onClick={() => setActiveView("INSPECCION")}
+              sx={{
+                flex: 1,
+                borderRadius: 5,
+                fontWeight: 900,
+                py: 1,
+                color: activeView === "INSPECCION" ? "#0f172a" : "#64748b",
+                bgcolor: activeView === "INSPECCION" ? "white" : "transparent",
+                boxShadow: activeView === "INSPECCION" ? "0 2px 8px rgba(0,0,0,0.08)" : "none",
+                textTransform: 'none',
+                fontSize: '0.85rem',
+                '&:hover': { bgcolor: activeView === "INSPECCION" ? 'white' : 'rgba(0,0,0,0.04)' }
+              }}
+            >
+              ACTA {currentActaNum}: INSPECCIÓN
+            </Button>
+          )}
+        </Box>
+      )}
+
+      {/* Pestañas Superiores de Acta 1 / Acta 2 para trámites comunes */}
+      {!isRadiofisica && currentActaNum > 1 && (
+        <Box sx={{ display: "flex", gap: 1, mb: -0.1, zIndex: 2, position: "relative", px: { xs: 0.5, sm: 1 } }}>
           <Button
-            variant="text"
-            onClick={() => setActiveView("REVISION")}
+            onClick={() => setActiveTabActa("ACTA_1")}
             sx={{
-              flex: 1,
-              borderRadius: 5,
-              fontWeight: 900,
-              py: 1,
-              color: activeView === "REVISION" ? "#0f172a" : "#64748b",
-              bgcolor: activeView === "REVISION" ? "white" : "transparent",
-              boxShadow: activeView === "REVISION" ? "0 2px 8px rgba(0,0,0,0.08)" : "none",
-              textTransform: 'none',
-              fontSize: '0.85rem',
-              '&:hover': { bgcolor: activeView === "REVISION" ? 'white' : 'rgba(0,0,0,0.04)' }
+              bgcolor: activeTabActa === "ACTA_1" ? "#ffffff" : "#cbd5e1",
+              color: activeTabActa === "ACTA_1" ? "#0284c7" : "#475569",
+              borderTopLeftRadius: 16,
+              borderTopRightRadius: 16,
+              borderBottomLeftRadius: 0,
+              borderBottomRightRadius: 0,
+              px: { xs: 2.5, sm: 4 },
+              py: 1.2,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              textTransform: "none",
+              border: "1px solid",
+              borderColor: activeTabActa === "ACTA_1" ? "#e2e8f0" : "transparent",
+              borderBottom: activeTabActa === "ACTA_1" ? "1px solid #ffffff" : "none",
+              boxShadow: activeTabActa === "ACTA_1" ? "0 -2px 8px rgba(0,0,0,0.04)" : "none",
+              "&:hover": {
+                bgcolor: activeTabActa === "ACTA_1" ? "#ffffff" : "#b0bec5",
+              },
             }}
           >
-            {isAgentEvaluation
-              ? "RESPUESTA EMPLAZAMIENTO: REVISIÓN DE DESCARGO"
-              : isDescargo && currentActaNum === 1
-              ? "ACTA 1: REVISIÓN"
-              : `ACTA ${currentActaNum - 1}: REVISIÓN`}
+            <Typography sx={{ fontWeight: 900, fontSize: "0.88rem", lineHeight: 1.2 }}>
+              ACTA 1
+            </Typography>
+            <Typography sx={{ fontWeight: 800, fontSize: "0.68rem", lineHeight: 1.2, letterSpacing: "0.02em" }}>
+              VISUALIZACIÓN
+            </Typography>
           </Button>
-        )}
 
-        {!isDescargo && (
           <Button
-            variant="text"
-            onClick={() => setActiveView("INSPECCION")}
+            onClick={() => setActiveTabActa("ACTA_2")}
             sx={{
-              flex: 1,
-              borderRadius: 5,
-              fontWeight: 900,
-              py: 1,
-              color: activeView === "INSPECCION" ? "#0f172a" : "#64748b",
-              bgcolor: activeView === "INSPECCION" ? "white" : "transparent",
-              boxShadow: activeView === "INSPECCION" ? "0 2px 8px rgba(0,0,0,0.08)" : "none",
-              textTransform: 'none',
-              fontSize: '0.85rem',
-              '&:hover': { bgcolor: activeView === "INSPECCION" ? 'white' : 'rgba(0,0,0,0.04)' }
+              bgcolor: activeTabActa === "ACTA_2" ? "#ffffff" : "#cbd5e1",
+              color: activeTabActa === "ACTA_2" ? "#0284c7" : "#475569",
+              borderTopLeftRadius: 16,
+              borderTopRightRadius: 16,
+              borderBottomLeftRadius: 0,
+              borderBottomRightRadius: 0,
+              px: { xs: 2.5, sm: 4 },
+              py: 1.2,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              textTransform: "none",
+              border: "1px solid",
+              borderColor: activeTabActa === "ACTA_2" ? "#e2e8f0" : "transparent",
+              borderBottom: activeTabActa === "ACTA_2" ? "1px solid #ffffff" : "none",
+              boxShadow: activeTabActa === "ACTA_2" ? "0 -2px 8px rgba(0,0,0,0.04)" : "none",
+              "&:hover": {
+                bgcolor: activeTabActa === "ACTA_2" ? "#ffffff" : "#b0bec5",
+              },
             }}
           >
-            ACTA {currentActaNum}: INSPECCIÓN
+            <Typography sx={{ fontWeight: 900, fontSize: "0.88rem", lineHeight: 1.2 }}>
+              ACTA 2
+            </Typography>
+            <Typography sx={{ fontWeight: 800, fontSize: "0.68rem", lineHeight: 1.2, letterSpacing: "0.02em" }}>
+              INSPECCIÓN
+            </Typography>
           </Button>
-        )}
-      </Box>
+        </Box>
+      )}
 
-      {activeView === "REVISION" ? (
+      {/* Renderizado de ACTA 1 (VISUALIZACIÓN) */}
+      {!isRadiofisica && currentActaNum > 1 && activeTabActa === "ACTA_1" ? (
+        <Paper
+          elevation={0}
+          sx={{
+            p: { xs: 2, sm: 4 },
+            borderRadius: 4,
+            border: "1px solid #e2e8f0",
+            bgcolor: "#ffffff",
+            mb: 4,
+            boxShadow: "0 4px 20px rgba(0,0,0,0.04)",
+          }}
+        >
+          {/* Cabecera ACTA 1 | NO APROBADO */}
+          <Box sx={{ mb: 3 }}>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 2 }}>
+              <Typography
+                sx={{
+                  fontSize: { xs: "2.2rem", md: "3.2rem" },
+                  fontWeight: 950,
+                  color: "#0f172a",
+                  lineHeight: 1,
+                  letterSpacing: "-0.03em",
+                }}
+              >
+                ACTA 1
+              </Typography>
+              <Box sx={{ width: "2px", height: 36, bgcolor: "#cbd5e1" }} />
+              <Typography
+                sx={{
+                  fontSize: { xs: "1.1rem", md: "1.35rem" },
+                  fontWeight: 900,
+                  color: "#94a3b8",
+                  letterSpacing: "0.05em",
+                  textTransform: "uppercase",
+                }}
+              >
+                NO APROBADO
+              </Typography>
+            </Box>
+
+            {/* Badges de Inspector y Emplazado */}
+            <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} alignItems="flex-start">
+              <Box
+                sx={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 1,
+                  bgcolor: "#f1f5f9",
+                  border: "1px solid #e2e8f0",
+                  borderRadius: 5,
+                  px: 2,
+                  py: 0.8,
+                }}
+              >
+                <PersonIcon sx={{ fontSize: 18, color: "#475569" }} />
+                <Typography sx={{ fontSize: "0.78rem", fontWeight: 700, color: "#64748b" }}>
+                  INSPECTOR ACTUANTE: <strong style={{ color: "#0f172a", fontWeight: 900 }}>ATHINA BRINGAS</strong>
+                </Typography>
+              </Box>
+
+              <Box
+                sx={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 1,
+                  bgcolor: "#fff7ed",
+                  border: "1px solid #fed7aa",
+                  borderRadius: 5,
+                  px: 2,
+                  py: 0.8,
+                }}
+              >
+                <AccessTimeIcon sx={{ fontSize: 18, color: "#ea580c" }} />
+                <Typography sx={{ fontSize: "0.78rem", fontWeight: 700, color: "#ea580c" }}>
+                  EMPLAZADO HASTA: <strong style={{ color: "#c2410c", fontWeight: 900 }}>29/09/2026</strong>
+                </Typography>
+              </Box>
+            </Stack>
+          </Box>
+
+          {/* Acordeón 1: DATOS GENERALES */}
+          <Accordion
+            expanded={expandedGeneralesActa1}
+            onChange={() => setExpandedGeneralesActa1(!expandedGeneralesActa1)}
+            elevation={0}
+            sx={{
+              mb: 2.5,
+              border: "1px solid #e2e8f0",
+              borderRadius: "16px !important",
+              overflow: "hidden",
+              "&:before": { display: "none" },
+            }}
+          >
+            <AccordionSummary
+              expandIcon={<KeyboardArrowDownIcon sx={{ color: "#0ea5e9" }} />}
+              sx={{
+                bgcolor: "#ffffff",
+                py: 1,
+                px: 2.5,
+                "& .MuiAccordionSummary-content": {
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 0.5,
+                },
+              }}
+            >
+              <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                <Typography
+                  sx={{
+                    fontWeight: 900,
+                    color: "#0f172a",
+                    fontSize: "1.1rem",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.02em",
+                  }}
+                >
+                  DATOS GENERALES
+                </Typography>
+              </Box>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                <Chip
+                  label="9%"
+                  size="small"
+                  sx={{
+                    bgcolor: "#f1f5f9",
+                    color: "#475569",
+                    fontWeight: 800,
+                    fontSize: "0.75rem",
+                    height: 24,
+                    borderRadius: 2,
+                    border: "1px solid #e2e8f0",
+                  }}
+                />
+              </Box>
+            </AccordionSummary>
+            <AccordionDetails sx={{ px: 3, py: 2.5, bgcolor: "#f8fafc", borderTop: "1px solid #e2e8f0" }}>
+              <Typography sx={{ fontSize: "0.85rem", color: "#64748b", mb: 1.5, fontWeight: 600 }}>
+                Visualización de datos generales registrados en Acta 1:
+              </Typography>
+              <Box sx={{ p: 2, bgcolor: "#ffffff", borderRadius: 3, border: "1px solid #e2e8f0" }}>
+                <Typography sx={{ fontSize: "0.85rem", fontWeight: 800, color: "#ef4444" }}>
+                  • Convenio con Servicio de Emergencias/Unidades Móviles: <span style={{ color: "#b91c1c", fontWeight: 900 }}>NO CUMPLE</span>
+                </Typography>
+              </Box>
+            </AccordionDetails>
+          </Accordion>
+
+          {/* Acordeón 2: DATOS DEL TRÁMITE */}
+          <Accordion
+            expanded={expandedTramiteActa1}
+            onChange={() => setExpandedTramiteActa1(!expandedTramiteActa1)}
+            elevation={0}
+            sx={{
+              mb: 3,
+              border: "1px solid #e2e8f0",
+              borderRadius: "16px !important",
+              overflow: "hidden",
+              "&:before": { display: "none" },
+            }}
+          >
+            <AccordionSummary
+              expandIcon={<KeyboardArrowUpIcon sx={{ color: "#0ea5e9" }} />}
+              sx={{
+                bgcolor: "#ffffff",
+                py: 1,
+                px: 2.5,
+                "& .MuiAccordionSummary-content": {
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 0.5,
+                },
+              }}
+            >
+              <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                <Typography
+                  sx={{
+                    fontWeight: 900,
+                    color: "#0f172a",
+                    fontSize: "1.1rem",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.02em",
+                  }}
+                >
+                  DATOS DEL TRÁMITE
+                </Typography>
+              </Box>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                <Chip
+                  label="100%"
+                  size="small"
+                  sx={{
+                    bgcolor: "#e0f2fe",
+                    color: "#0284c7",
+                    fontWeight: 800,
+                    fontSize: "0.75rem",
+                    height: 24,
+                    borderRadius: 2,
+                    border: "1px solid #bae6fd",
+                  }}
+                />
+              </Box>
+            </AccordionSummary>
+            <AccordionDetails sx={{ px: { xs: 1, sm: 3 }, py: 3, bgcolor: "#ffffff", borderTop: "1px solid #e2e8f0" }}>
+              {/* Stepper Horizontal */}
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "flex-start",
+                  justifyContent: "space-between",
+                  mb: 4,
+                  mt: 1,
+                  px: { xs: 0, sm: 2 },
+                  width: "100%",
+                  position: "relative",
+                }}
+              >
+                <Box
+                  sx={{
+                    position: "absolute",
+                    top: 22,
+                    left: 36,
+                    right: 36,
+                    height: 2,
+                    bgcolor: "#e2e8f0",
+                    zIndex: 0,
+                  }}
+                />
+
+                {STEPPER_ACTA_1.map((step) => {
+                  const isSelected = selectedStepActa1 === step.id;
+                  return (
+                    <Box
+                      key={step.id}
+                      onClick={() => setSelectedStepActa1(step.id)}
+                      sx={{
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        cursor: "pointer",
+                        zIndex: 1,
+                        flex: 1,
+                        minWidth: 0,
+                        gap: 0.8,
+                      }}
+                    >
+                      <Box
+                        sx={{
+                          width: 44,
+                          height: 44,
+                          borderRadius: "50%",
+                          display: "flex",
+                          justifyContent: "center",
+                          alignItems: "center",
+                          bgcolor: isSelected ? "#0ea5e9" : "#ffffff",
+                          color: isSelected ? "white" : "#94a3b8",
+                          border: isSelected ? "none" : "2px solid #cbd5e1",
+                          boxShadow: isSelected
+                            ? "0 4px 10px rgba(14,165,233,0.35)"
+                            : "none",
+                          transition: "all 0.2s",
+                        }}
+                      >
+                        {step.icon}
+                      </Box>
+                      <Typography
+                        align="center"
+                        sx={{
+                          fontWeight: 900,
+                          fontSize: { xs: "0.58rem", sm: "0.70rem" },
+                          color: isSelected ? "#0ea5e9" : "#64748b",
+                          lineHeight: 1.15,
+                          textTransform: "uppercase",
+                        }}
+                      >
+                        {step.label}
+                      </Typography>
+                    </Box>
+                  );
+                })}
+              </Box>
+
+              {/* Contenido del paso seleccionado */}
+              {selectedStepActa1 === "ARQUITECTURA" ? (
+                <Box sx={{ mb: 2 }}>
+                  <PlansTable
+                    inspectorData={inspectorData}
+                    onChange={handleFieldChange}
+                    onOpenObs={handleOpenObsDialog}
+                    onOpenViewer={setViewerFile}
+                    tramite={tramiteActual}
+                    nroActa={1}
+                    isActa1={true}
+                  />
+                </Box>
+              ) : (
+                <Box
+                  sx={{
+                    border: "2px dashed #e2e8f0",
+                    borderRadius: 4,
+                    py: 6,
+                    px: 3,
+                    textAlign: "center",
+                    bgcolor: "#fbfcfd",
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    my: 2,
+                  }}
+                >
+                  <InfoOutlinedIcon sx={{ fontSize: 44, color: "#0ea5e9", mb: 1.5 }} />
+                  <Typography sx={{ fontWeight: 800, color: "#1e293b", fontSize: "1rem", mb: 0.5 }}>
+                    No hay datos disponibles para este paso
+                  </Typography>
+                  <Typography sx={{ color: "#64748b", fontSize: "0.85rem" }}>
+                    Este paso no contiene datos. Por favor, seleccione otro paso.
+                  </Typography>
+                </Box>
+              )}
+            </AccordionDetails>
+          </Accordion>
+
+          {/* Resumen de Observaciones Registradas */}
+          <Paper
+            variant="outlined"
+            sx={{
+              p: { xs: 2.5, sm: 3.5 },
+              borderRadius: 4,
+              border: "1px solid #e2e8f0",
+              bgcolor: "#ffffff",
+            }}
+          >
+            <Typography
+              variant="h6"
+              sx={{
+                fontWeight: 900,
+                color: "#1e293b",
+                mb: 3,
+                letterSpacing: "0.01em",
+                fontSize: "1.15rem",
+              }}
+            >
+              RESUMEN DE OBSERVACIONES REGISTRADAS
+            </Typography>
+
+            {/* OBSERVACIONES EN DATOS GENERALES */}
+            <Box sx={{ mb: 3 }}>
+              <Typography
+                sx={{
+                  fontWeight: 800,
+                  color: "#475569",
+                  fontSize: "0.85rem",
+                  mb: 1.5,
+                  letterSpacing: "0.02em",
+                }}
+              >
+                OBSERVACIONES EN DATOS GENERALES
+              </Typography>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1, pl: 1 }}>
+                <Box sx={{ width: 6, height: 6, borderRadius: "50%", bgcolor: "#0ea5e9" }} />
+                <Typography sx={{ fontSize: "0.88rem", color: "#334155" }}>
+                  <strong style={{ fontWeight: 800 }}>Convenio con Servicio de Emergencias/Unidades Móviles:</strong> NO CUMPLE
+                </Typography>
+              </Box>
+            </Box>
+
+            {/* OBSERVACIONES EN DATOS DEL TRÁMITE */}
+            <Box sx={{ mb: 4 }}>
+              <Typography
+                sx={{
+                  fontWeight: 800,
+                  color: "#475569",
+                  fontSize: "0.85rem",
+                  mb: 1.5,
+                  letterSpacing: "0.02em",
+                }}
+              >
+                OBSERVACIONES EN DATOS DEL TRÁMITE
+              </Typography>
+              <Stack spacing={1.5} sx={{ pl: 1 }}>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                  <Box sx={{ width: 6, height: 6, borderRadius: "50%", bgcolor: "#0ea5e9" }} />
+                  <Typography sx={{ fontSize: "0.88rem", color: "#334155" }}>
+                    <strong style={{ fontWeight: 800 }}>Desfibrilador - HEMODIÁLISIS:</strong> DECLARADO: 1, OBSERVADO: 0
+                  </Typography>
+                </Box>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                  <Box sx={{ width: 6, height: 6, borderRadius: "50%", bgcolor: "#0ea5e9" }} />
+                  <Typography sx={{ fontSize: "0.88rem", color: "#334155" }}>
+                    <strong style={{ fontWeight: 800 }}>Arquitectura - Plano General (plano1.pdf):</strong> OBSERVADO
+                  </Typography>
+                </Box>
+              </Stack>
+            </Box>
+
+            {/* OBSERVACIONES GENERALES */}
+            <Box sx={{ mb: 4 }}>
+              <Typography
+                sx={{
+                  fontWeight: 800,
+                  color: "#475569",
+                  fontSize: "0.85rem",
+                  mb: 1.5,
+                  letterSpacing: "0.02em",
+                }}
+              >
+                OBSERVACIONES GENERALES
+              </Typography>
+              <Box
+                sx={{
+                  border: "1px solid #e2e8f0",
+                  borderRadius: 3,
+                  p: 2,
+                  minHeight: 120,
+                  bgcolor: "#ffffff",
+                  position: "relative",
+                }}
+              >
+                <Typography sx={{ color: "#94a3b8", fontSize: "0.9rem" }}>
+                  Escriba aquí cualquier observación general sobre la inspección...
+                </Typography>
+                <Typography
+                  sx={{
+                    position: "absolute",
+                    bottom: 12,
+                    right: 16,
+                    color: "#94a3b8",
+                    fontSize: "0.75rem",
+                    fontWeight: 700,
+                  }}
+                >
+                  0 / 2000
+                </Typography>
+              </Box>
+              <Typography sx={{ color: "#94a3b8", fontSize: "0.75rem", mt: 1, pl: 0.5 }}>
+                0/100
+              </Typography>
+            </Box>
+
+            {/* FIRMAS */}
+            <Box
+              sx={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: 4,
+                pt: 2,
+                borderTop: "1px solid #f1f5f9",
+              }}
+            >
+              <Box sx={{ textAlign: "center" }}>
+                <Typography
+                  variant="caption"
+                  sx={{
+                    fontWeight: 800,
+                    color: "#64748b",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.05em",
+                  }}
+                >
+                  FIRMA RESPONSABLE
+                </Typography>
+              </Box>
+              <Box sx={{ textAlign: "center" }}>
+                <Typography
+                  variant="caption"
+                  sx={{
+                    fontWeight: 800,
+                    color: "#64748b",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.05em",
+                  }}
+                >
+                  FIRMA INSPECTOR
+                </Typography>
+              </Box>
+            </Box>
+          </Paper>
+        </Paper>
+      ) : isRadiofisica && activeView === "REVISION" ? (
         <RevisionActaView
           obsGenerales={obsDatosGenerales}
           obsTramite={obsDatosTramite}
           rol={user?.rol}
+          tramite={tramiteActual}
+          isRadiofisica={isRadiofisica}
+          tipoServicio={tipoServicio}
+          subservicio={subservicio}
+          onVolver={() => navigate(backPath)}
+          onIrAInspeccion={() => setActiveView("INSPECCION")}
+          showIrAInspeccion={user?.rol === 'INSPECTOR'}
           onAceptarReinspeccion={() => {
             if (id) {
               if (user?.rol === 'ARQUITECTO') {
@@ -1901,6 +2492,8 @@ const PantallaInspeccion = ({
                           onChange={handleFieldChange}
                           onOpenObs={handleOpenObsDialog}
                           onOpenViewer={setViewerFile}
+                          tramite={tramiteActual}
+                          nroActa={currentActaNum}
                         />
                       </Box>
                     )}
@@ -1912,6 +2505,8 @@ const PantallaInspeccion = ({
                           onChange={handleFieldChange}
                           onOpenObs={handleOpenObsDialog}
                           onOpenViewer={setViewerFile}
+                          tramite={tramiteActual}
+                          nroActa={currentActaNum}
                         />
                       </Box>
                     )}
@@ -2782,6 +3377,11 @@ const PantallaInspeccion = ({
         }}
         title="Evidencia de Observaciones Generales"
         description="Elija si desea tomar una fotografía con la cámara o adjuntar una imagen desde su dispositivo:"
+      />
+
+      <FileViewerModal
+        file={viewerFile}
+        onClose={() => setViewerFile(null)}
       />
 
       {/* Notificación de Guardado */}

@@ -135,8 +135,7 @@ export default function BandejaInspecciones() {
   };
 
   const handleRevisar = (t: Tramite) => {
-    const basePath = isCoordinador ? "/coordinador/validacion" : "/inspector/validacion";
-    navigate(`${basePath}/${t.id}`);
+    navigate(`/inspector/revision-acta/${t.id}`);
   };
 
   const handleVisualizar = (t: Tramite) => {
