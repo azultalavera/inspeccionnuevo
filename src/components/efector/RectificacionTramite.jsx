@@ -103,17 +103,7 @@ const RectificacionTramite = () => {
   });
 
   // Lista dinámica de unidades a agregar para el equipo 1
-  const [unidadesAgregar, setUnidadesAgregar] = useState([
-    {
-      marca: "SIEMENS",
-      modelo: "Multix Impact",
-      serie: "SN-684291-DE",
-      condicion: "Propio",
-      anoFab: "2022",
-      tipoRevelado: "DIGITAL",
-      obsInspector: "Valores rectificados por el efector",
-    },
-  ]);
+  const [unidadesAgregar, setUnidadesAgregar] = useState([]);
 
   // Datos estructurados de Radiofísica para ACTA 1 (Emplazamiento)
   const radiofisicaActa1 = {
@@ -166,22 +156,12 @@ const RectificacionTramite = () => {
             id: "RF-TRM-EQ-01",
             elemento: "EQUIPAMIENTO",
             declarado: 1,
-            observado: 1,
+            observado: 0,
             status: "NO CUMPLE",
             tipo: "irregularidad",
-            obs: "no corresponden los siguientes campos Marca: SIEMENS, Condición: Propio, Año fabricación: 2000, Tipo revelado: DIGITAL",
+            obs: "no existe",
             hasSubTable: true,
-            unidadesObservadas: [
-              {
-                marca: "SIEMENS",
-                modelo: "Multix Impact",
-                serie: "SN-684291-DE",
-                condicion: "Propio",
-                anoFab: "2000",
-                tipoRevelado: "DIGITAL",
-                obsInspector: "no corresponden los siguientes campos Marca: SIEMENS, Condición: Propio, Año fabricación: 2000, Tipo revelado: DIGITAL",
-              },
-            ],
+            unidadesObservadas: [],
           },
         ],
       },
@@ -322,6 +302,20 @@ const RectificacionTramite = () => {
 
   const handleDeleteUnit = (index) => {
     setUnidadesAgregar((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleEditUnit = (u, index) => {
+    setAddUnitModal({
+      open: true,
+      editIndex: index,
+      marca: u.marca,
+      modelo: u.modelo,
+      serie: u.serie,
+      condicion: u.condicion,
+      anoFab: u.anoFab,
+      tipoRevelado: u.tipoRevelado,
+      obsInspector: u.obsInspector || "",
+    });
   };
 
   return (
@@ -1085,31 +1079,169 @@ const RectificacionTramite = () => {
                                             </TableRow>
                                           </TableHead>
                                           <TableBody sx={{ bgcolor: "#ffffff" }}>
-                                            {row.unidadesObservadas?.map((u, uIdx) => (
-                                              <TableRow key={uIdx} sx={{ "&:hover": { bgcolor: "#f8fafc" } }}>
-                                                <TableCell sx={{ fontWeight: 800, fontSize: "0.75rem", color: "#dc2626" }}>
-                                                  {u.marca}
-                                                </TableCell>
-                                                <TableCell sx={{ fontSize: "0.75rem", color: "#334155" }}>
-                                                  {u.modelo}
-                                                </TableCell>
-                                                <TableCell sx={{ fontSize: "0.75rem", color: "#334155" }}>
-                                                  {u.serie}
-                                                </TableCell>
-                                                <TableCell sx={{ fontWeight: 800, fontSize: "0.75rem", color: "#dc2626" }}>
-                                                  {u.condicion}
-                                                </TableCell>
-                                                <TableCell sx={{ fontWeight: 800, fontSize: "0.75rem", color: "#dc2626" }}>
-                                                  {u.anoFab}
-                                                </TableCell>
-                                                <TableCell sx={{ fontWeight: 800, fontSize: "0.75rem", color: "#dc2626" }}>
-                                                  {u.tipoRevelado}
-                                                </TableCell>
-                                                <TableCell sx={{ fontSize: "0.75rem", color: "#475569" }}>
-                                                  {u.obsInspector}
+                                            {row.unidadesObservadas && row.unidadesObservadas.length > 0 ? (
+                                              row.unidadesObservadas.map((u, uIdx) => (
+                                                <TableRow key={uIdx} sx={{ "&:hover": { bgcolor: "#f8fafc" } }}>
+                                                  <TableCell sx={{ fontWeight: 800, fontSize: "0.75rem", color: "#dc2626" }}>
+                                                    {u.marca}
+                                                  </TableCell>
+                                                  <TableCell sx={{ fontSize: "0.75rem", color: "#334155" }}>
+                                                    {u.modelo}
+                                                  </TableCell>
+                                                  <TableCell sx={{ fontSize: "0.75rem", color: "#334155" }}>
+                                                    {u.serie}
+                                                  </TableCell>
+                                                  <TableCell sx={{ fontWeight: 800, fontSize: "0.75rem", color: "#dc2626" }}>
+                                                    {u.condicion}
+                                                  </TableCell>
+                                                  <TableCell sx={{ fontWeight: 800, fontSize: "0.75rem", color: "#dc2626" }}>
+                                                    {u.anoFab}
+                                                  </TableCell>
+                                                  <TableCell sx={{ fontWeight: 800, fontSize: "0.75rem", color: "#dc2626" }}>
+                                                    {u.tipoRevelado}
+                                                  </TableCell>
+                                                  <TableCell sx={{ fontSize: "0.75rem", color: "#475569" }}>
+                                                    {u.obsInspector}
+                                                  </TableCell>
+                                                </TableRow>
+                                              ))
+                                            ) : (
+                                              <TableRow>
+                                                <TableCell colSpan={7} align="center" sx={{ py: 2, color: "#94a3b8", fontStyle: "italic", fontSize: "0.78rem" }}>
+                                                  Sin unidades observadas
                                                 </TableCell>
                                               </TableRow>
-                                            ))}
+                                            )}
+                                          </TableBody>
+                                        </Table>
+                                      </TableContainer>
+                                    </Paper>
+
+                                    {/* BLOQUE: UNIDADES A AGREGAR (FOTO 3) */}
+                                    <Paper
+                                      variant="outlined"
+                                      sx={{
+                                        borderRadius: "8px",
+                                        overflow: "hidden",
+                                        border: "1px solid #cbd5e1",
+                                      }}
+                                    >
+                                      <Box sx={{ bgcolor: "#e2e8f0", px: 2, py: 1 }}>
+                                        <Typography sx={{ fontWeight: 850, fontSize: "0.78rem", color: "#1e293b", textTransform: "uppercase" }}>
+                                          UNIDADES A AGREGAR ({unidadesAgregar?.length || 0})
+                                        </Typography>
+                                      </Box>
+                                      <TableContainer>
+                                        <Table size="small">
+                                          <TableHead sx={{ bgcolor: "#f8fafc" }}>
+                                            <TableRow>
+                                              <TableCell sx={{ fontWeight: 800, fontSize: "0.72rem", color: "#475569" }}>Marca</TableCell>
+                                              <TableCell sx={{ fontWeight: 800, fontSize: "0.72rem", color: "#475569" }}>Modelo</TableCell>
+                                              <TableCell sx={{ fontWeight: 800, fontSize: "0.72rem", color: "#475569" }}>Serie</TableCell>
+                                              <TableCell sx={{ fontWeight: 800, fontSize: "0.72rem", color: "#475569" }}>Condición</TableCell>
+                                              <TableCell sx={{ fontWeight: 800, fontSize: "0.72rem", color: "#475569" }}>Año Fab.</TableCell>
+                                              <TableCell sx={{ fontWeight: 800, fontSize: "0.72rem", color: "#475569" }}>Tipo Revelado</TableCell>
+                                              <TableCell align="center" sx={{ fontWeight: 800, fontSize: "0.72rem", color: "#475569", width: 90 }}>Acciones</TableCell>
+                                            </TableRow>
+                                          </TableHead>
+                                          <TableBody sx={{ bgcolor: "#ffffff" }}>
+                                            {unidadesAgregar?.length === 0 ? (
+                                              <TableRow sx={{ "&:hover": { bgcolor: "#f8fafc" } }}>
+                                                <TableCell colSpan={6} sx={{ fontSize: "0.75rem", color: "#64748b", py: 1.5 }}>
+                                                  Pendiente de carga
+                                                </TableCell>
+                                                <TableCell align="center" sx={{ py: 1 }}>
+                                                  <IconButton
+                                                    size="small"
+                                                    onClick={() =>
+                                                      setAddUnitModal({
+                                                        open: true,
+                                                        editIndex: null,
+                                                        marca: "",
+                                                        modelo: "",
+                                                        serie: "",
+                                                        condicion: "Propio",
+                                                        anoFab: "",
+                                                        tipoRevelado: "DIGITAL",
+                                                      })
+                                                    }
+                                                    sx={{
+                                                      color: "#005596",
+                                                      bgcolor: "#e0f2fe",
+                                                      border: "1px solid #bae6fd",
+                                                      "&:hover": { bgcolor: "#bae6fd" },
+                                                      width: 26,
+                                                      height: 26,
+                                                    }}
+                                                  >
+                                                    <AddIcon sx={{ fontSize: 16 }} />
+                                                  </IconButton>
+                                                </TableCell>
+                                              </TableRow>
+                                            ) : (
+                                              <>
+                                                {unidadesAgregar.map((u, uIdx) => (
+                                                  <TableRow key={uIdx} sx={{ "&:hover": { bgcolor: "#f8fafc" } }}>
+                                                    <TableCell sx={{ fontWeight: 700, fontSize: "0.75rem", color: "#1e293b" }}>{u.marca}</TableCell>
+                                                    <TableCell sx={{ fontSize: "0.75rem", color: "#334155" }}>{u.modelo}</TableCell>
+                                                    <TableCell sx={{ fontSize: "0.75rem", color: "#334155" }}>{u.serie}</TableCell>
+                                                    <TableCell sx={{ fontSize: "0.75rem", color: "#334155" }}>{u.condicion}</TableCell>
+                                                    <TableCell sx={{ fontSize: "0.75rem", color: "#334155" }}>{u.anoFab}</TableCell>
+                                                    <TableCell sx={{ fontSize: "0.75rem", color: "#334155" }}>{u.tipoRevelado}</TableCell>
+                                                    <TableCell align="center" sx={{ py: 0.8 }}>
+                                                      <Box sx={{ display: "flex", justifyContent: "center", gap: 0.5 }}>
+                                                        <IconButton
+                                                          size="small"
+                                                          onClick={() => handleEditUnit(u, uIdx)}
+                                                          sx={{ color: "#0284c7", p: 0.5 }}
+                                                        >
+                                                          <EditIcon sx={{ fontSize: 16 }} />
+                                                        </IconButton>
+                                                        <IconButton
+                                                          size="small"
+                                                          onClick={() => handleDeleteUnit(uIdx)}
+                                                          sx={{ color: "#ef4444", p: 0.5 }}
+                                                        >
+                                                          <DeleteIcon sx={{ fontSize: 16 }} />
+                                                        </IconButton>
+                                                      </Box>
+                                                    </TableCell>
+                                                  </TableRow>
+                                                ))}
+                                                <TableRow sx={{ bgcolor: "#fafafa" }}>
+                                                  <TableCell colSpan={6} sx={{ fontSize: "0.72rem", color: "#64748b", fontStyle: "italic", py: 1 }}>
+                                                    Agregar otra unidad rectificatoria
+                                                  </TableCell>
+                                                  <TableCell align="center" sx={{ py: 1 }}>
+                                                    <IconButton
+                                                      size="small"
+                                                      onClick={() =>
+                                                        setAddUnitModal({
+                                                          open: true,
+                                                          editIndex: null,
+                                                          marca: "",
+                                                          modelo: "",
+                                                          serie: "",
+                                                          condicion: "Propio",
+                                                          anoFab: "",
+                                                          tipoRevelado: "DIGITAL",
+                                                        })
+                                                      }
+                                                      sx={{
+                                                        color: "#005596",
+                                                        bgcolor: "#e0f2fe",
+                                                        border: "1px solid #bae6fd",
+                                                        "&:hover": { bgcolor: "#bae6fd" },
+                                                        width: 26,
+                                                        height: 26,
+                                                      }}
+                                                    >
+                                                      <AddIcon sx={{ fontSize: 16 }} />
+                                                    </IconButton>
+                                                  </TableCell>
+                                                </TableRow>
+                                              </>
+                                            )}
                                           </TableBody>
                                         </Table>
                                       </TableContainer>

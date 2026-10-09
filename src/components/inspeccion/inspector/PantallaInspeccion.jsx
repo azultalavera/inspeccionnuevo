@@ -805,13 +805,13 @@ const PantallaInspeccion = ({
     setCloseActaModalOpen(false);
     
     const esAprobacion = closeActaAction === "APROBAR";
-    const esRechazo = closeActaAction === "RECHAZAR";
+    const esNoAprobar = closeActaAction === "RECHAZAR" || closeActaAction === "NO APROBAR";
     if (id) {
       actualizarInspeccion({
         tramiteId: id,
         cierre: {
           dictamen: esAprobacion ? 'APRUEBA' : 'NO_APRUEBA',
-          notasCierre: esRechazo ? `[ACTA RECHAZADA] ${closeActaNote}` : closeActaNote,
+          notasCierre: esNoAprobar ? `[ACTA NO APROBADA] ${closeActaNote}` : closeActaNote,
           firmaInspector: signatures.inspector.data || undefined,
           firmaResponsable: signatures.representative.data || undefined,
         }
@@ -819,8 +819,8 @@ const PantallaInspeccion = ({
       finalizarInspeccion();
     }
     
-    alert(esRechazo 
-      ? `Acta rechazada con éxito.\nMotivo: ${closeActaNote || 'Sin observaciones adicionales'}`
+    alert(esNoAprobar 
+      ? `Acta no aprobada con éxito.\nMotivo: ${closeActaNote || 'Sin observaciones adicionales'}`
       : `Acta cerrada (${closeActaAction}) con éxito.\nNota: ${closeActaNote || 'Sin notas adicionales'}`
     );
     navigate(user?.rol === 'COORDINADOR' ? '/coordinador/inspeccion/habilitacion' : '/inspector/inspeccion-tipo/habilitacion');
@@ -1210,18 +1210,18 @@ const PantallaInspeccion = ({
 
             <Button
               variant="contained"
-              onClick={() => handleOpenCloseActa("RECHAZAR")}
+              onClick={() => handleOpenCloseActa("NO APROBAR")}
               sx={{
                 fontWeight: 900,
                 borderRadius: 2,
-                bgcolor: "#dc2626",
+                bgcolor: "#ea580c",
                 color: "white",
                 px: 2.5,
-                boxShadow: "0 2px 8px rgba(220, 38, 38, 0.3)",
-                "&:hover": { bgcolor: "#b91c1c" }
+                boxShadow: "0 2px 8px rgba(234, 88, 12, 0.3)",
+                "&:hover": { bgcolor: "#c2410c" }
               }}
             >
-              Rechazar Acta
+              No Aprobar
             </Button>
           </Box>
         </Box>
@@ -3111,18 +3111,18 @@ const PantallaInspeccion = ({
                   fullWidth
                   variant="contained"
                   size="large"
-                  onClick={() => handleOpenCloseActa("RECHAZAR")}
+                  onClick={() => handleOpenCloseActa("NO APROBAR")}
                   sx={{
                     py: 2,
                     borderRadius: 4,
                     fontWeight: 900,
                     fontSize: "1.1rem",
-                    bgcolor: "#dc2626",
-                    boxShadow: "0 10px 15px -3px rgba(220, 38, 38, 0.3)",
-                    "&:hover": { bgcolor: "#b91c1c" },
+                    bgcolor: "#ea580c",
+                    boxShadow: "0 10px 15px -3px rgba(234, 88, 12, 0.3)",
+                    "&:hover": { bgcolor: "#c2410c" },
                   }}
                 >
-                  RECHAZAR ACTA
+                  NO APROBAR
                 </Button>
 
                 <Button
@@ -3154,9 +3154,9 @@ const PantallaInspeccion = ({
                       borderRadius: 4,
                       fontWeight: 900,
                       fontSize: "1.1rem",
-                      bgcolor: "#ef4444",
-                      boxShadow: "0 10px 15px -3px rgba(239, 68, 68, 0.3)",
-                      "&:hover": { bgcolor: "#dc2626" },
+                      bgcolor: "#ea580c",
+                      boxShadow: "0 10px 15px -3px rgba(234, 88, 12, 0.3)",
+                      "&:hover": { bgcolor: "#c2410c" },
                     }}
                   >
                     OBSERVAR / NO APROBAR
@@ -3226,18 +3226,18 @@ const PantallaInspeccion = ({
 
               <Button
                 variant="contained"
-                onClick={() => handleOpenCloseActa("RECHAZAR")}
+                onClick={() => handleOpenCloseActa("NO APROBAR")}
                 sx={{
                   fontWeight: 900,
                   px: 3,
                   py: 1.2,
                   borderRadius: 2.5,
-                  bgcolor: "#dc2626",
-                  boxShadow: "0 4px 12px rgba(220, 38, 38, 0.35)",
-                  "&:hover": { bgcolor: "#b91c1c" },
+                  bgcolor: "#ea580c",
+                  boxShadow: "0 4px 12px rgba(234, 88, 12, 0.35)",
+                  "&:hover": { bgcolor: "#c2410c" },
                 }}
               >
-                RECHAZAR ACTA
+                NO APROBAR
               </Button>
 
               {!allSigned ? (
@@ -3289,7 +3289,7 @@ const PantallaInspeccion = ({
         onSave={handleSaveSignature}
       />
 
-      {/* Diálogo de Cierre / Nota Final / Rechazo */}
+      {/* Diálogo de Cierre / Nota Final / No Aprobación */}
       <Dialog
         open={closeActaModalOpen}
         onClose={() => setCloseActaModalOpen(false)}
@@ -3299,20 +3299,20 @@ const PantallaInspeccion = ({
           sx: { borderRadius: 4, p: 2 }
         }}
       >
-        <DialogTitle sx={{ fontWeight: 900, color: closeActaAction === "RECHAZAR" ? '#dc2626' : '#1e293b', pb: 1 }}>
-          {closeActaAction === "RECHAZAR" ? "Rechazar Acta de Inspección" : `Nota de Cierre - ${closeActaAction}`}
+        <DialogTitle sx={{ fontWeight: 900, color: (closeActaAction === "RECHAZAR" || closeActaAction === "NO APROBAR") ? '#ea580c' : '#1e293b', pb: 1 }}>
+          {(closeActaAction === "RECHAZAR" || closeActaAction === "NO APROBAR") ? "No Aprobar Acta de Inspección" : `Nota de Cierre - ${closeActaAction}`}
         </DialogTitle>
         <DialogContent>
           <Typography sx={{ color: '#64748b', mb: 3 }}>
-            {closeActaAction === "RECHAZAR"
-              ? "Indique la fundamentación o motivo técnico del rechazo del acta. Esta acción finalizará la inspección con dictamen de rechazo:"
+            {(closeActaAction === "RECHAZAR" || closeActaAction === "NO APROBAR")
+              ? "Indique la fundamentación o motivo técnico para no aprobar el acta. Esta acción finalizará la inspección con dictamen de no aprobación:"
               : `Ingrese una nota o dictamen final antes de ${closeActaAction.toLowerCase()} la inspección.`}
           </Typography>
           <TextField
             fullWidth
             multiline
             rows={4}
-            placeholder={closeActaAction === "RECHAZAR" ? "Escriba los motivos del rechazo del acta..." : "Escriba el dictamen o nota de cierre..."}
+            placeholder={(closeActaAction === "RECHAZAR" || closeActaAction === "NO APROBAR") ? "Escriba los motivos por los que no se aprueba el acta..." : "Escriba el dictamen o nota de cierre..."}
             value={closeActaNote}
             onChange={(e) => setCloseActaNote(e.target.value)}
             sx={{
@@ -3335,16 +3335,16 @@ const PantallaInspeccion = ({
             variant="contained"
             onClick={handleConfirmCierre}
             sx={{
-              bgcolor: closeActaAction === "APROBAR" ? "#059669" : "#dc2626",
+              bgcolor: closeActaAction === "APROBAR" ? "#059669" : "#ea580c",
               fontWeight: 800,
               borderRadius: 2,
               px: 3,
               "&:hover": {
-                bgcolor: closeActaAction === "APROBAR" ? "#047857" : "#b91c1c"
+                bgcolor: closeActaAction === "APROBAR" ? "#047857" : "#c2410c"
               }
             }}
           >
-            {closeActaAction === "RECHAZAR" ? "CONFIRMAR RECHAZO" : "CONFIRMAR CIERRE"}
+            {(closeActaAction === "RECHAZAR" || closeActaAction === "NO APROBAR") ? "CONFIRMAR NO APROBACIÓN" : "CONFIRMAR CIERRE"}
           </Button>
         </DialogActions>
       </Dialog>

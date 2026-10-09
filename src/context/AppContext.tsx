@@ -42,12 +42,27 @@ interface AppContextType {
   actualizarEstadoTramite: (tramiteId: string, nuevoEstado: EstadoTramite) => void;
   crearOrdenDenuncia: (data: Omit<OrdenDenuncia, 'id' | 'nroOrden' | 'fechaCreacion' | 'creadoPor'>) => OrdenDenuncia;
   actualizarEstadoOrdenDenuncia: (id: string, nuevoEstado: EstadoOrdenDenuncia, datosAdicionales?: Partial<OrdenDenuncia>) => void;
+  agregarTramite: (nuevoTramite: Tramite) => void;
+  actualizarTramite: (tramiteActualizado: Tramite) => void;
+  eliminarTramite: (id: string) => void;
 }
 
 const AppContext = createContext<AppContextType | null>(null)
 
 export function AppProvider({ children }: { children: ReactNode }) {
-  const [tramites, setTramites] = useState<Tramite[]>(TRAMITES)
+  const [tramites, setTramites] = useState<Tramite[]>(() => {
+    const savedRutina = localStorage.getItem('clicsalud_establecimientos_rutina')
+    let rutinas: Tramite[] = []
+    if (savedRutina) {
+      try {
+        const parsed = JSON.parse(savedRutina)
+        if (Array.isArray(parsed)) rutinas = parsed
+      } catch (e) {
+        console.error(e)
+      }
+    }
+    return [...rutinas, ...TRAMITES]
+  })
   const [hallazgos] = useState<Hallazgo[]>(HALLAZGOS)
   const [ordenesDenuncia, setOrdenesDenuncia] = useState<OrdenDenuncia[]>(() => {
     const saved = localStorage.getItem('clicsalud_ordenes_denuncia')
@@ -327,6 +342,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }));
   };
 
+  const agregarTramite = (nuevoTramite: Tramite) => {
+    setTramites(prev => [nuevoTramite, ...prev]);
+  };
+
+  const actualizarTramite = (tramiteActualizado: Tramite) => {
+    setTramites(prev => prev.map(t => t.id === tramiteActualizado.id ? tramiteActualizado : t));
+  };
+
+  const eliminarTramite = (id: string) => {
+    setTramites(prev => prev.filter(t => t.id !== id));
+  };
+
   return (
     <AppContext.Provider value={{
       tramites,
@@ -346,6 +373,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
       actualizarEstadoTramite,
       crearOrdenDenuncia,
       actualizarEstadoOrdenDenuncia,
+      agregarTramite,
+      actualizarTramite,
+      eliminarTramite,
     }}>
       {children}
     </AppContext.Provider>

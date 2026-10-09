@@ -22,7 +22,7 @@ export interface AlertaEfectorItem {
   fechaVencimiento: string
   estadoVentana: 'URGENTE' | 'PROXIMO' | 'EN_PLAZO'
   motivos: string[]
-  accionRequerida?: 'RESPONDER_EMPLAZAMIENTO' | 'INICIAR_RENOVACION' | 'INICIAR_MODIFICACION'
+  accionRequerida?: 'RESPONDER_EMPLAZAMIENTO' | 'INICIAR_RENOVACION' | 'INICIAR_MODIFICACION' | 'INICIAR_ALTA_DIGITAL'
   estadoTramite?: string
   estadoActa?: string
   esRadiofisica?: boolean
@@ -131,6 +131,26 @@ export const ALERTAS_EFECTOR_MOCK: AlertaEfectorItem[] = [
       'Habilitación próxima a expirar, requiere iniciar trámite de renovación.'
     ],
     accionRequerida: 'INICIAR_RENOVACION'
+  },
+  {
+    id: 'ALR-EF-005',
+    actaNumero: '125/2026',
+    nroExpediente: 'EX-2026-0219481-APN-MS#CBA',
+    denominacion: 'Centro Médico y Odontológico Nueva Córdoba',
+    cuit: '30-71889922-4',
+    tipologia: 'CONSULTORIOS ODONTOLÓGICOS / POLICONSULTORIO',
+    localidad: 'Córdoba',
+    departamento: 'Capital',
+    tipoOrigen: 'RUTINA',
+    frecuenciaAnual: 1,
+    diasRestantes: 6,
+    fechaVencimiento: '15/08/2026',
+    estadoVentana: 'PROXIMO',
+    motivos: [
+      'Relevamiento en operativo de rutina: establecimiento sin legajo digital vigente',
+      'Corresponde regularización registral mediante Trámite de Alta Digital'
+    ],
+    accionRequerida: 'INICIAR_ALTA_DIGITAL'
   }
 ]
 
@@ -148,7 +168,7 @@ export default function BandejaAlertasEfector() {
 
   // Pagination state
   const [paginaSeleccionada, setPaginaSeleccionada] = useState(1)
-  const [cantidadFilasPorPagina, setCantidadFilasPorPagina] = useState(5)
+  const [cantidadFilasPorPagina, setCantidadFilasPorPagina] = useState(10)
 
   useEffect(() => {
     setPaginaSeleccionada(1)
@@ -182,12 +202,6 @@ export default function BandejaAlertasEfector() {
     (paginaSeleccionada - 1) * cantidadFilasPorPagina,
     paginaSeleccionada * cantidadFilasPorPagina
   )
-
-  // Metric counts
-  const countHabilitacion = alertas.filter(a => a.tipoOrigen === 'HABILITACION').length
-  const countRutina = alertas.filter(a => a.tipoOrigen === 'RUTINA').length
-  const countUrgentes = alertas.filter(a => a.estadoVentana === 'URGENTE').length
-  const countProximos = alertas.filter(a => a.estadoVentana === 'PROXIMO').length
 
   const hasActiveFilters = busqueda.trim() !== '' || filtroTipoOrigen !== 'TODOS' || filtroEstadoVentana !== 'TODAS'
 
@@ -314,75 +328,28 @@ export default function BandejaAlertasEfector() {
               )}
             </div>
 
-            {/* 2 Botones Grupo 1 */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-              {/* Botón 1.1: HABILITACIÓN */}
-              <div
-                onClick={() => setFiltroTipoOrigen(prev => prev === 'HABILITACION' ? 'TODOS' : 'HABILITACION')}
-                style={{
-                  background: filtroTipoOrigen === 'HABILITACION' ? '#FFF7ED' : '#FFFFFF',
-                  border: `2px solid ${filtroTipoOrigen === 'HABILITACION' ? '#EA580C' : '#E2E8F0'}`,
-                  borderRadius: 12,
-                  padding: '12px 14px',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 6,
-                  position: 'relative',
-                  boxShadow: filtroTipoOrigen === 'HABILITACION' ? '0 4px 14px rgba(234, 88, 12, 0.16)' : '0 1px 2px rgba(0,0,0,0.02)'
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <span style={{
-                    fontSize: 11,
-                    fontWeight: 800,
-                    color: filtroTipoOrigen === 'HABILITACION' ? '#C2410C' : '#64748B',
-                    textTransform: 'uppercase',
-                    letterSpacing: 0.4
-                  }}>
-                    Habilitación
-                  </span>
-                  <div style={{
-                    width: 30,
-                    height: 30,
-                    borderRadius: 8,
-                    background: filtroTipoOrigen === 'HABILITACION' ? '#FED7AA' : '#FFF7ED',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                  }}>
-                    <span className="material-icons" style={{ fontSize: 18, color: '#EA580C' }}>rate_review</span>
-                  </div>
-                </div>
-                <div style={{ fontSize: 26, fontWeight: 900, color: '#EA580C', lineHeight: 1 }}>
-                  {countHabilitacion}
-                </div>
-                <div style={{ fontSize: 11, color: '#64748B', fontWeight: 550 }}>
-                  Respuesta Emplazamiento
-                </div>
-              </div>
-
-              {/* Botón 1.2: RUTINA */}
+            {/* Botón Grupo 1: RUTINA */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 12 }}>
+              {/* Botón: RUTINA */}
               <div
                 onClick={() => setFiltroTipoOrigen(prev => prev === 'RUTINA' ? 'TODOS' : 'RUTINA')}
                 style={{
                   background: filtroTipoOrigen === 'RUTINA' ? '#FEF2F2' : '#FFFFFF',
                   border: `2px solid ${filtroTipoOrigen === 'RUTINA' ? '#DC2626' : '#E2E8F0'}`,
                   borderRadius: 12,
-                  padding: '12px 14px',
+                  padding: '14px 16px',
                   cursor: 'pointer',
                   transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
                   display: 'flex',
                   flexDirection: 'column',
-                  gap: 6,
+                  gap: 8,
                   position: 'relative',
                   boxShadow: filtroTipoOrigen === 'RUTINA' ? '0 4px 14px rgba(220, 38, 38, 0.16)' : '0 1px 2px rgba(0,0,0,0.02)'
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <span style={{
-                    fontSize: 11,
+                    fontSize: 12,
                     fontWeight: 800,
                     color: filtroTipoOrigen === 'RUTINA' ? '#991B1B' : '#64748B',
                     textTransform: 'uppercase',
@@ -391,8 +358,8 @@ export default function BandejaAlertasEfector() {
                     Rutina
                   </span>
                   <div style={{
-                    width: 30,
-                    height: 30,
+                    width: 32,
+                    height: 32,
                     borderRadius: 8,
                     background: filtroTipoOrigen === 'RUTINA' ? '#FECACA' : '#FEF2F2',
                     display: 'flex',
@@ -402,10 +369,7 @@ export default function BandejaAlertasEfector() {
                     <span className="material-icons" style={{ fontSize: 18, color: '#DC2626' }}>edit_note</span>
                   </div>
                 </div>
-                <div style={{ fontSize: 26, fontWeight: 900, color: '#DC2626', lineHeight: 1 }}>
-                  {countRutina}
-                </div>
-                <div style={{ fontSize: 11, color: '#64748B', fontWeight: 550 }}>
+                <div style={{ fontSize: 12, color: '#64748B', fontWeight: 600 }}>
                   Trámite Modificación
                 </div>
               </div>
@@ -464,19 +428,19 @@ export default function BandejaAlertasEfector() {
                   background: filtroEstadoVentana === 'URGENTE' ? '#FFF1F2' : '#FFFFFF',
                   border: `2px solid ${filtroEstadoVentana === 'URGENTE' ? '#BE123C' : '#E2E8F0'}`,
                   borderRadius: 12,
-                  padding: '12px 14px',
+                  padding: '14px 16px',
                   cursor: 'pointer',
                   transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
                   display: 'flex',
                   flexDirection: 'column',
-                  gap: 6,
+                  gap: 8,
                   position: 'relative',
                   boxShadow: filtroEstadoVentana === 'URGENTE' ? '0 4px 14px rgba(190, 18, 60, 0.16)' : '0 1px 2px rgba(0,0,0,0.02)'
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <span style={{
-                    fontSize: 11,
+                    fontSize: 12,
                     fontWeight: 800,
                     color: filtroEstadoVentana === 'URGENTE' ? '#9F1239' : '#64748B',
                     textTransform: 'uppercase',
@@ -485,8 +449,8 @@ export default function BandejaAlertasEfector() {
                     Urgentes
                   </span>
                   <div style={{
-                    width: 30,
-                    height: 30,
+                    width: 32,
+                    height: 32,
                     borderRadius: 8,
                     background: filtroEstadoVentana === 'URGENTE' ? '#FECDD3' : '#FFF1F2',
                     display: 'flex',
@@ -496,10 +460,7 @@ export default function BandejaAlertasEfector() {
                     <span className="material-icons" style={{ fontSize: 18, color: '#BE123C' }}>timer_off</span>
                   </div>
                 </div>
-                <div style={{ fontSize: 26, fontWeight: 900, color: '#BE123C', lineHeight: 1 }}>
-                  {countUrgentes}
-                </div>
-                <div style={{ fontSize: 11, color: '#64748B', fontWeight: 550 }}>
+                <div style={{ fontSize: 12, color: '#64748B', fontWeight: 600 }}>
                   Menos de 5 días
                 </div>
               </div>
@@ -511,19 +472,19 @@ export default function BandejaAlertasEfector() {
                   background: filtroEstadoVentana === 'PROXIMO' ? '#FEF3C7' : '#FFFFFF',
                   border: `2px solid ${filtroEstadoVentana === 'PROXIMO' ? '#D97706' : '#E2E8F0'}`,
                   borderRadius: 12,
-                  padding: '12px 14px',
+                  padding: '14px 16px',
                   cursor: 'pointer',
                   transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
                   display: 'flex',
                   flexDirection: 'column',
-                  gap: 6,
+                  gap: 8,
                   position: 'relative',
                   boxShadow: filtroEstadoVentana === 'PROXIMO' ? '0 4px 14px rgba(217, 119, 6, 0.16)' : '0 1px 2px rgba(0,0,0,0.02)'
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <span style={{
-                    fontSize: 11,
+                    fontSize: 12,
                     fontWeight: 800,
                     color: filtroEstadoVentana === 'PROXIMO' ? '#92400E' : '#64748B',
                     textTransform: 'uppercase',
@@ -532,8 +493,8 @@ export default function BandejaAlertasEfector() {
                     Próximos
                   </span>
                   <div style={{
-                    width: 30,
-                    height: 30,
+                    width: 32,
+                    height: 32,
                     borderRadius: 8,
                     background: filtroEstadoVentana === 'PROXIMO' ? '#FDE68A' : '#FEF3C7',
                     display: 'flex',
@@ -543,10 +504,7 @@ export default function BandejaAlertasEfector() {
                     <span className="material-icons" style={{ fontSize: 18, color: '#D97706' }}>timer</span>
                   </div>
                 </div>
-                <div style={{ fontSize: 26, fontWeight: 900, color: '#D97706', lineHeight: 1 }}>
-                  {countProximos}
-                </div>
-                <div style={{ fontSize: 11, color: '#64748B', fontWeight: 550 }}>
+                <div style={{ fontSize: 12, color: '#64748B', fontWeight: 600 }}>
                   Entre 5 y 10 días
                 </div>
               </div>
@@ -773,7 +731,32 @@ export default function BandejaAlertasEfector() {
 
                     {/* Acción Requerida */}
                     <td style={{ padding: '14px 18px', verticalAlign: 'top', textAlign: 'center' }}>
-                      {alerta.accionRequerida === 'INICIAR_RENOVACION' ? (
+                      {alerta.accionRequerida === 'INICIAR_ALTA_DIGITAL' ? (
+                        <span
+                          style={{
+                            background: '#EFF6FF',
+                            border: '1.5px solid #93C5FD',
+                            color: '#1D4ED8',
+                            padding: '6px 14px',
+                            borderRadius: 20,
+                            fontSize: 12,
+                            fontWeight: 750,
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 6,
+                            boxShadow: '0 1px 3px rgba(37, 99, 235, 0.08)',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          <span
+                            className="material-icons"
+                            style={{ fontSize: 16, color: '#2563EB' }}
+                          >
+                            app_registration
+                          </span>
+                          Iniciar trámite de alta digital
+                        </span>
+                      ) : alerta.accionRequerida === 'INICIAR_RENOVACION' ? (
                         <button
                           onClick={() => handleOpenIniciarRenovacion(alerta)}
                           style={{

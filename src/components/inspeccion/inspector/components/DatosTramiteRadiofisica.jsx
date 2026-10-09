@@ -213,6 +213,7 @@ const CardFieldCheckItem = ({
   isObserved,
   onToggleObs,
   noCheck = false,
+  disabled = false,
 }) => {
   const isNoDeclarado =
     value === null ||
@@ -229,7 +230,7 @@ const CardFieldCheckItem = ({
         <Typography
           variant="caption"
           sx={{
-            color: isObserved && !noCheck ? "#0369a1" : "#64748b",
+            color: isObserved && !noCheck && !disabled ? "#0369a1" : "#64748b",
             fontWeight: 700,
             fontSize: "0.75rem",
             textTransform: "uppercase",
@@ -239,23 +240,27 @@ const CardFieldCheckItem = ({
           {label}
         </Typography>
         {!noCheck && (
-          <Tooltip title={isObserved ? `Quitar observación de ${label}` : `Observar ${label}`}>
+          <Tooltip title={disabled ? "No disponible (el equipo no existe)" : (isObserved ? `Quitar observación de ${label}` : `Observar ${label}`)}>
             <Box
-              onClick={() => onToggleObs(id, label, value)}
+              onClick={() => {
+                if (!disabled) onToggleObs(id, label, value);
+              }}
               sx={{
                 display: "inline-flex",
                 alignItems: "center",
                 gap: 0.4,
-                cursor: "pointer",
+                cursor: disabled ? "not-allowed" : "pointer",
+                pointerEvents: disabled ? "none" : "auto",
+                opacity: disabled ? 0.35 : 1,
                 px: 0.7,
                 py: 0.2,
                 borderRadius: 1.5,
-                bgcolor: isObserved ? "#e0f2fe" : "transparent",
+                bgcolor: isObserved && !disabled ? "#e0f2fe" : "transparent",
                 border: "1px solid",
-                borderColor: isObserved ? "#7dd3fc" : "#e2e8f0",
+                borderColor: isObserved && !disabled ? "#7dd3fc" : "#e2e8f0",
                 "&:hover": {
-                  bgcolor: isObserved ? "#bae6fd" : "#f1f5f9",
-                  borderColor: isObserved ? "#38bdf8" : "#cbd5e1",
+                  bgcolor: disabled ? "transparent" : (isObserved ? "#bae6fd" : "#f1f5f9"),
+                  borderColor: disabled ? "#e2e8f0" : (isObserved ? "#38bdf8" : "#cbd5e1"),
                 },
                 transition: "all 0.15s ease",
                 userSelect: "none",
@@ -263,11 +268,13 @@ const CardFieldCheckItem = ({
             >
               <Checkbox
                 size="small"
-                checked={isObserved}
+                disabled={disabled}
+                checked={!disabled && isObserved}
                 sx={{
                   p: 0,
                   color: "#94a3b8",
                   "&.Mui-checked": { color: "#0284c7" },
+                  "&.Mui-disabled": { color: "#cbd5e1" },
                   "& .MuiSvgIcon-root": { fontSize: 16 },
                 }}
               />
@@ -275,7 +282,7 @@ const CardFieldCheckItem = ({
                 sx={{
                   fontSize: "0.68rem",
                   fontWeight: 800,
-                  color: isObserved ? "#0369a1" : "#64748b",
+                  color: disabled ? "#94a3b8" : (isObserved ? "#0369a1" : "#64748b"),
                   letterSpacing: 0.5,
                 }}
               >
@@ -2175,6 +2182,36 @@ const DatosTramiteRadiofisica = ({
       setExpandedEpp((prev) => ({ ...prev, [id]: !prev[id] }));
     };
 
+    const equipoExisteFieldId = "rad_eq_existe";
+    const rawExiste = inspectorData[equipoExisteFieldId];
+    const equipoExiste =
+      rawExiste && typeof rawExiste === "object" && !Array.isArray(rawExiste)
+        ? rawExiste.value !== false && rawExiste.value !== "NO"
+        : rawExiste !== undefined
+        ? rawExiste !== false && rawExiste !== "NO"
+        : true;
+
+    const handleToggleExiste = (checked) => {
+      onChange(equipoExisteFieldId, {
+        value: checked,
+        obs: !checked ? "El equipo declarado no existe en el establecimiento" : "",
+      });
+      if (!checked) {
+        equipoFieldsConfig.forEach((f) => {
+          if (!f.noCheck && getFieldObs(f.id, "")) {
+            onChange(f.id, {
+              value: getEquipoValue(f.id, f.defaultVal),
+              obs: "",
+            });
+          }
+        });
+        onChange(fieldId, {
+          value: getValue(fieldId, ""),
+          obs: "El equipo declarado no existe en el establecimiento",
+        });
+      }
+    };
+
     return (
       <Box sx={{ display: "flex", flexDirection: "column", gap: 3, mb: 4 }}>
         {/* Card 1: Equipos generadores de rayos X */}
@@ -2200,7 +2237,112 @@ const DatosTramiteRadiofisica = ({
             </Typography>
           }
           obs={obsVal}
+          headerAction={
+            <Box
+              onClick={() => handleToggleExiste(!equipoExiste)}
+              sx={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 1,
+                cursor: "pointer",
+                bgcolor: equipoExiste ? "#ecfdf5" : "#fef2f2",
+                border: "1px solid",
+                borderColor: equipoExiste ? "#a7f3d0" : "#fecaca",
+                borderRadius: "20px",
+                px: 1.2,
+                py: 0.35,
+                boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
+                transition: "all 0.2s ease",
+                "&:hover": {
+                  bgcolor: equipoExiste ? "#d1fae5" : "#fee2e2",
+                  borderColor: equipoExiste ? "#6ee7b7" : "#fca5a5",
+                },
+                userSelect: "none",
+              }}
+            >
+              <Typography
+                sx={{
+                  fontSize: "0.76rem",
+                  fontWeight: 800,
+                  color: equipoExiste ? "#15803d" : "#b91c1c",
+                  letterSpacing: "0.02em",
+                  textTransform: "uppercase",
+                }}
+              >
+                {equipoExiste ? "Existe" : "No existe"}
+              </Typography>
+              <Switch
+                size="small"
+                checked={equipoExiste}
+                onChange={(e) => {
+                  e.stopPropagation();
+                  handleToggleExiste(e.target.checked);
+                }}
+                sx={{
+                  width: 36,
+                  height: 20,
+                  p: 0,
+                  "& .MuiSwitch-switchBase": {
+                    p: 0,
+                    m: "2px",
+                    transitionDuration: "200ms",
+                    "&.Mui-checked": {
+                      transform: "translateX(16px)",
+                      color: "#fff",
+                      "& + .MuiSwitch-track": {
+                        backgroundColor: "#16a34a",
+                        opacity: 1,
+                        border: 0,
+                      },
+                    },
+                    "&:not(.Mui-checked)": {
+                      color: "#fff",
+                      "& + .MuiSwitch-track": {
+                        backgroundColor: "#dc2626",
+                        opacity: 1,
+                        border: 0,
+                      },
+                    },
+                  },
+                  "& .MuiSwitch-thumb": {
+                    width: 16,
+                    height: 16,
+                    boxShadow: "0 1px 3px rgba(0,0,0,0.3)",
+                  },
+                  "& .MuiSwitch-track": {
+                    borderRadius: 10,
+                    backgroundColor: "#dc2626",
+                    opacity: 1,
+                  },
+                }}
+              />
+            </Box>
+          }
         >
+          {!equipoExiste && (
+            <Box
+              sx={{
+                gridColumn: { xs: "1fr", sm: "1 / -1" },
+                bgcolor: "#fef2f2",
+                border: "1px dashed #f87171",
+                borderRadius: 2.5,
+                p: 1.5,
+                display: "flex",
+                alignItems: "center",
+                gap: 1.5,
+              }}
+            >
+              <CancelIcon sx={{ color: "#ef4444", fontSize: 22 }} />
+              <Box>
+                <Typography sx={{ color: "#991b1b", fontSize: "0.82rem", fontWeight: 800 }}>
+                  EQUIPO CONSTATADO COMO NO EXISTENTE
+                </Typography>
+                <Typography sx={{ color: "#b91c1c", fontSize: "0.75rem", fontWeight: 500 }}>
+                  Se ha registrado que este equipo no se encuentra físicamente en el establecimiento durante la inspección.
+                </Typography>
+              </Box>
+            </Box>
+          )}
           {equipoFieldsConfig.map((field) => {
             const isObs = Boolean(getFieldObs(field.id, ""));
             return (
@@ -2212,6 +2354,7 @@ const DatosTramiteRadiofisica = ({
                 isObserved={isObs}
                 onToggleObs={handleToggleFieldObs}
                 noCheck={field.noCheck}
+                disabled={!equipoExiste}
               />
             );
           })}
@@ -2236,6 +2379,7 @@ const DatosTramiteRadiofisica = ({
               fullWidth
               variant="standard"
               placeholder="No declarado"
+              disabled={!equipoExiste}
               value={pmObservadoVal}
               onChange={(e) => handlePmObservadoChange(e.target.value)}
               InputProps={{

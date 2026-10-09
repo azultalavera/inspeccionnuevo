@@ -60,7 +60,7 @@ export interface Tramite {
   tipoTramite?: 'ALTA_DIGITAL' | 'HABILITACION' | 'RENOVACION' | 'MODIFICACION' | 'ADECUACION';
   tipoServicio?: string;
   subservicio?: string;
-  alertaRutina?: 'ALERTA_T30' | 'ALERTA_T15' | 'CRITICO_VENCIDO' | 'AL_DIA';
+  alertaRutina?: 'ALERTA_T30' | 'ALERTA_T15' | 'CRITICO_VENCIDO' | 'AL_DIA' | 'SIN_FECHA';
   solapamientoTramiteId?: string;
   solapamientoTramiteNro?: string;
   tramiteActivoEnCurso?: {
@@ -85,6 +85,9 @@ export interface Tramite {
   inspeccionesRealizadasAno?: number;
   fechaUltimaInspeccion?: string;
   ultimaInspeccionFecha?: string;
+  fechaHabilitacion?: string;
+  ordenEmitida?: boolean;
+  nroOrden?: string;
 }
 
 export interface Establecimiento {
@@ -260,7 +263,7 @@ export const TRAMITES: Tramite[] = [
         'Dosimetría: Empresa',
         'Materialidad de la sala: Búnker NO CUMPLE',
         'Responsable de uso: documento de autorizacion individual no es correcto',
-        'Equipamiento: no corresponden Marca: SIEMENS, Condición: Propio, Año fabricación: 2000, Tipo revelado: DIGITAL'
+        'Equipamiento: El equipo declarado no existe en el establecimiento'
       ]
     },
   },
@@ -556,7 +559,8 @@ export const TRAMITES: Tramite[] = [
     fechaUltimaInspeccion: '14/06/2025',
     inspectorAsignado: 'Dra. Valeria Romero, Dr. Marcelo Juárez',
     inspectoresAsignados: ['Dra. Valeria Romero', 'Dr. Marcelo Juárez'],
-    tipoInspeccion: 'RUTINA',
+    tipoInspeccion: 'HABILITACION',
+    alertaRutina: 'CRITICO_VENCIDO',
     formatoInspeccion: 'PRESENCIAL',
     nroActa: 3,
     agenteAsignado: 'Dra. Valeria Romero',
@@ -616,7 +620,8 @@ export const TRAMITES: Tramite[] = [
     fechaIngreso: '2024-07-12',
     fechaUltimaInspeccion: '05/07/2025',
     inspectorAsignado: 'Lic. Mariana Silva',
-    tipoInspeccion: 'RUTINA',
+    tipoInspeccion: 'HABILITACION',
+    alertaRutina: 'ALERTA_T15',
     formatoInspeccion: 'PRESENCIAL',
     agenteAsignado: 'Lic. Mariana Silva',
     tipoTramite: 'RENOVACION'
@@ -673,7 +678,7 @@ export const TRAMITES: Tramite[] = [
     fechaIngreso: '2024-07-16',
     fechaUltimaInspeccion: '09/07/2025',
     inspectorAsignado: 'Lic. Mariana Silva',
-    tipoInspeccion: 'RUTINA',
+    tipoInspeccion: 'HABILITACION',
     formatoInspeccion: 'PRESENCIAL',
     agenteAsignado: 'Lic. Mariana Silva',
     tipoTramite: 'RENOVACION'
@@ -712,7 +717,7 @@ export const TRAMITES: Tramite[] = [
     fechaIngreso: '2024-05-10',
     fechaUltimaInspeccion: '15/07/2025',
     inspectorAsignado: 'Dr. Marcelo Juárez',
-    tipoInspeccion: 'RUTINA',
+    tipoInspeccion: 'HABILITACION',
     formatoInspeccion: 'PRESENCIAL',
     nroActa: 108,
     agenteAsignado: 'Dr. Marcelo Juárez',
@@ -812,7 +817,8 @@ export const TRAMITES: Tramite[] = [
     fechaIngreso: '2024-07-08',
     fechaUltimaInspeccion: '08/07/2025',
     inspectorAsignado: 'Dra. Valeria Romero',
-    tipoInspeccion: 'RUTINA',
+    tipoInspeccion: 'HABILITACION',
+    alertaRutina: 'ALERTA_T15',
     formatoInspeccion: 'PRESENCIAL',
     nroActa: 8,
     agenteAsignado: 'Dra. Valeria Romero',
@@ -831,7 +837,8 @@ export const TRAMITES: Tramite[] = [
     fechaIngreso: '2024-07-09',
     fechaUltimaInspeccion: '09/07/2025',
     inspectorAsignado: 'Dr. Marcelo Juárez',
-    tipoInspeccion: 'RUTINA',
+    tipoInspeccion: 'HABILITACION',
+    alertaRutina: 'ALERTA_T30',
     formatoInspeccion: 'VIRTUAL',
     nroActa: 9,
     agenteAsignado: 'Dr. Marcelo Juárez',
@@ -891,7 +898,8 @@ export const TRAMITES: Tramite[] = [
     fechaIngreso: '2024-07-15',
     fechaUltimaInspeccion: '12/07/2025',
     inspectorAsignado: 'Dra. Valeria Romero',
-    tipoInspeccion: 'RUTINA',
+    tipoInspeccion: 'HABILITACION',
+    alertaRutina: 'ALERTA_T30',
     formatoInspeccion: 'PRESENCIAL',
     nroActa: 12,
     agenteAsignado: 'Dra. Valeria Romero',
@@ -912,7 +920,8 @@ export const TRAMITES: Tramite[] = [
     fechaIngreso: '2024-07-18',
     fechaUltimaInspeccion: '18/07/2025',
     inspectorAsignado: 'Dr. Marcelo Juárez',
-    tipoInspeccion: 'RUTINA',
+    tipoInspeccion: 'HABILITACION',
+    alertaRutina: 'AL_DIA',
     formatoInspeccion: 'PRESENCIAL',
     nroActa: 13,
     agenteAsignado: 'Dr. Marcelo Juárez',
@@ -931,7 +940,8 @@ export const TRAMITES: Tramite[] = [
     fechaIngreso: '2024-07-20',
     fechaUltimaInspeccion: '20/07/2025',
     inspectorAsignado: 'Lic. Mariana Silva',
-    tipoInspeccion: 'RUTINA',
+    tipoInspeccion: 'HABILITACION',
+    alertaRutina: 'AL_DIA',
     formatoInspeccion: 'PRESENCIAL',
     nroActa: 14,
     agenteAsignado: 'Lic. Mariana Silva',
@@ -950,7 +960,7 @@ export const TRAMITES: Tramite[] = [
     fechaIngreso: '2024-06-01',
     fechaUltimaInspeccion: '01/08/2025',
     inspectorAsignado: 'Dra. Valeria Romero',
-    tipoInspeccion: 'RUTINA',
+    tipoInspeccion: 'HABILITACION',
     formatoInspeccion: 'PRESENCIAL',
     nroActa: 101,
     agenteAsignado: 'Dra. Valeria Romero',
@@ -979,7 +989,7 @@ export const TRAMITES: Tramite[] = [
     fechaIngreso: '2024-06-05',
     fechaUltimaInspeccion: '05/06/2025',
     inspectorAsignado: 'Dra. Valeria Romero',
-    tipoInspeccion: 'RUTINA',
+    tipoInspeccion: 'HABILITACION',
     formatoInspeccion: 'PRESENCIAL',
     nroActa: 102,
     agenteAsignado: 'Dra. Valeria Romero',
@@ -1000,7 +1010,7 @@ export const TRAMITES: Tramite[] = [
     fechaUltimaInspeccion: '10/06/2025',
     inspectorAsignado: 'Dra. Valeria Romero, Dr. Marcelo Juárez',
     inspectoresAsignados: ['Dra. Valeria Romero', 'Dr. Marcelo Juárez'],
-    tipoInspeccion: 'RUTINA',
+    tipoInspeccion: 'HABILITACION',
     formatoInspeccion: 'VIRTUAL',
     nroActa: 103,
     agenteAsignado: 'Dra. Valeria Romero',
@@ -1022,7 +1032,7 @@ export const TRAMITES: Tramite[] = [
     fechaIngreso: '2024-06-15',
     fechaUltimaInspeccion: '15/06/2025',
     inspectorAsignado: 'Dra. Valeria Romero',
-    tipoInspeccion: 'RUTINA',
+    tipoInspeccion: 'HABILITACION',
     formatoInspeccion: 'PRESENCIAL',
     nroActa: 104,
     agenteAsignado: 'Dra. Valeria Romero',
@@ -1043,7 +1053,7 @@ export const TRAMITES: Tramite[] = [
     fechaUltimaInspeccion: '18/06/2025',
     inspectorAsignado: 'Dra. Valeria Romero',
     inspectoresAsignados: ['Dra. Valeria Romero'],
-    tipoInspeccion: 'RUTINA',
+    tipoInspeccion: 'HABILITACION',
     formatoInspeccion: 'PRESENCIAL',
     nroActa: 105,
     agenteAsignado: 'Dra. Valeria Romero',

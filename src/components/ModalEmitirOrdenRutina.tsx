@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useMemo, useEffect } from 'react'
 import { USUARIOS, ESTABLECIMIENTOS, type Tramite } from '../data/mockData'
 import { useApp } from '../context/AppContext'
 
@@ -9,6 +9,7 @@ interface ModalEmitirOrdenRutinaProps {
   cuitPrevio?: string;
   tipologiaPrevia?: string;
   localidadPrevia?: string;
+  listaInspectoresDisponibles?: string[];
   onClose: () => void;
   onSuccess?: (nuevoTramite: Tramite) => void;
 }
@@ -20,28 +21,73 @@ export default function ModalEmitirOrdenRutina({
   cuitPrevio,
   tipologiaPrevia,
   localidadPrevia,
+  listaInspectoresDisponibles,
   onClose,
   onSuccess
 }: ModalEmitirOrdenRutinaProps) {
   const { generarOrdenRutina } = useApp()
 
-  const agentesDisponibles = USUARIOS.filter(u => u.rol !== 'EFECTOR' && u.rol !== 'COORDINADOR')
+  const listaOpciones = useMemo(() => {
+    if (listaInspectoresDisponibles && listaInspectoresDisponibles.length > 0) {
+      return listaInspectoresDisponibles;
+    }
+    const agentes = USUARIOS.filter(u => u.rol === 'INSPECTOR').map(u => `${u.nombre} ${u.apellido}`);
+    if (agentes.length > 0) return agentes;
+    return ['Dra. Valeria Romero', 'Dr. Marcelo Juárez', 'Lic. Mariana Silva', 'Lic. Martín Gómez', 'Ing. Carlos Varela'];
+  }, [listaInspectoresDisponibles]);
 
   const denominacion = tramite?.denominacion || denominacionPrevia || 'Establecimiento Sanitario'
   const localidad = tramite?.localidad || localidadPrevia || 'Córdoba'
   const tipologia = tramite?.tipologia || tipologiaPrevia || 'CLÍNICA, SANATORIO U HOSPITAL PRIVADO'
   const cuit = tramite?.cuit || cuitPrevio || '30-70000000-1'
 
-  const [inspectorSeleccionado, setInspectorSeleccionado] = useState<string>(
-    tramite?.inspectorAsignado || 'Dra. Valeria Romero'
-  )
+  const [inspectorSeleccionado, setInspectorSeleccionado] = useState<string>(() => {
+    if (tramite?.inspectorAsignado && tramite.inspectorAsignado.toLowerCase() !== 'sin asignar') {
+      return tramite.inspectorAsignado;
+    }
+    return listaOpciones[0] || 'Dra. Valeria Romero';
+  });
+
+  useEffect(() => {
+    if (tramite?.inspectorAsignado && tramite.inspectorAsignado.toLowerCase() !== 'sin asignar') {
+      setInspectorSeleccionado(tramite.inspectorAsignado);
+    } else if (listaOpciones.length > 0) {
+      setInspectorSeleccionado(prev => prev || listaOpciones[0]);
+    }
+  }, [tramite, listaOpciones]);
+
   const [modalidad, setModalidad] = useState<'PRESENCIAL' | 'VIRTUAL'>('PRESENCIAL')
 
   const handleEmitirOrden = () => {
-    const estId = establecimientoId || (ESTABLECIMIENTOS.find(e => e.cuit === cuit || e.denominacion.toLowerCase() === denominacion.toLowerCase())?.id || 'EST001')
-    const inspector = inspectorSeleccionado || 'Dra. Valeria Romero'
-    const nuevo = generarOrdenRutina(estId, inspector, modalidad)
-    alert(`Orden de Inspección por Rutina emitida para "${denominacion}" y asignada a ${inspector}.`)
+    const inspector = inspectorSeleccionado || listaOpciones[0] || 'Dra. Valeria Romero';
+
+    let nuevo: Tramite
+    if (tramite) {
+      nuevo = {
+        ...tramite,
+        nroTramite: tramite.nroTramite || `2026-RUT-${Math.floor(10000 + Math.random() * 90000)}`,
+        inspectorAsignado: inspector,
+        inspectoresAsignados: [inspector],
+        agenteAsignado: inspector,
+        estado: 'ACEPTADO_DOC_AUD',
+        ordenEmitida: true,
+        formatoInspeccion: modalidad,
+      }
+    } else {
+      const estId =
+        establecimientoId ||
+        ESTABLECIMIENTOS.find(
+          e => e.cuit === cuit || e.denominacion.toLowerCase() === denominacion.toLowerCase()
+        )?.id ||
+        'EST001'
+      nuevo = generarOrdenRutina(estId, inspector, modalidad)
+      nuevo.inspectorAsignado = inspector;
+      nuevo.inspectoresAsignados = [inspector];
+      nuevo.agenteAsignado = inspector;
+      nuevo.estado = 'ACEPTADO_DOC_AUD';
+      nuevo.ordenEmitida = true;
+    }
+
     if (onSuccess) onSuccess(nuevo)
     onClose()
   }
@@ -127,11 +173,11 @@ export default function ModalEmitirOrdenRutina({
           <select
             value={inspectorSeleccionado}
             onChange={e => setInspectorSeleccionado(e.target.value)}
-            style={{ width: '100%', padding: '9px 12px', borderRadius: 6, border: '1px solid #CBD5E1', fontSize: 13 }}
+            style={{ width: '100%', padding: '9px 12px', borderRadius: 6, border: '1px solid #CBD5E1', fontSize: 13, background: '#FFFFFF', color: '#0F172A' }}
           >
-            {agentesDisponibles.map(ag => (
-              <option key={ag.id} value={`${ag.nombre} ${ag.apellido}`}>
-                {ag.nombre} {ag.apellido} ({ag.rol})
+            {listaOpciones.map(insp => (
+              <option key={insp} value={insp}>
+                {insp} (Inspector de Salud)
               </option>
             ))}
           </select>
