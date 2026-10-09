@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { type Tramite, type EstadoTramite, USUARIOS } from "../data/mockData";
+import { RADIOFISICA_CATALOG } from "../data/radiofisicaConfig";
 
 interface ModalNuevoEstablecimientoRutinaProps {
   isOpen: boolean;
@@ -7,6 +8,7 @@ interface ModalNuevoEstablecimientoRutinaProps {
   onGuardar: (nuevo: Tramite) => void;
   inspectorLogueado?: string;
   listaInspectoresDisponibles?: string[];
+  modoInicial?: "ESTABLECIMIENTO" | "SERVICIO_DIFERENCIADO";
 }
 
 export const TIPOLOGIAS_SALUD = [
@@ -176,7 +178,22 @@ export default function ModalNuevoEstablecimientoRutina({
   onGuardar,
   inspectorLogueado,
   listaInspectoresDisponibles,
+  modoInicial = "ESTABLECIMIENTO",
 }: ModalNuevoEstablecimientoRutinaProps) {
+  // Modalidad: Establecimiento de Salud o Trámite de Servicios Diferenciados (RADIOFÍSICA)
+  const [tipoTramiteAlta, setTipoTramiteAlta] = useState<"ESTABLECIMIENTO" | "SERVICIO_DIFERENCIADO">(
+    modoInicial || "ESTABLECIMIENTO"
+  );
+  const [servicioDiferenciado, setServicioDiferenciado] = useState<string>("RADIOFÍSICA");
+  const [tipoServicioRadio, setTipoServicioRadio] = useState<string>("rayos-x");
+  const [subservicioRadio, setSubservicioRadio] = useState<string>("rad-convencional-simple");
+  const [conRespuestaEmplazamiento, setConRespuestaEmplazamiento] = useState<boolean>(false);
+
+  const subserviciosDisponibles = useMemo(() => {
+    const foundTipo = RADIOFISICA_CATALOG.find((t) => t.id === tipoServicioRadio);
+    return foundTipo ? foundTipo.subservicios : [];
+  }, [tipoServicioRadio]);
+
   // Lista de inspectores disponibles
   const inspectores =
     listaInspectoresDisponibles && listaInspectoresDisponibles.length > 0
@@ -223,10 +240,15 @@ export default function ModalNuevoEstablecimientoRutina({
   // Reset y regeneración al abrir
   useEffect(() => {
     if (isOpen) {
+      const initModo = modoInicial || "ESTABLECIMIENTO";
+      setTipoTramiteAlta(initModo);
+      setServicioDiferenciado("RADIOFÍSICA");
+      setTipoServicioRadio("rayos-x");
+      setSubservicioRadio("rad-convencional-simple");
       setFormData({
-        denominacion: "",
+        denominacion: initModo === "SERVICIO_DIFERENCIADO" ? "Servicio de Radiofísica - " : "",
         cuit: generarCuilAuto(),
-        tipologia: TIPOLOGIAS_SALUD[0],
+        tipologia: initModo === "SERVICIO_DIFERENCIADO" ? "RADIOFÍSICA" : TIPOLOGIAS_SALUD[0],
         domicilio: "",
         departamento: "Capital",
         localidad: "Córdoba",
@@ -238,10 +260,11 @@ export default function ModalNuevoEstablecimientoRutina({
         nroExpediente: generarNroExpedienteAuto(),
         inspectorAsignado: "",
       });
+      setConRespuestaEmplazamiento(false);
       setSinFechaHabilitacion(false);
       setErrores({});
     }
-  }, [isOpen, defaultInspector, fechaDefecto]);
+  }, [isOpen, modoInicial, defaultInspector, fechaDefecto]);
 
   const isGeriatrico = useMemo(() => {
     const tip = (formData.tipologia || "").toLowerCase();
@@ -334,24 +357,30 @@ export default function ModalNuevoEstablecimientoRutina({
       formData.denominacion?.toLowerCase().includes("geriatrico") ||
       formData.denominacion?.toLowerCase().includes("residencia");
 
+    const esDiferenciado = tipoTramiteAlta === "SERVICIO_DIFERENCIADO";
+    const tipologiaFinal = esDiferenciado ? "RADIOFÍSICA" : formData.tipologia;
+
     const nuevoTramite: Tramite = {
-      id: `TRM-RUT-${Date.now()}-${Math.floor(100 + Math.random() * 900)}`,
+      id: esDiferenciado && conRespuestaEmplazamiento ? `TRM-RAD-${Date.now()}` : `TRM-RUT-${Date.now()}-${Math.floor(100 + Math.random() * 900)}`,
       nroTramite: sinFecha ? "" : formData.nroTramite,
       nroExpediente: formData.nroExpediente,
       denominacion: formData.denominacion.trim(),
       cuit: cuitFinal,
-      tipologia: formData.tipologia,
+      tipologia: tipologiaFinal,
+      tipoServicio: esDiferenciado ? tipoServicioRadio : undefined,
+      subservicio: esDiferenciado ? subservicioRadio : undefined,
       domicilio: formData.domicilio.trim() || "Av. Colón 1200",
       localidad: formData.localidad.trim() || "Córdoba",
       departamento: formData.departamento.trim() || "Capital",
-      // Estado fijado a FINALIZADO según requerimiento
-      estado: "FINALIZADO" as EstadoTramite,
+      // Si tiene respuesta a emplazamiento para revisar, queda en DESCARGO_INSP
+      estado: (esDiferenciado && conRespuestaEmplazamiento) ? "DESCARGO_INSP" : ("FINALIZADO" as EstadoTramite),
+      estadoActa: (esDiferenciado && conRespuestaEmplazamiento) ? "RESPUESTA EMPLAZAMIENTO" : undefined,
       fechaIngreso: new Date().toISOString().split("T")[0],
       fechaUltimaInspeccion: fechaFinal,
       fechaHabilitacion: isGer ? fechaFinal : undefined,
-      inspectorAsignado: "",
-      inspectoresAsignados: [],
-      agenteAsignado: "",
+      inspectorAsignado: formData.inspectorAsignado || inspectorLogueado || "Valeria Romero",
+      inspectoresAsignados: [formData.inspectorAsignado || inspectorLogueado || "Valeria Romero"],
+      agenteAsignado: formData.inspectorAsignado || inspectorLogueado || "Valeria Romero",
       ordenEmitida: false,
       tipoInspeccion: "RUTINA",
       formatoInspeccion: "PRESENCIAL",
@@ -360,6 +389,19 @@ export default function ModalNuevoEstablecimientoRutina({
       nroActa: Math.floor(10 + Math.random() * 90),
       frecuenciaRutinaAnual: isGer ? 3 : 1,
       inspeccionesRealizadasAno: isGer ? 1 : undefined,
+      emplazamiento: (esDiferenciado && conRespuestaEmplazamiento) ? {
+        actaNumero: `${Math.floor(100 + Math.random() * 90)}/2026`,
+        diasRestantes: 5,
+        fechaVencimiento: "21/07/2026",
+        faltasCriticasCount: 4,
+        observaciones: [
+          "Dosimetría: Empresa",
+          "Materialidad de la sala: Búnker NO CUMPLE",
+          "Responsable de uso: documento de autorizacion individual no es correcto",
+          "Equipamiento: no corresponden Marca: SIEMENS, Condición: Propio, Año fabricación: 2000, Tipo revelado: DIGITAL",
+        ],
+        respuestaEmplazamientoRealizada: true,
+      } : undefined,
     };
 
     onGuardar(nuevoTramite);
@@ -424,15 +466,19 @@ export default function ModalNuevoEstablecimientoRutina({
               }}
             >
               <span className="material-icons" style={{ fontSize: 26, color: "#FFFFFF" }}>
-                add_business
+                {tipoTramiteAlta === "SERVICIO_DIFERENCIADO" ? "sensors" : "add_business"}
               </span>
             </div>
             <div>
               <div style={{ fontSize: 18, fontWeight: 800, letterSpacing: "-0.2px" }}>
-                Registrar Establecimiento Habilitado
+                {tipoTramiteAlta === "SERVICIO_DIFERENCIADO"
+                  ? "Registrar Trámite de Servicios Diferenciados — Radiofísica"
+                  : "Registrar Establecimiento Habilitado"}
               </div>
               <div style={{ fontSize: 12.5, color: "#BAE6FD", marginTop: 2 }}>
-                Inspección Periódica por Rutina — CUIT automático, trámite finalizado y opción sin fecha
+                {tipoTramiteAlta === "SERVICIO_DIFERENCIADO"
+                  ? "Inspección Periódica por Rutina en Radiofísica Sanitaria — Equipamiento y blindajes"
+                  : "Inspección Periódica por Rutina — CUIT automático, trámite finalizado y opción sin fecha"}
               </div>
             </div>
           </div>
@@ -470,6 +516,328 @@ export default function ModalNuevoEstablecimientoRutina({
             gap: 20,
           }}
         >
+          {/* 0. SECCIÓN: TIPO DE TRÁMITE / MODALIDAD DE ALTA (COMBO) */}
+          <div
+            style={{
+              background: tipoTramiteAlta === "SERVICIO_DIFERENCIADO" ? "#EFF6FF" : "#F8FAFC",
+              border: `1.5px solid ${tipoTramiteAlta === "SERVICIO_DIFERENCIADO" ? "#93C5FD" : "#CBD5E1"}`,
+              borderRadius: 12,
+              padding: "16px 18px",
+              transition: "all 0.2s ease",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: 10,
+              }}
+            >
+              <label
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                  fontSize: 12.5,
+                  fontWeight: 800,
+                  color: "#0F172A",
+                  textTransform: "uppercase",
+                  letterSpacing: 0.5,
+                }}
+              >
+                <span
+                  className="material-icons"
+                  style={{
+                    fontSize: 18,
+                    color: tipoTramiteAlta === "SERVICIO_DIFERENCIADO" ? "#2563EB" : "#004B87",
+                  }}
+                >
+                  category
+                </span>
+                Tipo de Registro / Trámite
+              </label>
+              {tipoTramiteAlta === "SERVICIO_DIFERENCIADO" && (
+                <span
+                  style={{
+                    background: "#DBEAFE",
+                    border: "1px solid #93C5FD",
+                    color: "#1D4ED8",
+                    fontSize: 11,
+                    fontWeight: 800,
+                    padding: "2px 8px",
+                    borderRadius: 6,
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 4,
+                  }}
+                >
+                  <span className="material-icons" style={{ fontSize: 13 }}>
+                    sensors
+                  </span>
+                  SERVICIO DIFERENCIADO ACTIVO
+                </span>
+              )}
+            </div>
+
+            {/* Combo selector principal */}
+            <div>
+              <select
+                value={tipoTramiteAlta}
+                onChange={(e) => {
+                  const val = e.target.value as "ESTABLECIMIENTO" | "SERVICIO_DIFERENCIADO";
+                  setTipoTramiteAlta(val);
+                  if (val === "SERVICIO_DIFERENCIADO") {
+                    setFormData((prev) => ({
+                      ...prev,
+                      tipologia: "RADIOFÍSICA",
+                      denominacion: prev.denominacion ? prev.denominacion : "Servicio de Radiofísica - ",
+                    }));
+                  } else {
+                    setFormData((prev) => ({
+                      ...prev,
+                      tipologia: TIPOLOGIAS_SALUD[0],
+                      denominacion:
+                        prev.denominacion === "Servicio de Radiofísica - " ? "" : prev.denominacion,
+                    }));
+                  }
+                }}
+                style={{
+                  width: "100%",
+                  padding: "10px 14px",
+                  borderRadius: 8,
+                  border: "1.5px solid #94A3B8",
+                  fontSize: 13.5,
+                  fontWeight: 700,
+                  color: "#0F172A",
+                  background: "#FFFFFF",
+                  cursor: "pointer",
+                  outline: "none",
+                  boxSizing: "border-box",
+                }}
+              >
+                <option value="ESTABLECIMIENTO">
+                  🏥 Establecimiento de Salud (General / Tradicional)
+                </option>
+                <option value="SERVICIO_DIFERENCIADO">
+                  ☢️ Trámite de Servicios Diferenciados — De momento solo RADIOFÍSICA
+                </option>
+              </select>
+            </div>
+
+            {/* Si es Servicios Diferenciados: Configuración y combos específicos */}
+            {tipoTramiteAlta === "SERVICIO_DIFERENCIADO" && (
+              <div
+                style={{
+                  marginTop: 14,
+                  padding: "14px 16px",
+                  background: "#FFFFFF",
+                  borderRadius: 10,
+                  border: "1px solid #BFDBFE",
+                }}
+              >
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "1.1fr 1fr 1.3fr",
+                    gap: 12,
+                  }}
+                >
+                  {/* 1. Combo Servicio Diferenciado */}
+                  <div>
+                    <label
+                      style={{
+                        display: "block",
+                        fontSize: 11,
+                        fontWeight: 750,
+                        color: "#1E293B",
+                        marginBottom: 4,
+                        textTransform: "uppercase",
+                      }}
+                    >
+                      Servicio Diferenciado
+                    </label>
+                    <select
+                      value={servicioDiferenciado}
+                      onChange={(e) => setServicioDiferenciado(e.target.value)}
+                      style={{
+                        width: "100%",
+                        padding: "8px 10px",
+                        borderRadius: 6,
+                        border: "1.5px solid #3B82F6",
+                        fontSize: 12.5,
+                        fontWeight: 700,
+                        color: "#1D4ED8",
+                        background: "#EFF6FF",
+                        outline: "none",
+                        boxSizing: "border-box",
+                      }}
+                    >
+                      <option value="RADIOFÍSICA">RADIOFÍSICA (Disponible)</option>
+                      <option value="DIALISIS" disabled>
+                        DIÁLISIS (Próximamente)
+                      </option>
+                      <option value="EXTRAHOSPITALARIO" disabled>
+                        EXTRAHOSPITALARIO MÓVIL (Próximamente)
+                      </option>
+                      <option value="RESIDUOS" disabled>
+                        RESIDUOS PATÓGENOS (Próximamente)
+                      </option>
+                    </select>
+                    <span
+                      style={{
+                        fontSize: 10.5,
+                        color: "#2563EB",
+                        marginTop: 3,
+                        display: "block",
+                        fontWeight: 600,
+                      }}
+                    >
+                      * De momento solo RADIOFÍSICA habilitado
+                    </span>
+                  </div>
+
+                  {/* 2. Combo Tipo de Servicio Radiofísica */}
+                  <div>
+                    <label
+                      style={{
+                        display: "block",
+                        fontSize: 11,
+                        fontWeight: 750,
+                        color: "#1E293B",
+                        marginBottom: 4,
+                        textTransform: "uppercase",
+                      }}
+                    >
+                      Categoría / Tipo de Servicio
+                    </label>
+                    <select
+                      value={tipoServicioRadio}
+                      onChange={(e) => {
+                        setTipoServicioRadio(e.target.value);
+                        const found = RADIOFISICA_CATALOG.find((t) => t.id === e.target.value);
+                        if (found && found.subservicios.length > 0) {
+                          setSubservicioRadio(found.subservicios[0].id);
+                        }
+                      }}
+                      style={{
+                        width: "100%",
+                        padding: "8px 10px",
+                        borderRadius: 6,
+                        border: "1px solid #CBD5E1",
+                        fontSize: 12.5,
+                        fontWeight: 650,
+                        color: "#0F172A",
+                        background: "#FFFFFF",
+                        outline: "none",
+                        boxSizing: "border-box",
+                      }}
+                    >
+                      {RADIOFISICA_CATALOG.map((tipo) => (
+                        <option key={tipo.id} value={tipo.id}>
+                          {tipo.nombre}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* 3. Combo Subservicio / Práctica */}
+                  <div>
+                    <label
+                      style={{
+                        display: "block",
+                        fontSize: 11,
+                        fontWeight: 750,
+                        color: "#1E293B",
+                        marginBottom: 4,
+                        textTransform: "uppercase",
+                      }}
+                    >
+                      Subservicio / Práctica Específica
+                    </label>
+                    <select
+                      value={subservicioRadio}
+                      onChange={(e) => setSubservicioRadio(e.target.value)}
+                      style={{
+                        width: "100%",
+                        padding: "8px 10px",
+                        borderRadius: 6,
+                        border: "1px solid #CBD5E1",
+                        fontSize: 12.5,
+                        fontWeight: 600,
+                        color: "#0F172A",
+                        background: "#FFFFFF",
+                        outline: "none",
+                        boxSizing: "border-box",
+                      }}
+                    >
+                      {subserviciosDisponibles.map((sub) => (
+                        <option key={sub.id} value={sub.id}>
+                          {sub.nombre}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {/* Opción de Trámite con Respuesta a Emplazamiento */}
+                <div
+                  style={{
+                    marginTop: 12,
+                    paddingTop: 12,
+                    borderTop: "1px dashed #BFDBFE",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    flexWrap: "wrap",
+                    gap: 8,
+                  }}
+                >
+                  <label
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8,
+                      cursor: "pointer",
+                      fontSize: 12.5,
+                      fontWeight: 700,
+                      color: "#1E293B",
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={conRespuestaEmplazamiento}
+                      onChange={(e) => setConRespuestaEmplazamiento(e.target.checked)}
+                      style={{ width: 16, height: 16, cursor: "pointer", accentColor: "#EA580C" }}
+                    />
+                    <span>
+                      Cargar con <strong>Respuesta a Emplazamiento</strong> (Acción <strong>Revisar</strong> para Inspector)
+                    </span>
+                  </label>
+                  {conRespuestaEmplazamiento && (
+                    <span
+                      style={{
+                        background: "#FFEDD5",
+                        color: "#C2410C",
+                        border: "1px solid #FDBA74",
+                        fontSize: 10.5,
+                        fontWeight: 800,
+                        padding: "2px 7px",
+                        borderRadius: 6,
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 3,
+                      }}
+                    >
+                      <span className="material-icons" style={{ fontSize: 12 }}>rate_review</span>
+                      Estado: RESPUESTA EMPLAZAMIENTO
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
           {/* 1. SECCIÓN: DATOS GENERADOS AUTOMÁTICAMENTE */}
           <div
             style={{
@@ -790,27 +1158,62 @@ export default function ModalNuevoEstablecimientoRutina({
               >
                 Tipología / Rubro Sanitario
               </label>
-              <select
-                value={formData.tipologia}
-                onChange={(e) => setFormData({ ...formData, tipologia: e.target.value })}
-                style={{
-                  width: "100%",
-                  padding: "10px 14px",
-                  border: "1px solid #CBD5E1",
-                  borderRadius: 8,
-                  fontSize: 13,
-                  fontWeight: 600,
-                  color: "#1E293B",
-                  outline: "none",
-                  boxSizing: "border-box",
-                }}
-              >
-                {TIPOLOGIAS_SALUD.map((tip) => (
-                  <option key={tip} value={tip}>
-                    {tip}
-                  </option>
-                ))}
-              </select>
+              {tipoTramiteAlta === "SERVICIO_DIFERENCIADO" ? (
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    padding: "9px 14px",
+                    background: "#EFF6FF",
+                    border: "1.5px solid #93C5FD",
+                    borderRadius: 8,
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <span className="material-icons" style={{ fontSize: 18, color: "#1D4ED8" }}>
+                      sensors
+                    </span>
+                    <span style={{ fontSize: 13, fontWeight: 800, color: "#1E40AF" }}>
+                      RADIOFÍSICA (Servicio Diferenciado)
+                    </span>
+                  </div>
+                  <span
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 750,
+                      background: "#DBEAFE",
+                      color: "#1D4ED8",
+                      padding: "2px 8px",
+                      borderRadius: 6,
+                    }}
+                  >
+                    Fijado por Servicio Diferenciado
+                  </span>
+                </div>
+              ) : (
+                <select
+                  value={formData.tipologia}
+                  onChange={(e) => setFormData({ ...formData, tipologia: e.target.value })}
+                  style={{
+                    width: "100%",
+                    padding: "10px 14px",
+                    border: "1px solid #CBD5E1",
+                    borderRadius: 8,
+                    fontSize: 13,
+                    fontWeight: 600,
+                    color: "#1E293B",
+                    outline: "none",
+                    boxSizing: "border-box",
+                  }}
+                >
+                  {TIPOLOGIAS_SALUD.map((tip) => (
+                    <option key={tip} value={tip}>
+                      {tip}
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
           </div>
 
@@ -1395,7 +1798,9 @@ export default function ModalNuevoEstablecimientoRutina({
               <span className="material-icons" style={{ fontSize: 18 }}>
                 save
               </span>
-              Guardar Establecimiento
+              {tipoTramiteAlta === "SERVICIO_DIFERENCIADO"
+                ? "Guardar Servicio Diferenciado"
+                : "Guardar Establecimiento"}
             </button>
           </div>
         </form>

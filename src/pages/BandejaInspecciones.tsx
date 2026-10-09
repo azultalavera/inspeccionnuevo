@@ -24,18 +24,75 @@ export default function BandejaInspecciones() {
 
   const STORAGE_KEY_RUTINA = "clicsalud_establecimientos_rutina";
 
-  // Grilla de rutina: inicia completamente vacía según requerimiento
+  // Trámite de Radiofísica con respuesta de emplazamiento para revisión por parte del inspector
+  const TRAMITE_RADIOFISICA_DESCARGO_DEFAULT: Tramite = {
+    id: "TRM-RAD-002",
+    nroTramite: "2026-HAB-009102",
+    nroExpediente: "EX-2026-0091020-APN-MS#CBA",
+    denominacion: "Centro Radiológico San Francisco - Radiofísica",
+    cuit: "30-71829340-5",
+    tipologia: "RADIOFÍSICA",
+    tipoServicio: "Rayos X",
+    subservicio: "Radiología Convencional Simple",
+    domicilio: "Av. Vélez Sarsfield 1450",
+    localidad: "Córdoba",
+    departamento: "Capital",
+    estado: "DESCARGO_INSP",
+    estadoActa: "RESPUESTA EMPLAZAMIENTO",
+    fechaIngreso: "2026-06-15",
+    fechaUltimaInspeccion: "15/07/2026",
+    inspectorAsignado: "Valeria Romero",
+    agenteAsignado: "Valeria Romero",
+    inspectoresAsignados: ["Valeria Romero"],
+    tipoInspeccion: "RUTINA",
+    formatoInspeccion: "PRESENCIAL",
+    tipoTramite: "HABILITACION",
+    nroActa: 105,
+    alertaRutina: "CRITICO_VENCIDO",
+    emplazamiento: {
+      actaNumero: "105/2026",
+      diasRestantes: 5,
+      fechaVencimiento: "21/07/2026",
+      faltasCriticasCount: 4,
+      observaciones: [
+        "Dosimetría: Empresa",
+        "Materialidad de la sala: Búnker NO CUMPLE",
+        "Responsable de uso: documento de autorizacion individual no es correcto",
+        "Equipamiento: no corresponden Marca: SIEMENS, Condición: Propio, Año fabricación: 2000, Tipo revelado: DIGITAL",
+      ],
+      respuestaEmplazamientoRealizada: true,
+    },
+  };
+
+  // Grilla de rutina: incluye el trámite de radiofísica con descargo para revisión del inspector
   const [establecimientosRutina, setEstablecimientosRutina] = useState<Tramite[]>(() => {
     const saved = localStorage.getItem(STORAGE_KEY_RUTINA);
+    let list: Tramite[] = [];
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) return parsed;
+        if (Array.isArray(parsed)) list = parsed;
       } catch (e) {
         console.error(e);
       }
     }
-    return [];
+
+    const tieneRadiofisicaDescargo = list.some(
+      (t) =>
+        t.id === "TRM-RAD-002" ||
+        ((t.tipologia?.toUpperCase().includes("RADIOFÍSICA") ||
+          t.tipologia?.toUpperCase().includes("RADIOFISICA") ||
+          t.denominacion?.toUpperCase().includes("RADIOFÍSICA") ||
+          t.denominacion?.toUpperCase().includes("RADIOFISICA")) &&
+          (t.estado === "DESCARGO_INSP" || t.estadoActa === "RESPUESTA EMPLAZAMIENTO"))
+    );
+
+    if (!tieneRadiofisicaDescargo) {
+      list = [...list, TRAMITE_RADIOFISICA_DESCARGO_DEFAULT];
+      localStorage.setItem(STORAGE_KEY_RUTINA, JSON.stringify(list));
+    }
+
+    return list;
   });
 
   const guardarEstablecimientos = (lista: Tramite[]) => {
@@ -56,6 +113,26 @@ export default function BandejaInspecciones() {
   }, [tramites]);
 
   const [modalNuevoEstablecimientoOpen, setModalNuevoEstablecimientoOpen] = useState(false);
+  const [tipoModalNuevo, setTipoModalNuevo] = useState<"ESTABLECIMIENTO" | "SERVICIO_DIFERENCIADO">("ESTABLECIMIENTO");
+  const [menuAgregarOpen, setMenuAgregarOpen] = useState(false);
+  const menuAgregarRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        menuAgregarRef.current &&
+        !menuAgregarRef.current.contains(event.target as Node)
+      ) {
+        setMenuAgregarOpen(false);
+      }
+    };
+    if (menuAgregarOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [menuAgregarOpen]);
 
   const handleGuardarNuevoEstablecimiento = (nuevo: Tramite) => {
     const updated = [nuevo, ...establecimientosRutina];
@@ -1751,36 +1828,240 @@ export default function BandejaInspecciones() {
                 </button>
               )}
 
-              <button
-                type="button"
-                onClick={() => setModalNuevoEstablecimientoOpen(true)}
-                style={{
-                  background: "#004B87",
-                  color: "#FFFFFF",
-                  border: "none",
-                  borderRadius: 8,
-                  padding: "8px 16px",
-                  fontSize: 13,
-                  fontWeight: 750,
-                  cursor: "pointer",
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 7,
-                  boxShadow: "0 2px 4px rgba(0, 75, 135, 0.25)",
-                  transition: "background 0.15s ease",
-                }}
-                onMouseEnter={(e) =>
-                  (e.currentTarget.style.background = "#003865")
-                }
-                onMouseLeave={(e) =>
-                  (e.currentTarget.style.background = "#004B87")
-                }
-              >
-                <span className="material-icons" style={{ fontSize: 18 }}>
-                  add_business
-                </span>
-                Agregar Establecimiento
-              </button>
+              <div ref={menuAgregarRef} style={{ position: "relative" }}>
+                <button
+                  type="button"
+                  onClick={() => setMenuAgregarOpen((prev) => !prev)}
+                  style={{
+                    background: "#004B87",
+                    color: "#FFFFFF",
+                    border: "none",
+                    borderRadius: 8,
+                    padding: "8px 14px",
+                    fontSize: 13,
+                    fontWeight: 750,
+                    cursor: "pointer",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 7,
+                    boxShadow: "0 2px 4px rgba(0, 75, 135, 0.25)",
+                    transition: "background 0.15s ease",
+                  }}
+                  onMouseEnter={(e) =>
+                    (e.currentTarget.style.background = "#003865")
+                  }
+                  onMouseLeave={(e) =>
+                    (e.currentTarget.style.background = "#004B87")
+                  }
+                >
+                  <span className="material-icons" style={{ fontSize: 18 }}>
+                    add_business
+                  </span>
+                  <span>Agregar Establecimiento</span>
+                  <span
+                    className="material-icons"
+                    style={{
+                      fontSize: 18,
+                      transition: "transform 0.2s ease",
+                      transform: menuAgregarOpen ? "rotate(180deg)" : "none",
+                    }}
+                  >
+                    arrow_drop_down
+                  </span>
+                </button>
+
+                {/* Menú Desplegable del Combo */}
+                {menuAgregarOpen && (
+                  <div
+                    style={{
+                      position: "absolute",
+                      top: "calc(100% + 6px)",
+                      right: 0,
+                      background: "#FFFFFF",
+                      borderRadius: 10,
+                      boxShadow:
+                        "0 10px 25px -5px rgba(0, 0, 0, 0.2), 0 8px 10px -6px rgba(0, 0, 0, 0.1)",
+                      border: "1px solid #E2E8F0",
+                      minWidth: 320,
+                      zIndex: 1000,
+                      overflow: "hidden",
+                    }}
+                  >
+                    <div
+                      style={{
+                        padding: "10px 14px 8px 14px",
+                        background: "#F8FAFC",
+                        borderBottom: "1px solid #E2E8F0",
+                        fontSize: 11,
+                        fontWeight: 800,
+                        color: "#64748B",
+                        textTransform: "uppercase",
+                        letterSpacing: 0.5,
+                      }}
+                    >
+                      Seleccione Modalidad de Registro
+                    </div>
+
+                    {/* Opción 1: Establecimiento de Salud */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setTipoModalNuevo("ESTABLECIMIENTO");
+                        setModalNuevoEstablecimientoOpen(true);
+                        setMenuAgregarOpen(false);
+                      }}
+                      style={{
+                        width: "100%",
+                        padding: "12px 14px",
+                        border: "none",
+                        background: "transparent",
+                        display: "flex",
+                        alignItems: "flex-start",
+                        gap: 12,
+                        textAlign: "left",
+                        cursor: "pointer",
+                        transition: "background 0.15s",
+                      }}
+                      onMouseEnter={(e) =>
+                        (e.currentTarget.style.background = "#F1F5F9")
+                      }
+                      onMouseLeave={(e) =>
+                        (e.currentTarget.style.background = "transparent")
+                      }
+                    >
+                      <div
+                        style={{
+                          width: 34,
+                          height: 34,
+                          borderRadius: 8,
+                          background: "#E0F2FE",
+                          color: "#0284C7",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          flexShrink: 0,
+                        }}
+                      >
+                        <span className="material-icons" style={{ fontSize: 20 }}>
+                          local_hospital
+                        </span>
+                      </div>
+                      <div>
+                        <div
+                          style={{
+                            fontSize: 13,
+                            fontWeight: 750,
+                            color: "#0F172A",
+                          }}
+                        >
+                          Establecimiento de Salud
+                        </div>
+                        <div
+                          style={{
+                            fontSize: 11.5,
+                            color: "#64748B",
+                            marginTop: 2,
+                            lineHeight: 1.35,
+                          }}
+                        >
+                          Clínicas, sanatorios, centros médicos, geriátricos y laboratorios.
+                        </div>
+                      </div>
+                    </button>
+
+                    <div
+                      style={{
+                        height: 1,
+                        background: "#E2E8F0",
+                        margin: "0 10px",
+                      }}
+                    />
+
+                    {/* Opción 2: Trámite de Servicios Diferenciados (RADIOFÍSICA) */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setTipoModalNuevo("SERVICIO_DIFERENCIADO");
+                        setModalNuevoEstablecimientoOpen(true);
+                        setMenuAgregarOpen(false);
+                      }}
+                      style={{
+                        width: "100%",
+                        padding: "12px 14px",
+                        border: "none",
+                        background: "transparent",
+                        display: "flex",
+                        alignItems: "flex-start",
+                        gap: 12,
+                        textAlign: "left",
+                        cursor: "pointer",
+                        transition: "background 0.15s",
+                      }}
+                      onMouseEnter={(e) =>
+                        (e.currentTarget.style.background = "#EFF6FF")
+                      }
+                      onMouseLeave={(e) =>
+                        (e.currentTarget.style.background = "transparent")
+                      }
+                    >
+                      <div
+                        style={{
+                          width: 34,
+                          height: 34,
+                          borderRadius: 8,
+                          background: "#FEF3C7",
+                          color: "#D97706",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          flexShrink: 0,
+                        }}
+                      >
+                        <span className="material-icons" style={{ fontSize: 20 }}>
+                          sensors
+                        </span>
+                      </div>
+                      <div>
+                        <div
+                          style={{
+                            fontSize: 13,
+                            fontWeight: 750,
+                            color: "#0F172A",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 6,
+                          }}
+                        >
+                          Servicios Diferenciados
+                          <span
+                            style={{
+                              fontSize: 9.5,
+                              fontWeight: 800,
+                              color: "#B45309",
+                              background: "#FEF3C7",
+                              border: "1px solid #FCD34D",
+                              padding: "1px 5px",
+                              borderRadius: 4,
+                            }}
+                          >
+                            RADIOFÍSICA
+                          </span>
+                        </div>
+                        <div
+                          style={{
+                            fontSize: 11.5,
+                            color: "#64748B",
+                            marginTop: 2,
+                            lineHeight: 1.35,
+                          }}
+                        >
+                          Trámite de Radiofísica Sanitaria y equipamientos emisores de radiación.
+                        </div>
+                      </div>
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
@@ -1937,29 +2218,66 @@ export default function BandejaInspecciones() {
                     >
                       Podés incorporar establecimientos habilitados de forma manual con todos sus datos técnicos. El sistema generará automáticamente el número de trámite, expediente e inspector responsable asignado.
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => setModalNuevoEstablecimientoOpen(true)}
+                    <div
                       style={{
-                        background: "#004B87",
-                        border: "none",
-                        color: "#FFFFFF",
-                        padding: "10px 22px",
-                        borderRadius: 8,
-                        fontSize: 13.5,
-                        fontWeight: 750,
-                        cursor: "pointer",
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: 8,
-                        boxShadow: "0 2px 6px rgba(0, 75, 135, 0.25)",
+                        display: "flex",
+                        gap: 10,
+                        justifyContent: "center",
+                        flexWrap: "wrap",
                       }}
                     >
-                      <span className="material-icons" style={{ fontSize: 18 }}>
-                        add_business
-                      </span>
-                      Agregar Establecimiento
-                    </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setTipoModalNuevo("ESTABLECIMIENTO");
+                          setModalNuevoEstablecimientoOpen(true);
+                        }}
+                        style={{
+                          background: "#004B87",
+                          border: "none",
+                          color: "#FFFFFF",
+                          padding: "10px 20px",
+                          borderRadius: 8,
+                          fontSize: 13.5,
+                          fontWeight: 750,
+                          cursor: "pointer",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 8,
+                          boxShadow: "0 2px 6px rgba(0, 75, 135, 0.25)",
+                        }}
+                      >
+                        <span className="material-icons" style={{ fontSize: 18 }}>
+                          add_business
+                        </span>
+                        Agregar Establecimiento de Salud
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setTipoModalNuevo("SERVICIO_DIFERENCIADO");
+                          setModalNuevoEstablecimientoOpen(true);
+                        }}
+                        style={{
+                          background: "#EFF6FF",
+                          border: "1.5px solid #93C5FD",
+                          color: "#1D4ED8",
+                          padding: "10px 20px",
+                          borderRadius: 8,
+                          fontSize: 13.5,
+                          fontWeight: 750,
+                          cursor: "pointer",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 8,
+                        }}
+                      >
+                        <span className="material-icons" style={{ fontSize: 18, color: "#2563EB" }}>
+                          sensors
+                        </span>
+                        Agregar Servicio Diferenciado (Radiofísica)
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ) : filtradas.length === 0 ? (
@@ -2143,17 +2461,78 @@ export default function BandejaInspecciones() {
                           </button>
                         </div>
                         {t.tipologia && (
+                          t.tipologia.toUpperCase().includes("RADIOF") ? (
+                            <div
+                              style={{
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: 4,
+                                background: "#EFF6FF",
+                                border: "1px solid #BFDBFE",
+                                color: "#1D4ED8",
+                                fontSize: 10.5,
+                                fontWeight: 800,
+                                padding: "2px 7px",
+                                borderRadius: 5,
+                                letterSpacing: 0.3,
+                                textTransform: "uppercase",
+                                marginTop: 4,
+                              }}
+                            >
+                              <span className="material-icons" style={{ fontSize: 12 }}>
+                                sensors
+                              </span>
+                              Servicio Diferenciado: Radiofísica
+                              {t.subservicio && (
+                                <span
+                                  style={{
+                                    color: "#475569",
+                                    fontWeight: 650,
+                                    textTransform: "none",
+                                    marginLeft: 2,
+                                  }}
+                                >
+                                  ({t.subservicio})
+                                </span>
+                              )}
+                            </div>
+                          ) : (
+                            <div
+                              style={{
+                                fontSize: 10.5,
+                                fontWeight: 800,
+                                color: "#0284C7",
+                                textTransform: "uppercase",
+                                letterSpacing: 0.3,
+                                marginTop: 3,
+                              }}
+                            >
+                              {t.tipologia}
+                            </div>
+                          )
+                        )}
+                        {(t.estadoActa === "RESPUESTA EMPLAZAMIENTO" || t.estado === "DESCARGO_INSP") && (
                           <div
                             style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: 4,
+                              background: "#FFEDD5",
+                              border: "1px solid #FDBA74",
+                              color: "#C2410C",
                               fontSize: 10.5,
                               fontWeight: 800,
-                              color: "#0284C7",
-                              textTransform: "uppercase",
+                              padding: "2px 7px",
+                              borderRadius: 5,
                               letterSpacing: 0.3,
-                              marginTop: 3,
+                              textTransform: "uppercase",
+                              marginTop: 4,
                             }}
                           >
-                            {t.tipologia}
+                            <span className="material-icons" style={{ fontSize: 12 }}>
+                              rate_review
+                            </span>
+                            Respuesta Emplazamiento
                           </div>
                         )}
                       </td>
@@ -2682,7 +3061,7 @@ export default function BandejaInspecciones() {
                                 );
                               }
 
-                              if (t.estado === "DESCARGO_INSP") {
+                              if (t.estado === "DESCARGO_INSP" || t.estadoActa === "RESPUESTA EMPLAZAMIENTO") {
                                 return (
                                   <button
                                     type="button"
@@ -2773,9 +3152,19 @@ export default function BandejaInspecciones() {
                                 icon: "visibility",
                                 onClick: () => handleVisualizar(t),
                               },
+                              ...(t.estado === "DESCARGO_INSP" || t.estadoActa === "RESPUESTA EMPLAZAMIENTO"
+                                ? [
+                                    {
+                                      label: "Revisar Respuestas a Emplazamiento",
+                                      icon: "rate_review",
+                                      onClick: () => handleRevisar(t),
+                                    },
+                                  ]
+                                : []),
                               ...(!isCoordinador &&
                               t.estado !== "EN_ANALISIS_AUD" &&
-                              t.estado !== "DESCARGO_INSP"
+                              t.estado !== "DESCARGO_INSP" &&
+                              t.estadoActa !== "RESPUESTA EMPLAZAMIENTO"
                                 ? [
                                     {
                                       label: "Iniciar inspección",
@@ -2913,6 +3302,8 @@ export default function BandejaInspecciones() {
           setTramiteRadiofisica(null);
         }}
         tramite={tramiteRadiofisica}
+        initialTipo={tramiteRadiofisica?.tipoServicio}
+        initialSubservicio={tramiteRadiofisica?.subservicio}
         onConfirm={handleConfirmRadiofisica}
       />
 
@@ -2923,6 +3314,7 @@ export default function BandejaInspecciones() {
         onGuardar={handleGuardarNuevoEstablecimiento}
         inspectorLogueado={miNombreInspector}
         listaInspectoresDisponibles={listaInspectores}
+        modoInicial={tipoModalNuevo}
       />
     </>
   );

@@ -31,51 +31,6 @@ export interface AlertaEfectorItem {
 
 export const ALERTAS_EFECTOR_MOCK: AlertaEfectorItem[] = [
   {
-    id: 'ALR-RAD-001',
-    actaNumero: '105/2026',
-    nroExpediente: 'EX-2026-0091010-APN-MS#CBA',
-    denominacion: 'Centro Radiológico San Francisco - Radiofísica',
-    cuit: '30-71829340-5',
-    tipologia: 'RADIOFÍSICA',
-    localidad: 'Córdoba',
-    departamento: 'Capital',
-    tipoOrigen: 'HABILITACION',
-    frecuenciaAnual: 1,
-    diasRestantes: 5,
-    fechaVencimiento: '21/07/2026',
-    estadoVentana: 'URGENTE',
-    estadoTramite: 'EN INSPECCION',
-    estadoActa: 'RESPUESTA EMPLAZAMIENTO',
-    motivos: [
-      'Dosimetría: Empresa',
-      'Materialidad de la sala: Búnker NO CUMPLE',
-      'Responsable de uso: documento de autorizacion individual no es correcto',
-      'Equipamiento: no corresponden Marca: SIEMENS, Condición: Propio, Año fabricación: 2000, Tipo revelado: DIGITAL'
-    ],
-    accionRequerida: 'RESPONDER_EMPLAZAMIENTO',
-    esRadiofisica: true,
-    tramiteId: 'TRM-RAD-002'
-  },
-  {
-    id: 'ALR-EF-001',
-    actaNumero: '102/2026',
-    nroExpediente: 'EX-2026-0045672-APN-MS#CBA',
-    denominacion: 'Sanatorio Allende N.V.',
-    cuit: '30-71234567-8',
-    tipologia: 'CLÍNICA, SANATORIO U HOSPITAL PRIVADO',
-    localidad: 'Córdoba',
-    departamento: 'Capital',
-    tipoOrigen: 'HABILITACION',
-    frecuenciaAnual: 1,
-    diasRestantes: 8,
-    fechaVencimiento: '12/08/2026',
-    estadoVentana: 'PROXIMO',
-    motivos: [
-      'Ajustes en planos de Sala de Procedimientos',
-      'Falta de firma en protocolo de emergencias'
-    ]
-  },
-  {
     id: 'ALR-EF-002',
     actaNumero: '108/2026',
     nroExpediente: 'EX-2026-0158900-APN-MS#CBA',
@@ -92,7 +47,8 @@ export const ALERTAS_EFECTOR_MOCK: AlertaEfectorItem[] = [
     motivos: [
       'Ampliación física de 2 consultorios no declarada',
       'Relocalización de farmacia exige Trámite de Modificación'
-    ]
+    ],
+    accionRequerida: 'INICIAR_MODIFICACION'
   },
   {
     id: 'ALR-EF-003',
@@ -109,12 +65,32 @@ export const ALERTAS_EFECTOR_MOCK: AlertaEfectorItem[] = [
     fechaVencimiento: '07/08/2026',
     estadoVentana: 'URGENTE',
     motivos: [
-      'Ausencia de Director Médico en horario de inspección presencial',
+      'Adecuación edilicia y nuevos servicios exigen Trámite de Modificación',
       'Adecuación de enfermería 24hs'
-    ]
+    ],
+    accionRequerida: 'INICIAR_MODIFICACION'
   },
   {
     id: 'ALR-EF-004',
+    actaNumero: '115/2026',
+    nroExpediente: '0425-055667/2022',
+    denominacion: 'Hospital Privado Córdoba',
+    cuit: '30-50000123-4',
+    tipologia: 'CLÍNICA, SANATORIO U HOSPITAL PRIVADO',
+    localidad: 'Córdoba',
+    departamento: 'Capital',
+    tipoOrigen: 'HABILITACION',
+    frecuenciaAnual: 1,
+    diasRestantes: 4,
+    fechaVencimiento: '08/08/2026',
+    estadoVentana: 'URGENTE',
+    motivos: [
+      'Habilitación por vencer en menos de 5 días, requiere iniciar trámite de renovación.'
+    ],
+    accionRequerida: 'INICIAR_RENOVACION'
+  },
+  {
+    id: 'ALR-EF-005',
     actaNumero: '120/2026',
     nroExpediente: '0425-112233/2023',
     denominacion: 'Clínica de la Cañada',
@@ -133,24 +109,23 @@ export const ALERTAS_EFECTOR_MOCK: AlertaEfectorItem[] = [
     accionRequerida: 'INICIAR_RENOVACION'
   },
   {
-    id: 'ALR-EF-005',
-    actaNumero: '125/2026',
-    nroExpediente: 'EX-2026-0219481-APN-MS#CBA',
-    denominacion: 'Centro Médico y Odontológico Nueva Córdoba',
-    cuit: '30-71889922-4',
-    tipologia: 'CONSULTORIOS ODONTOLÓGICOS / POLICONSULTORIO',
+    id: 'ALR-EF-006',
+    actaNumero: '124/2026',
+    nroExpediente: '0425-010203/2023',
+    denominacion: 'Sanatorio Allende Cerro',
+    cuit: '30-54587142-0',
+    tipologia: 'CLÍNICA, SANATORIO U HOSPITAL PRIVADO',
     localidad: 'Córdoba',
     departamento: 'Capital',
     tipoOrigen: 'RUTINA',
     frecuenciaAnual: 1,
-    diasRestantes: 6,
-    fechaVencimiento: '15/08/2026',
+    diasRestantes: 14,
+    fechaVencimiento: '03/09/2026',
     estadoVentana: 'PROXIMO',
     motivos: [
-      'Relevamiento en operativo de rutina: establecimiento sin legajo digital vigente',
-      'Corresponde regularización registral mediante Trámite de Alta Digital'
+      'Modificación estructural y redistribución de camas hospitalarias detectada en inspección.'
     ],
-    accionRequerida: 'INICIAR_ALTA_DIGITAL'
+    accionRequerida: 'INICIAR_MODIFICACION'
   }
 ]
 
@@ -160,10 +135,9 @@ export default function BandejaAlertasEfector() {
   const navigate = useNavigate()
 
   const [alertas, setAlertas] = useState<AlertaEfectorItem[]>(ALERTAS_EFECTOR_MOCK)
-  
+
   // Filter state
   const [busqueda, setBusqueda] = useState('')
-  const [filtroTipoOrigen, setFiltroTipoOrigen] = useState<string>('TODOS')
   const [filtroEstadoVentana, setFiltroEstadoVentana] = useState<string>('TODAS')
 
   // Pagination state
@@ -172,7 +146,7 @@ export default function BandejaAlertasEfector() {
 
   useEffect(() => {
     setPaginaSeleccionada(1)
-  }, [busqueda, filtroTipoOrigen, filtroEstadoVentana])
+  }, [busqueda, filtroEstadoVentana])
 
   // Modals state
   const [selectedEmplazamientoTramite, setSelectedEmplazamientoTramite] = useState<Tramite | null>(null)
@@ -182,18 +156,21 @@ export default function BandejaAlertasEfector() {
 
   const userCuit = user?.cuil || '30-71234567-8'
 
-  // Filtering & Sorting (earliest to latest)
+  // Filtering & Sorting (earliest to latest) - Solo establecimientos con acción requerida de Modificación o Renovación
   const filtradas = alertas.filter(a => {
+    const esAccionValida = a.accionRequerida === 'INICIAR_MODIFICACION' || a.accionRequerida === 'INICIAR_RENOVACION'
+    if (!esAccionValida) return false
+
     const matchBusqueda = busqueda === '' ||
       a.denominacion.toLowerCase().includes(busqueda.toLowerCase()) ||
       a.nroExpediente.toLowerCase().includes(busqueda.toLowerCase()) ||
       a.actaNumero.toLowerCase().includes(busqueda.toLowerCase()) ||
       a.cuit.includes(busqueda)
 
-    const matchOrigen = filtroTipoOrigen === 'TODOS' || a.tipoOrigen === filtroTipoOrigen
-    const matchVentana = filtroEstadoVentana === 'TODAS' || a.estadoVentana === filtroEstadoVentana
+    const matchVentana = filtroEstadoVentana === 'TODAS' ||
+      (filtroEstadoVentana === 'URGENTE' ? a.diasRestantes <= 5 : a.diasRestantes > 5)
 
-    return matchBusqueda && matchOrigen && matchVentana
+    return matchBusqueda && matchVentana
   }).sort((a, b) => a.diasRestantes - b.diasRestantes)
 
   // Pagination slicing
@@ -203,11 +180,10 @@ export default function BandejaAlertasEfector() {
     paginaSeleccionada * cantidadFilasPorPagina
   )
 
-  const hasActiveFilters = busqueda.trim() !== '' || filtroTipoOrigen !== 'TODOS' || filtroEstadoVentana !== 'TODAS'
+  const hasActiveFilters = busqueda.trim() !== '' || filtroEstadoVentana !== 'TODAS'
 
   const handleLimpiarFiltros = () => {
     setBusqueda('')
-    setFiltroTipoOrigen('TODOS')
     setFiltroEstadoVentana('TODAS')
     setPaginaSeleccionada(1)
   }
@@ -245,7 +221,15 @@ export default function BandejaAlertasEfector() {
     setSelectedEmplazamientoTramite(tramiteObj)
   }
 
-  const handleOpenIniciarModificacion = () => {
+  const handleOpenIniciarModificacion = (alerta?: AlertaEfectorItem) => {
+    if (alerta) {
+      const est = ESTABLECIMIENTOS.find(e => e.cuit === alerta.cuit)
+      setDefaultTipo('MODIFICACION')
+      setDefaultEstId(est ? est.id : '')
+    } else {
+      setDefaultTipo('MODIFICACION')
+      setDefaultEstId('')
+    }
     setModalTramiteOpen(true)
   }
 
@@ -269,244 +253,146 @@ export default function BandejaAlertasEfector() {
         <div>
           <div className="topbar-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <span className="material-icons" style={{ fontSize: 24, color: '#ea580c' }}>notifications_active</span>
-            Bandeja de Alertas Sanitarias
+            Bandeja de Alertas De Inspección por Rutina
           </div>
           <div style={{ fontSize: 13, color: '#64748B', marginTop: 2 }}>
-            Control de plazos legales para respuesta a emplazamientos e inicio de trámites por inspección
+            Control de plazos legales para respuesta a emplazamientos e inicio de trámites por inspección de Rutina
           </div>
         </div>
       </div>
 
       <div className="page-content" style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
 
-        {/* Two Filter Groups with 2 Cards Each */}
+        {/* GRUPO: PLAZO DE VENCIMIENTO PARA INICIO DE TRÁMITE */}
         <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))',
-          gap: 16
+          background: '#FFFFFF',
+          border: '1px solid #E2E8F0',
+          borderRadius: 14,
+          padding: '16px 20px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 14,
+          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.03)'
         }}>
-          {/* GRUPO 1: ORIGEN DEL REQUERIMIENTO */}
-          <div style={{
-            background: '#FFFFFF',
-            border: '1px solid #E2E8F0',
-            borderRadius: 14,
-            padding: '16px 18px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 12,
-            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.03)'
-          }}>
-            {/* Header Grupo 1 */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span className="material-icons" style={{ fontSize: 18, color: '#0284C7' }}>category</span>
-                <span style={{ fontSize: 12, fontWeight: 800, color: '#0F172A', textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                  Origen del Requerimiento
-                </span>
-              </div>
-              {filtroTipoOrigen !== 'TODOS' && (
-                <button
-                  onClick={() => setFiltroTipoOrigen('TODOS')}
-                  style={{
-                    background: '#F1F5F9',
-                    border: 'none',
-                    color: '#0284C7',
-                    padding: '3px 8px',
-                    borderRadius: 6,
-                    fontSize: 11,
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 3
-                  }}
-                  title="Ver todos los orígenes"
-                >
-                  <span className="material-icons" style={{ fontSize: 13 }}>clear</span>
-                  Ver todos
-                </button>
-              )}
+          {/* Header */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span className="material-icons" style={{ fontSize: 20, color: '#BE123C' }}>alarm</span>
+              <span style={{ fontSize: 13, fontWeight: 800, color: '#0F172A', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                Plazo de vencimiento para inicio de trámite
+              </span>
             </div>
-
-            {/* Botón Grupo 1: RUTINA */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 12 }}>
-              {/* Botón: RUTINA */}
-              <div
-                onClick={() => setFiltroTipoOrigen(prev => prev === 'RUTINA' ? 'TODOS' : 'RUTINA')}
+            {filtroEstadoVentana !== 'TODAS' && (
+              <button
+                onClick={() => setFiltroEstadoVentana('TODAS')}
                 style={{
-                  background: filtroTipoOrigen === 'RUTINA' ? '#FEF2F2' : '#FFFFFF',
-                  border: `2px solid ${filtroTipoOrigen === 'RUTINA' ? '#DC2626' : '#E2E8F0'}`,
-                  borderRadius: 12,
-                  padding: '14px 16px',
+                  background: '#F1F5F9',
+                  border: 'none',
+                  color: '#BE123C',
+                  padding: '4px 10px',
+                  borderRadius: 6,
+                  fontSize: 11.5,
+                  fontWeight: 700,
                   cursor: 'pointer',
-                  transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 8,
-                  position: 'relative',
-                  boxShadow: filtroTipoOrigen === 'RUTINA' ? '0 4px 14px rgba(220, 38, 38, 0.16)' : '0 1px 2px rgba(0,0,0,0.02)'
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 4
                 }}
+                title="Ver todos los plazos"
               >
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <span style={{
-                    fontSize: 12,
-                    fontWeight: 800,
-                    color: filtroTipoOrigen === 'RUTINA' ? '#991B1B' : '#64748B',
-                    textTransform: 'uppercase',
-                    letterSpacing: 0.4
-                  }}>
-                    Rutina
-                  </span>
-                  <div style={{
-                    width: 32,
-                    height: 32,
-                    borderRadius: 8,
-                    background: filtroTipoOrigen === 'RUTINA' ? '#FECACA' : '#FEF2F2',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                  }}>
-                    <span className="material-icons" style={{ fontSize: 18, color: '#DC2626' }}>edit_note</span>
-                  </div>
-                </div>
-                <div style={{ fontSize: 12, color: '#64748B', fontWeight: 600 }}>
-                  Trámite Modificación
-                </div>
-              </div>
-            </div>
+                <span className="material-icons" style={{ fontSize: 13 }}>clear</span>
+                Ver todos
+              </button>
+            )}
           </div>
 
-          {/* GRUPO 2: PLAZO DE VENCIMIENTO */}
-          <div style={{
-            background: '#FFFFFF',
-            border: '1px solid #E2E8F0',
-            borderRadius: 14,
-            padding: '16px 18px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 12,
-            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.03)'
-          }}>
-            {/* Header Grupo 2 */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span className="material-icons" style={{ fontSize: 18, color: '#BE123C' }}>alarm</span>
-                <span style={{ fontSize: 12, fontWeight: 800, color: '#0F172A', textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                  Plazo de Vencimiento
+          {/* 2 Botones: Menos de 5 días y Más de 5 días */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 14 }}>
+            {/* Botón 1: Menos de 5 días */}
+            <div
+              onClick={() => setFiltroEstadoVentana(prev => prev === 'URGENTE' ? 'TODAS' : 'URGENTE')}
+              style={{
+                background: filtroEstadoVentana === 'URGENTE' ? '#FFF1F2' : '#FFFFFF',
+                border: `2px solid ${filtroEstadoVentana === 'URGENTE' ? '#BE123C' : '#E2E8F0'}`,
+                borderRadius: 12,
+                padding: '14px 18px',
+                cursor: 'pointer',
+                transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 8,
+                position: 'relative',
+                boxShadow: filtroEstadoVentana === 'URGENTE' ? '0 4px 14px rgba(190, 18, 60, 0.16)' : '0 1px 2px rgba(0,0,0,0.02)'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span style={{
+                  fontSize: 12.5,
+                  fontWeight: 800,
+                  color: filtroEstadoVentana === 'URGENTE' ? '#9F1239' : '#64748B',
+                  textTransform: 'uppercase',
+                  letterSpacing: 0.4
+                }}>
+                  URGENTES
                 </span>
+                <div style={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: 8,
+                  background: filtroEstadoVentana === 'URGENTE' ? '#FECDD3' : '#FFF1F2',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <span className="material-icons" style={{ fontSize: 18, color: '#BE123C' }}>timer_off</span>
+                </div>
               </div>
-              {filtroEstadoVentana !== 'TODAS' && (
-                <button
-                  onClick={() => setFiltroEstadoVentana('TODAS')}
-                  style={{
-                    background: '#F1F5F9',
-                    border: 'none',
-                    color: '#BE123C',
-                    padding: '3px 8px',
-                    borderRadius: 6,
-                    fontSize: 11,
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 3
-                  }}
-                  title="Ver todos los plazos"
-                >
-                  <span className="material-icons" style={{ fontSize: 13 }}>clear</span>
-                  Ver todos
-                </button>
-              )}
+              <div style={{ fontSize: 12, color: filtroEstadoVentana === 'URGENTE' ? '#BE123C' : '#64748B', fontWeight: 650 }}>
+                Menos de 5 días ({alertas.filter(a => a.diasRestantes <= 5).length})
+              </div>
             </div>
 
-            {/* 2 Botones Grupo 2 */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-              {/* Botón 2.1: URGENTES */}
-              <div
-                onClick={() => setFiltroEstadoVentana(prev => prev === 'URGENTE' ? 'TODAS' : 'URGENTE')}
-                style={{
-                  background: filtroEstadoVentana === 'URGENTE' ? '#FFF1F2' : '#FFFFFF',
-                  border: `2px solid ${filtroEstadoVentana === 'URGENTE' ? '#BE123C' : '#E2E8F0'}`,
-                  borderRadius: 12,
-                  padding: '14px 16px',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+            {/* Botón 2: Más de 5 días */}
+            <div
+              onClick={() => setFiltroEstadoVentana(prev => prev === 'PROXIMO' ? 'TODAS' : 'PROXIMO')}
+              style={{
+                background: filtroEstadoVentana === 'PROXIMO' ? '#FEF3C7' : '#FFFFFF',
+                border: `2px solid ${filtroEstadoVentana === 'PROXIMO' ? '#D97706' : '#E2E8F0'}`,
+                borderRadius: 12,
+                padding: '14px 18px',
+                cursor: 'pointer',
+                transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 8,
+                position: 'relative',
+                boxShadow: filtroEstadoVentana === 'PROXIMO' ? '0 4px 14px rgba(217, 119, 6, 0.16)' : '0 1px 2px rgba(0,0,0,0.02)'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span style={{
+                  fontSize: 12.5,
+                  fontWeight: 800,
+                  color: filtroEstadoVentana === 'PROXIMO' ? '#92400E' : '#64748B',
+                  textTransform: 'uppercase',
+                  letterSpacing: 0.4
+                }}>
+                  PRÓXIMOS
+                </span>
+                <div style={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: 8,
+                  background: filtroEstadoVentana === 'PROXIMO' ? '#FDE68A' : '#FEF3C7',
                   display: 'flex',
-                  flexDirection: 'column',
-                  gap: 8,
-                  position: 'relative',
-                  boxShadow: filtroEstadoVentana === 'URGENTE' ? '0 4px 14px rgba(190, 18, 60, 0.16)' : '0 1px 2px rgba(0,0,0,0.02)'
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <span style={{
-                    fontSize: 12,
-                    fontWeight: 800,
-                    color: filtroEstadoVentana === 'URGENTE' ? '#9F1239' : '#64748B',
-                    textTransform: 'uppercase',
-                    letterSpacing: 0.4
-                  }}>
-                    Urgentes
-                  </span>
-                  <div style={{
-                    width: 32,
-                    height: 32,
-                    borderRadius: 8,
-                    background: filtroEstadoVentana === 'URGENTE' ? '#FECDD3' : '#FFF1F2',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                  }}>
-                    <span className="material-icons" style={{ fontSize: 18, color: '#BE123C' }}>timer_off</span>
-                  </div>
-                </div>
-                <div style={{ fontSize: 12, color: '#64748B', fontWeight: 600 }}>
-                  Menos de 5 días
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <span className="material-icons" style={{ fontSize: 18, color: '#D97706' }}>timer</span>
                 </div>
               </div>
-
-              {/* Botón 2.2: PRÓXIMOS */}
-              <div
-                onClick={() => setFiltroEstadoVentana(prev => prev === 'PROXIMO' ? 'TODAS' : 'PROXIMO')}
-                style={{
-                  background: filtroEstadoVentana === 'PROXIMO' ? '#FEF3C7' : '#FFFFFF',
-                  border: `2px solid ${filtroEstadoVentana === 'PROXIMO' ? '#D97706' : '#E2E8F0'}`,
-                  borderRadius: 12,
-                  padding: '14px 16px',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 8,
-                  position: 'relative',
-                  boxShadow: filtroEstadoVentana === 'PROXIMO' ? '0 4px 14px rgba(217, 119, 6, 0.16)' : '0 1px 2px rgba(0,0,0,0.02)'
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <span style={{
-                    fontSize: 12,
-                    fontWeight: 800,
-                    color: filtroEstadoVentana === 'PROXIMO' ? '#92400E' : '#64748B',
-                    textTransform: 'uppercase',
-                    letterSpacing: 0.4
-                  }}>
-                    Próximos
-                  </span>
-                  <div style={{
-                    width: 32,
-                    height: 32,
-                    borderRadius: 8,
-                    background: filtroEstadoVentana === 'PROXIMO' ? '#FDE68A' : '#FEF3C7',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                  }}>
-                    <span className="material-icons" style={{ fontSize: 18, color: '#D97706' }}>timer</span>
-                  </div>
-                </div>
-                <div style={{ fontSize: 12, color: '#64748B', fontWeight: 600 }}>
-                  Entre 5 y 10 días
-                </div>
+              <div style={{ fontSize: 12, color: filtroEstadoVentana === 'PROXIMO' ? '#D97706' : '#64748B', fontWeight: 650 }}>
+                Más de 5 días ({alertas.filter(a => a.diasRestantes > 5).length})
               </div>
             </div>
           </div>
@@ -578,19 +464,18 @@ export default function BandejaAlertasEfector() {
                 <th style={{ padding: '14px 18px', fontSize: 11, fontWeight: 750, color: '#475569', textTransform: 'uppercase', letterSpacing: 0.5 }}>Plazo</th>
                 <th style={{ padding: '14px 18px', fontSize: 11, fontWeight: 750, color: '#475569', textTransform: 'uppercase', letterSpacing: 0.5 }}>Establecimiento / CUIT</th>
                 <th style={{ padding: '14px 18px', fontSize: 11, fontWeight: 750, color: '#475569', textTransform: 'uppercase', letterSpacing: 0.5 }}>N° Expediente</th>
-                <th style={{ padding: '14px 18px', fontSize: 11, fontWeight: 750, color: '#475569', textTransform: 'uppercase', letterSpacing: 0.5 }}>Origen</th>
                 <th style={{ padding: '14px 18px', fontSize: 11, fontWeight: 750, color: '#475569', textTransform: 'uppercase', letterSpacing: 0.5, textAlign: 'center' }}>Acción Requerida</th>
               </tr>
             </thead>
             <tbody>
               {filtradas.length === 0 ? (
                 <tr>
-                  <td colSpan={5} style={{ textAlign: 'center', padding: 48, color: '#64748B' }}>
+                  <td colSpan={4} style={{ textAlign: 'center', padding: 48, color: '#64748B' }}>
                     <span className="material-icons" style={{ fontSize: 40, color: '#CBD5E1', marginBottom: 8, display: 'block' }}>
                       {hasActiveFilters ? 'filter_list_off' : 'notifications_off'}
                     </span>
                     <div style={{ fontWeight: 700, fontSize: 15, color: '#0F172A' }}>
-                      {hasActiveFilters ? 'No se encontraron alertas con los filtros aplicados' : 'Sin alertas de emplazamiento pendientes'}
+                      {hasActiveFilters ? 'No se encontraron alertas con los filtros aplicados' : 'Sin alertas de trámites pendientes'}
                     </div>
                     <div style={{ fontSize: 12.5, color: '#94A3B8', marginTop: 4, marginBottom: hasActiveFilters ? 14 : 0 }}>
                       {hasActiveFilters ? 'Probá modificando el término de búsqueda o seleccionando otro filtro.' : 'Tus establecimientos se encuentran al día.'}
@@ -714,109 +599,67 @@ export default function BandejaAlertasEfector() {
                       </div>
                     </td>
 
-                    {/* Origen */}
-                    <td style={{ padding: '14px 18px', verticalAlign: 'top' }}>
-                      <span style={{
-                        background: alerta.tipoOrigen === 'HABILITACION' ? '#E0F2FE' : '#FEE2E2',
-                        color: alerta.tipoOrigen === 'HABILITACION' ? '#0369A1' : '#991B1B',
-                        fontSize: 10.5,
-                        fontWeight: 800,
-                        padding: '3px 8px',
-                        borderRadius: 12,
-                        textTransform: 'uppercase'
-                      }}>
-                        {alerta.tipoOrigen === 'HABILITACION' ? 'Habilitación' : 'Inspección por Rutina'}
-                      </span>
-                    </td>
-
                     {/* Acción Requerida */}
                     <td style={{ padding: '14px 18px', verticalAlign: 'top', textAlign: 'center' }}>
-                      {alerta.accionRequerida === 'INICIAR_ALTA_DIGITAL' ? (
-                        <span
-                          style={{
-                            background: '#EFF6FF',
-                            border: '1.5px solid #93C5FD',
-                            color: '#1D4ED8',
-                            padding: '6px 14px',
-                            borderRadius: 20,
-                            fontSize: 12,
-                            fontWeight: 750,
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: 6,
-                            boxShadow: '0 1px 3px rgba(37, 99, 235, 0.08)',
-                            whiteSpace: 'nowrap',
-                          }}
-                        >
-                          <span
-                            className="material-icons"
-                            style={{ fontSize: 16, color: '#2563EB' }}
-                          >
-                            app_registration
-                          </span>
-                          Iniciar trámite de alta digital
-                        </span>
-                      ) : alerta.accionRequerida === 'INICIAR_RENOVACION' ? (
+                      {alerta.accionRequerida === 'INICIAR_RENOVACION' ? (
                         <button
                           onClick={() => handleOpenIniciarRenovacion(alerta)}
                           style={{
-                            background: '#16a34a',
-                            border: 'none',
-                            color: 'white',
-                            padding: '8px 14px',
+                            background: '#FFFFFF',
+                            border: '1.5px solid #16a34a',
+                            color: '#16a34a',
+                            padding: '7px 14px',
                             borderRadius: 8,
                             fontSize: 12,
                             fontWeight: 750,
                             cursor: 'pointer',
                             display: 'inline-flex',
                             alignItems: 'center',
-                            gap: 4,
-                            boxShadow: '0 2px 6px rgba(22, 163, 74, 0.25)',
-                            whiteSpace: 'nowrap'
+                            gap: 5,
+                            whiteSpace: 'nowrap',
+                            transition: 'all 0.15s ease'
+                          }}
+                          onMouseEnter={e => {
+                            e.currentTarget.style.background = '#F0FDF4'
+                            e.currentTarget.style.borderColor = '#15803d'
+                            e.currentTarget.style.color = '#15803d'
+                          }}
+                          onMouseLeave={e => {
+                            e.currentTarget.style.background = '#FFFFFF'
+                            e.currentTarget.style.borderColor = '#16a34a'
+                            e.currentTarget.style.color = '#16a34a'
                           }}
                         >
                           <span className="material-icons" style={{ fontSize: 16 }}>sync</span>
-                          Iniciar Trámite Renovación
-                        </button>
-                      ) : alerta.tipoOrigen === 'HABILITACION' ? (
-                        <button
-                          onClick={() => handleOpenResponderEmplazamiento(alerta)}
-                          style={{
-                            background: '#ea580c',
-                            border: 'none',
-                            color: 'white',
-                            padding: '8px 14px',
-                            borderRadius: 8,
-                            fontSize: 12,
-                            fontWeight: 750,
-                            cursor: 'pointer',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: 4,
-                            boxShadow: '0 2px 6px rgba(234, 88, 12, 0.25)',
-                            whiteSpace: 'nowrap'
-                          }}
-                        >
-                          <span className="material-icons" style={{ fontSize: 16 }}>rate_review</span>
-                          Responder Emplazamiento
+                          Iniciar Renovación
                         </button>
                       ) : (
                         <button
-                          onClick={handleOpenIniciarModificacion}
+                          onClick={() => handleOpenIniciarModificacion(alerta)}
                           style={{
-                            background: '#dc2626',
-                            border: 'none',
-                            color: 'white',
-                            padding: '8px 14px',
+                            background: '#FFFFFF',
+                            border: '1.5px solid #dc2626',
+                            color: '#dc2626',
+                            padding: '7px 14px',
                             borderRadius: 8,
                             fontSize: 12,
                             fontWeight: 750,
                             cursor: 'pointer',
                             display: 'inline-flex',
                             alignItems: 'center',
-                            gap: 4,
-                            boxShadow: '0 2px 6px rgba(220, 38, 38, 0.25)',
-                            whiteSpace: 'nowrap'
+                            gap: 5,
+                            whiteSpace: 'nowrap',
+                            transition: 'all 0.15s ease'
+                          }}
+                          onMouseEnter={e => {
+                            e.currentTarget.style.background = '#FEF2F2'
+                            e.currentTarget.style.borderColor = '#b91c1c'
+                            e.currentTarget.style.color = '#b91c1c'
+                          }}
+                          onMouseLeave={e => {
+                            e.currentTarget.style.background = '#FFFFFF'
+                            e.currentTarget.style.borderColor = '#dc2626'
+                            e.currentTarget.style.color = '#dc2626'
                           }}
                         >
                           <span className="material-icons" style={{ fontSize: 16 }}>edit_note</span>
