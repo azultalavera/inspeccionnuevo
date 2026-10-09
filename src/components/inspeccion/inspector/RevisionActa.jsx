@@ -23,6 +23,7 @@ import {
   Tooltip,
   Alert,
   Divider,
+  Collapse,
 } from "@mui/material";
 import {
   Description as DescriptionIcon,
@@ -37,6 +38,7 @@ import {
   ReportProblem as ReportProblemIcon,
   AssignmentTurnedIn as AssignmentTurnedInIcon,
   Warning as WarningIcon,
+  KeyboardArrowDown as KeyboardArrowDownIcon,
 } from "@mui/icons-material";
 import { useNavigate, useParams } from "react-router-dom";
 import ReporteInspeccionPDF from "../../../ReporteInspeccion.pdf";
@@ -74,6 +76,23 @@ const RevisionActa = () => {
 
   // Modal de confirmación final
   const [confirmFinalizarOpen, setConfirmFinalizarOpen] = useState(false);
+
+  // Control de filas desplegables (arrancan todas cerradas)
+  const [expandedRows, setExpandedRows] = useState({});
+
+  const handleToggleExpand = (rowId) => {
+    setExpandedRows((prev) => ({
+      ...prev,
+      [rowId]: !prev[rowId],
+    }));
+  };
+
+  const RESPUESTAS_EFECTOR_TEXTO = {
+    "RF-DOS-01": "Se contrató a la empresa de dosimetría habilitada y se adjunta el comprobante de servicio vigente.",
+    "RF-MAT-01": "Se realizó el refuerzo del búnker con plomo de 2 mm; se adjunta informe técnico del arquitecto.",
+    "RF-RESP-01": "Se adjunta el documento de autorización individual corregido y firmado por el responsable.",
+    "RF-EQ-01": "Se corrigieron los datos del equipo y se agrega la unidad con los datos correctos.",
+  };
 
   // 1. DATOS GENERALES (Exacto según las observaciones tratadas)
   const obsGenerales = [
@@ -121,9 +140,9 @@ const RevisionActa = () => {
       archivoAdjunto: "Certificado_Equipo_Siemens.pdf",
       fechaRespuesta: "02/10/2026",
       camposRectificados: [
-        { campo: "Marca", declarado: "SIEMENS", observado: "SIEMENS", rectificado: "SIEMENS", estado: "CORRECTO" },
-        { campo: "Condición", declarado: "Propio", observado: "Propio", rectificado: "Propio", estado: "CORRECTO" },
-        { campo: "Año fabricación", declarado: "2000", observado: "2000", rectificado: "2022", estado: "RECTIFICADO" },
+        { campo: "Marca", declarado: "SIEMENS", observado: "SIEMENS", rectificado: "PHILIPS", estado: "RECTIFICADO" },
+        { campo: "Condición", declarado: "Propio", observado: "Propio", rectificado: "Tercerizado", estado: "RECTIFICADO" },
+        { campo: "Año fabricación", declarado: "2000", observado: "2000", rectificado: "2015", estado: "RECTIFICADO" },
         { campo: "Tipo revelado", declarado: "DIGITAL", observado: "DIGITAL", rectificado: "DIGITAL", estado: "CORRECTO" },
       ],
     },
@@ -340,99 +359,150 @@ const RevisionActa = () => {
                   const status = statuses[row.id];
                   const isValidado = status === "VALIDADO";
                   const isRechazado = status === "RECHAZADO";
+                  const isExpanded = !!expandedRows[row.id];
 
                   return (
-                    <TableRow key={row.id} hover sx={{ "&:last-child td": { borderBottom: 0 } }}>
-                      {/* ORIGEN */}
-                      <TableCell sx={{ py: 1.8 }}>
-                        <Chip
-                          label={row.origen}
-                          size="small"
-                          sx={{
-                            bgcolor: "#e0f2fe",
-                            color: "#0284c7",
-                            fontWeight: 850,
-                            fontSize: "0.7rem",
-                            borderRadius: "12px",
-                            height: 22,
-                            letterSpacing: 0.3,
-                          }}
-                        />
-                      </TableCell>
-
-                      {/* CATEGORÍA */}
-                      <TableCell sx={{ fontWeight: 800, fontSize: "0.86rem", color: "#1e293b", py: 1.8 }}>
-                        {row.categoria}
-                      </TableCell>
-
-                      {/* OBSERVACIONES */}
-                      <TableCell sx={{ fontSize: "0.82rem", color: "#475569", py: 1.8 }}>
-                        {row.obs}
-                      </TableCell>
-
-                      {/* ACCIONES (👁️) (✔) (!) */}
-                      <TableCell align="center" sx={{ py: 1.8 }}>
-                        <Stack direction="row" spacing={1} justifyContent="center" alignItems="center">
-                          {/* BOTÓN OJO: VER RESPUESTA */}
-                          <Tooltip title="Ver respuesta y evidencia del efector" arrow>
-                            <IconButton
+                    <React.Fragment key={row.id}>
+                      <TableRow hover sx={{ "&:last-child td": { borderBottom: isExpanded ? "1px solid #e2e8f0" : 0 } }}>
+                        {/* ORIGEN CON CHEVRON */}
+                        <TableCell sx={{ py: 1.8 }}>
+                          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                            <Tooltip title={isExpanded ? "Ocultar detalle" : "Ver detalle"}>
+                              <IconButton
+                                size="small"
+                                onClick={() => handleToggleExpand(row.id)}
+                                sx={{
+                                  p: 0.5,
+                                  color: "#005596",
+                                  transition: "transform 0.25s ease",
+                                  transform: isExpanded ? "rotate(180deg)" : "rotate(0deg)",
+                                }}
+                              >
+                                <KeyboardArrowDownIcon sx={{ fontSize: 20 }} />
+                              </IconButton>
+                            </Tooltip>
+                            <Chip
+                              label={row.origen}
                               size="small"
-                              onClick={() => setViewResponseDialog({ open: true, item: row })}
                               sx={{
-                                width: 34,
-                                height: 34,
-                                bgcolor: "#f1f5f9",
-                                color: "#475569",
-                                border: "1px solid #cbd5e1",
-                                "&:hover": { bgcolor: "#e2e8f0" },
+                                bgcolor: "#e0f2fe",
+                                color: "#0284c7",
+                                fontWeight: 850,
+                                fontSize: "0.7rem",
+                                borderRadius: "12px",
+                                height: 22,
+                                letterSpacing: 0.3,
                               }}
-                            >
-                              <VisibilityIcon sx={{ fontSize: 18 }} />
-                            </IconButton>
-                          </Tooltip>
+                            />
+                          </Box>
+                        </TableCell>
 
-                          {/* BOTÓN VALIDAR: CHECK VERDE */}
-                          <Tooltip title="Aceptar / Validar respuesta" arrow>
-                            <IconButton
-                              size="small"
-                              onClick={() => handleUpdateStatus(row.id, "VALIDADO")}
-                              sx={{
-                                width: 34,
-                                height: 34,
-                                bgcolor: isValidado ? "#059669" : "transparent",
-                                color: isValidado ? "#ffffff" : "#059669",
-                                border: `1.5px solid ${isValidado ? "#059669" : "#10b981"}`,
-                                "&:hover": {
-                                  bgcolor: isValidado ? "#047857" : "rgba(16, 185, 129, 0.1)",
-                                },
-                              }}
-                            >
-                              <CheckIcon sx={{ fontSize: 18, fontWeight: 900 }} />
-                            </IconButton>
-                          </Tooltip>
+                        {/* CATEGORÍA */}
+                        <TableCell sx={{ fontWeight: 800, fontSize: "0.86rem", color: "#1e293b", py: 1.8 }}>
+                          {row.categoria}
+                        </TableCell>
 
-                          {/* BOTÓN RECHAZAR: EXCLAMACIÓN ROJA */}
-                          <Tooltip title="Rechazar con motivo" arrow>
-                            <IconButton
-                              size="small"
-                              onClick={() => handleOpenRejectDialog(row)}
-                              sx={{
-                                width: 34,
-                                height: 34,
-                                bgcolor: isRechazado ? "#dc2626" : "transparent",
-                                color: isRechazado ? "#ffffff" : "#dc2626",
-                                border: `1.5px solid ${isRechazado ? "#dc2626" : "#ef4444"}`,
-                                "&:hover": {
-                                  bgcolor: isRechazado ? "#b91c1c" : "rgba(239, 68, 68, 0.1)",
-                                },
-                              }}
-                            >
-                              <PriorityHighIcon sx={{ fontSize: 18, fontWeight: 900 }} />
-                            </IconButton>
-                          </Tooltip>
-                        </Stack>
-                      </TableCell>
-                    </TableRow>
+                        {/* OBSERVACIONES */}
+                        <TableCell sx={{ fontSize: "0.82rem", color: "#475569", py: 1.8 }}>
+                          {row.obs}
+                        </TableCell>
+
+                        {/* ACCIONES (👁️) (✔) (!) */}
+                        <TableCell align="center" sx={{ py: 1.8 }}>
+                          <Stack direction="row" spacing={1} justifyContent="center" alignItems="center">
+                            {/* BOTÓN OJO: VER RESPUESTA */}
+                            <Tooltip title="Ver respuesta y evidencia del efector" arrow>
+                              <IconButton
+                                size="small"
+                                onClick={() => setViewResponseDialog({ open: true, item: row })}
+                                sx={{
+                                  width: 34,
+                                  height: 34,
+                                  bgcolor: "#f1f5f9",
+                                  color: "#475569",
+                                  border: "1px solid #cbd5e1",
+                                  "&:hover": { bgcolor: "#e2e8f0" },
+                                }}
+                              >
+                                <VisibilityIcon sx={{ fontSize: 18 }} />
+                              </IconButton>
+                            </Tooltip>
+
+                            {/* BOTÓN VALIDAR: CHECK VERDE */}
+                            <Tooltip title="Aceptar / Validar respuesta" arrow>
+                              <IconButton
+                                size="small"
+                                onClick={() => handleUpdateStatus(row.id, "VALIDADO")}
+                                sx={{
+                                  width: 34,
+                                  height: 34,
+                                  bgcolor: isValidado ? "#059669" : "transparent",
+                                  color: isValidado ? "#ffffff" : "#059669",
+                                  border: `1.5px solid ${isValidado ? "#059669" : "#10b981"}`,
+                                  "&:hover": {
+                                    bgcolor: isValidado ? "#047857" : "rgba(16, 185, 129, 0.1)",
+                                  },
+                                }}
+                              >
+                                <CheckIcon sx={{ fontSize: 18, fontWeight: 900 }} />
+                              </IconButton>
+                            </Tooltip>
+
+                            {/* BOTÓN RECHAZAR: EXCLAMACIÓN ROJA */}
+                            <Tooltip title="Rechazar con motivo" arrow>
+                              <IconButton
+                                size="small"
+                                onClick={() => handleOpenRejectDialog(row)}
+                                sx={{
+                                  width: 34,
+                                  height: 34,
+                                  bgcolor: isRechazado ? "#dc2626" : "transparent",
+                                  color: isRechazado ? "#ffffff" : "#dc2626",
+                                  border: `1.5px solid ${isRechazado ? "#dc2626" : "#ef4444"}`,
+                                  "&:hover": {
+                                    bgcolor: isRechazado ? "#b91c1c" : "rgba(239, 68, 68, 0.1)",
+                                  },
+                                }}
+                              >
+                                <PriorityHighIcon sx={{ fontSize: 18, fontWeight: 900 }} />
+                              </IconButton>
+                            </Tooltip>
+                          </Stack>
+                        </TableCell>
+                      </TableRow>
+
+                      {/* CONTENIDO DESPLEGABLE */}
+                      <TableRow sx={{ bgcolor: "#f8fafc" }}>
+                        <TableCell colSpan={4} sx={{ p: 0, borderBottom: isExpanded ? "1px solid #e2e8f0" : "none" }}>
+                          <Collapse in={isExpanded} timeout="auto" unmountOnExit>
+                            <Box sx={{ p: 2.5, bgcolor: "#f8fafc", borderTop: "1px dashed #cbd5e1" }}>
+                              <Typography sx={{ fontWeight: 800, color: "#1e293b", fontSize: "0.82rem", mb: 0.8 }}>
+                                Respuesta del efector ante la observación
+                              </Typography>
+                              <TextField
+                                fullWidth
+                                multiline
+                                disabled
+                                rows={2}
+                                value={RESPUESTAS_EFECTOR_TEXTO[row.id] || row.respuestaEfector}
+                                sx={{
+                                  "& .MuiOutlinedInput-root": {
+                                    bgcolor: "#f1f5f9",
+                                    borderRadius: "8px",
+                                    fontSize: "0.85rem",
+                                    "& fieldset": { borderColor: "#cbd5e1" },
+                                  },
+                                  "& .MuiInputBase-input.Mui-disabled": {
+                                    WebkitTextFillColor: "#334155",
+                                    fontWeight: 500,
+                                  },
+                                }}
+                              />
+                            </Box>
+                          </Collapse>
+                        </TableCell>
+                      </TableRow>
+                    </React.Fragment>
                   );
                 })}
               </TableBody>
@@ -517,99 +587,240 @@ const RevisionActa = () => {
                   const status = statuses[row.id];
                   const isValidado = status === "VALIDADO";
                   const isRechazado = status === "RECHAZADO";
+                  const isExpanded = !!expandedRows[row.id];
+                  const isEquipamiento = row.id === "RF-EQ-01";
 
                   return (
-                    <TableRow key={row.id} hover sx={{ "&:last-child td": { borderBottom: 0 } }}>
-                      {/* ORIGEN */}
-                      <TableCell sx={{ py: 1.8 }}>
-                        <Chip
-                          label={row.origen}
-                          size="small"
-                          sx={{
-                            bgcolor: "#e0f2fe",
-                            color: "#0284c7",
-                            fontWeight: 850,
-                            fontSize: "0.7rem",
-                            borderRadius: "12px",
-                            height: 22,
-                            letterSpacing: 0.3,
-                          }}
-                        />
-                      </TableCell>
-
-                      {/* CATEGORÍA */}
-                      <TableCell sx={{ fontWeight: 800, fontSize: "0.86rem", color: "#1e293b", py: 1.8 }}>
-                        {row.categoria}
-                      </TableCell>
-
-                      {/* OBSERVACIONES */}
-                      <TableCell sx={{ fontSize: "0.82rem", color: "#475569", py: 1.8 }}>
-                        {row.obs}
-                      </TableCell>
-
-                      {/* ACCIONES (👁️) (✔) (!) */}
-                      <TableCell align="center" sx={{ py: 1.8 }}>
-                        <Stack direction="row" spacing={1} justifyContent="center" alignItems="center">
-                          {/* BOTÓN OJO: VER RESPUESTA */}
-                          <Tooltip title="Ver respuesta y evidencia del efector" arrow>
-                            <IconButton
+                    <React.Fragment key={row.id}>
+                      <TableRow hover sx={{ "&:last-child td": { borderBottom: isExpanded ? "1px solid #e2e8f0" : 0 } }}>
+                        {/* ORIGEN CON CHEVRON */}
+                        <TableCell sx={{ py: 1.8 }}>
+                          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                            <Tooltip title={isExpanded ? "Ocultar detalle" : "Ver detalle"}>
+                              <IconButton
+                                size="small"
+                                onClick={() => handleToggleExpand(row.id)}
+                                sx={{
+                                  p: 0.5,
+                                  color: "#005596",
+                                  transition: "transform 0.25s ease",
+                                  transform: isExpanded ? "rotate(180deg)" : "rotate(0deg)",
+                                }}
+                              >
+                                <KeyboardArrowDownIcon sx={{ fontSize: 20 }} />
+                              </IconButton>
+                            </Tooltip>
+                            <Chip
+                              label={row.origen}
                               size="small"
-                              onClick={() => setViewResponseDialog({ open: true, item: row })}
                               sx={{
-                                width: 34,
-                                height: 34,
-                                bgcolor: "#f1f5f9",
-                                color: "#475569",
-                                border: "1px solid #cbd5e1",
-                                "&:hover": { bgcolor: "#e2e8f0" },
+                                bgcolor: "#e0f2fe",
+                                color: "#0284c7",
+                                fontWeight: 850,
+                                fontSize: "0.7rem",
+                                borderRadius: "12px",
+                                height: 22,
+                                letterSpacing: 0.3,
                               }}
-                            >
-                              <VisibilityIcon sx={{ fontSize: 18 }} />
-                            </IconButton>
-                          </Tooltip>
+                            />
+                          </Box>
+                        </TableCell>
 
-                          {/* BOTÓN VALIDAR: CHECK VERDE */}
-                          <Tooltip title="Aceptar / Validar respuesta" arrow>
-                            <IconButton
-                              size="small"
-                              onClick={() => handleUpdateStatus(row.id, "VALIDADO")}
-                              sx={{
-                                width: 34,
-                                height: 34,
-                                bgcolor: isValidado ? "#059669" : "transparent",
-                                color: isValidado ? "#ffffff" : "#059669",
-                                border: `1.5px solid ${isValidado ? "#059669" : "#10b981"}`,
-                                "&:hover": {
-                                  bgcolor: isValidado ? "#047857" : "rgba(16, 185, 129, 0.1)",
-                                },
-                              }}
-                            >
-                              <CheckIcon sx={{ fontSize: 18, fontWeight: 900 }} />
-                            </IconButton>
-                          </Tooltip>
+                        {/* CATEGORÍA */}
+                        <TableCell sx={{ fontWeight: 800, fontSize: "0.86rem", color: "#1e293b", py: 1.8 }}>
+                          {row.categoria}
+                        </TableCell>
 
-                          {/* BOTÓN RECHAZAR: EXCLAMACIÓN ROJA */}
-                          <Tooltip title="Rechazar con motivo" arrow>
-                            <IconButton
-                              size="small"
-                              onClick={() => handleOpenRejectDialog(row)}
-                              sx={{
-                                width: 34,
-                                height: 34,
-                                bgcolor: isRechazado ? "#dc2626" : "transparent",
-                                color: isRechazado ? "#ffffff" : "#dc2626",
-                                border: `1.5px solid ${isRechazado ? "#dc2626" : "#ef4444"}`,
-                                "&:hover": {
-                                  bgcolor: isRechazado ? "#b91c1c" : "rgba(239, 68, 68, 0.1)",
-                                },
-                              }}
-                            >
-                              <PriorityHighIcon sx={{ fontSize: 18, fontWeight: 900 }} />
-                            </IconButton>
-                          </Tooltip>
-                        </Stack>
-                      </TableCell>
-                    </TableRow>
+                        {/* OBSERVACIONES */}
+                        <TableCell sx={{ fontSize: "0.82rem", color: "#475569", py: 1.8 }}>
+                          {row.obs}
+                        </TableCell>
+
+                        {/* ACCIONES (👁️) (✔) (!) */}
+                        <TableCell align="center" sx={{ py: 1.8 }}>
+                          <Stack direction="row" spacing={1} justifyContent="center" alignItems="center">
+                            {/* BOTÓN OJO: VER RESPUESTA */}
+                            <Tooltip title="Ver respuesta y evidencia del efector" arrow>
+                              <IconButton
+                                size="small"
+                                onClick={() => setViewResponseDialog({ open: true, item: row })}
+                                sx={{
+                                  width: 34,
+                                  height: 34,
+                                  bgcolor: "#f1f5f9",
+                                  color: "#475569",
+                                  border: "1px solid #cbd5e1",
+                                  "&:hover": { bgcolor: "#e2e8f0" },
+                                }}
+                              >
+                                <VisibilityIcon sx={{ fontSize: 18 }} />
+                              </IconButton>
+                            </Tooltip>
+
+                            {/* BOTÓN VALIDAR: CHECK VERDE */}
+                            <Tooltip title="Aceptar / Validar respuesta" arrow>
+                              <IconButton
+                                size="small"
+                                onClick={() => handleUpdateStatus(row.id, "VALIDADO")}
+                                sx={{
+                                  width: 34,
+                                  height: 34,
+                                  bgcolor: isValidado ? "#059669" : "transparent",
+                                  color: isValidado ? "#ffffff" : "#059669",
+                                  border: `1.5px solid ${isValidado ? "#059669" : "#10b981"}`,
+                                  "&:hover": {
+                                    bgcolor: isValidado ? "#047857" : "rgba(16, 185, 129, 0.1)",
+                                  },
+                                }}
+                              >
+                                <CheckIcon sx={{ fontSize: 18, fontWeight: 900 }} />
+                              </IconButton>
+                            </Tooltip>
+
+                            {/* BOTÓN RECHAZAR: EXCLAMACIÓN ROJA */}
+                            <Tooltip title="Rechazar con motivo" arrow>
+                              <IconButton
+                                size="small"
+                                onClick={() => handleOpenRejectDialog(row)}
+                                sx={{
+                                  width: 34,
+                                  height: 34,
+                                  bgcolor: isRechazado ? "#dc2626" : "transparent",
+                                  color: isRechazado ? "#ffffff" : "#dc2626",
+                                  border: `1.5px solid ${isRechazado ? "#dc2626" : "#ef4444"}`,
+                                  "&:hover": {
+                                    bgcolor: isRechazado ? "#b91c1c" : "rgba(239, 68, 68, 0.1)",
+                                  },
+                                }}
+                              >
+                                <PriorityHighIcon sx={{ fontSize: 18, fontWeight: 900 }} />
+                              </IconButton>
+                            </Tooltip>
+                          </Stack>
+                        </TableCell>
+                      </TableRow>
+
+                      {/* CONTENIDO DESPLEGABLE */}
+                      <TableRow sx={{ bgcolor: "#f8fafc" }}>
+                        <TableCell colSpan={4} sx={{ p: 0, borderBottom: isExpanded ? "1px solid #e2e8f0" : "none" }}>
+                          <Collapse in={isExpanded} timeout="auto" unmountOnExit>
+                            <Box sx={{ p: 2.5, bgcolor: "#f8fafc", borderTop: "1px dashed #cbd5e1" }}>
+                              {/* EXTRA SOLO EN EQUIPAMIENTO: 2 TABLAS */}
+                              {isEquipamiento && (
+                                <Box sx={{ mb: 2.5 }}>
+                                  {/* TABLA 1: UNIDADES OBSERVADAS (1) */}
+                                  <Paper
+                                    variant="outlined"
+                                    sx={{
+                                      mb: 2,
+                                      borderRadius: "8px",
+                                      overflow: "hidden",
+                                      border: "1px solid #cbd5e1",
+                                    }}
+                                  >
+                                    <Box sx={{ bgcolor: "#e2e8f0", px: 2, py: 1 }}>
+                                      <Typography sx={{ fontWeight: 850, fontSize: "0.78rem", color: "#1e293b", textTransform: "uppercase" }}>
+                                        UNIDADES OBSERVADAS (1)
+                                      </Typography>
+                                    </Box>
+                                    <TableContainer>
+                                      <Table size="small">
+                                        <TableHead sx={{ bgcolor: "#f8fafc" }}>
+                                          <TableRow>
+                                            <TableCell sx={{ fontWeight: 800, fontSize: "0.72rem", color: "#475569" }}>Marca</TableCell>
+                                            <TableCell sx={{ fontWeight: 800, fontSize: "0.72rem", color: "#475569" }}>Modelo</TableCell>
+                                            <TableCell sx={{ fontWeight: 800, fontSize: "0.72rem", color: "#475569" }}>Serie</TableCell>
+                                            <TableCell sx={{ fontWeight: 800, fontSize: "0.72rem", color: "#475569" }}>Condición</TableCell>
+                                            <TableCell sx={{ fontWeight: 800, fontSize: "0.72rem", color: "#475569" }}>Año Fab.</TableCell>
+                                            <TableCell sx={{ fontWeight: 800, fontSize: "0.72rem", color: "#475569" }}>Tipo Revelado</TableCell>
+                                          </TableRow>
+                                        </TableHead>
+                                        <TableBody sx={{ bgcolor: "#ffffff" }}>
+                                          <TableRow sx={{ "&:hover": { bgcolor: "#f8fafc" } }}>
+                                            <TableCell sx={{ fontWeight: 800, fontSize: "0.75rem", color: "#dc2626" }}>SIEMENS</TableCell>
+                                            <TableCell sx={{ fontSize: "0.75rem", color: "#334155" }}>Multix Impact</TableCell>
+                                            <TableCell sx={{ fontSize: "0.75rem", color: "#334155" }}>SN-684291-DE</TableCell>
+                                            <TableCell sx={{ fontWeight: 800, fontSize: "0.75rem", color: "#dc2626" }}>Propio</TableCell>
+                                            <TableCell sx={{ fontWeight: 800, fontSize: "0.75rem", color: "#dc2626" }}>2000</TableCell>
+                                            <TableCell sx={{ fontWeight: 800, fontSize: "0.75rem", color: "#dc2626" }}>DIGITAL</TableCell>
+                                          </TableRow>
+                                        </TableBody>
+                                      </Table>
+                                    </TableContainer>
+                                  </Paper>
+
+                                  {/* TABLA 2: UNIDADES AGREGADAS (1) */}
+                                  <Paper
+                                    variant="outlined"
+                                    sx={{
+                                      borderRadius: "8px",
+                                      overflow: "hidden",
+                                      border: "1px solid #cbd5e1",
+                                    }}
+                                  >
+                                    <Box sx={{ bgcolor: "#e2e8f0", px: 2, py: 1 }}>
+                                      <Typography sx={{ fontWeight: 850, fontSize: "0.78rem", color: "#1e293b", textTransform: "uppercase" }}>
+                                        UNIDADES AGREGADAS (1)
+                                      </Typography>
+                                    </Box>
+                                    <TableContainer>
+                                      <Table size="small">
+                                        <TableHead sx={{ bgcolor: "#f8fafc" }}>
+                                          <TableRow>
+                                            <TableCell sx={{ fontWeight: 800, fontSize: "0.72rem", color: "#475569" }}>Marca</TableCell>
+                                            <TableCell sx={{ fontWeight: 800, fontSize: "0.72rem", color: "#475569" }}>Modelo</TableCell>
+                                            <TableCell sx={{ fontWeight: 800, fontSize: "0.72rem", color: "#475569" }}>Serie</TableCell>
+                                            <TableCell sx={{ fontWeight: 800, fontSize: "0.72rem", color: "#475569" }}>Condición</TableCell>
+                                            <TableCell sx={{ fontWeight: 800, fontSize: "0.72rem", color: "#475569" }}>Año Fab.</TableCell>
+                                            <TableCell sx={{ fontWeight: 800, fontSize: "0.72rem", color: "#475569" }}>Tipo Revelado</TableCell>
+                                          </TableRow>
+                                        </TableHead>
+                                        <TableBody sx={{ bgcolor: "#ffffff" }}>
+                                          <TableRow sx={{ "&:hover": { bgcolor: "#f8fafc" } }}>
+                                            <TableCell sx={{ fontWeight: 800, fontSize: "0.75rem", color: "#16a34a" }}>PHILIPS</TableCell>
+                                            <TableCell sx={{ fontSize: "0.75rem", color: "#334155" }}>Multix Impact</TableCell>
+                                            <TableCell sx={{ fontSize: "0.75rem", color: "#334155" }}>SN-684291-DE</TableCell>
+                                            <TableCell sx={{ fontWeight: 800, fontSize: "0.75rem", color: "#16a34a" }}>Tercerizado</TableCell>
+                                            <TableCell sx={{ fontWeight: 800, fontSize: "0.75rem", color: "#16a34a" }}>2015</TableCell>
+                                            <TableCell sx={{ fontSize: "0.75rem", color: "#334155" }}>DIGITAL</TableCell>
+                                          </TableRow>
+                                        </TableBody>
+                                      </Table>
+                                    </TableContainer>
+                                  </Paper>
+                                </Box>
+                              )}
+
+                              {/* CONTENEDOR: RESPUESTA DEL EFECTOR */}
+                              <Box>
+                                <Typography sx={{ fontWeight: 800, color: "#1e293b", fontSize: "0.82rem", mb: 0.8 }}>
+                                  Respuesta del efector ante la observación
+                                </Typography>
+                                <TextField
+                                  fullWidth
+                                  multiline
+                                  disabled
+                                  rows={2}
+                                  value={RESPUESTAS_EFECTOR_TEXTO[row.id] || row.respuestaEfector}
+                                  sx={{
+                                    "& .MuiOutlinedInput-root": {
+                                      bgcolor: "#f1f5f9",
+                                      borderRadius: "8px",
+                                      fontSize: "0.85rem",
+                                      "& fieldset": { borderColor: "#cbd5e1" },
+                                    },
+                                    "& .MuiInputBase-input.Mui-disabled": {
+                                      WebkitTextFillColor: "#334155",
+                                      fontWeight: 500,
+                                    },
+                                  }}
+                                />
+                              </Box>
+                            </Box>
+                          </Collapse>
+                        </TableCell>
+                      </TableRow>
+                    </React.Fragment>
                   );
                 })}
               </TableBody>

@@ -27,6 +27,11 @@ import {
   TextField,
   Collapse,
   Snackbar,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  FormHelperText,
 } from "@mui/material";
 import {
   ExpandMore as ExpandMoreIcon,
@@ -45,6 +50,7 @@ import {
   Delete as DeleteIcon,
   Add as AddIcon,
   Close as CloseIcon,
+  Cancel as CancelIcon,
   AttachFile as AttachFileIcon,
   KeyboardArrowDown as KeyboardArrowDownIcon,
   KeyboardArrowUp as KeyboardArrowUpIcon,
@@ -74,14 +80,14 @@ const RectificacionTramite = () => {
   // Modal para agregar/editar unidad de equipamiento
   const [addUnitModal, setAddUnitModal] = useState({
     open: false,
-    editIndex: null,
-    marca: "SIEMENS",
-    modelo: "Multix Impact",
-    serie: "SN-684291-DE",
+    marca: "",
+    modelo: "",
+    serie: "",
     condicion: "Propio",
-    anoFab: "2022",
+    anoFab: "",
     tipoRevelado: "DIGITAL",
   });
+  const [addUnitErrors, setAddUnitErrors] = useState({});
 
   // Estado de respuestas cargadas por el Efector { [itemId]: { text, fileName, fecha } }
   const [respuestas, setRespuestas] = useState({});
@@ -156,12 +162,22 @@ const RectificacionTramite = () => {
             id: "RF-TRM-EQ-01",
             elemento: "EQUIPAMIENTO",
             declarado: 1,
-            observado: 0,
+            observado: 1,
             status: "NO CUMPLE",
             tipo: "irregularidad",
-            obs: "no existe",
+            obs: "no corresponden los siguientes campos Marca: SIEMENS, Condición: Propio, Año fabricación: 2000, Tipo revelado: DIGITAL",
             hasSubTable: true,
-            unidadesObservadas: [],
+            unidadesObservadas: [
+              {
+                marca: "SIEMENS",
+                modelo: "Multix Impact",
+                serie: "SN-684291-DE",
+                condicion: "Propio",
+                anoFab: "2000",
+                tipoRevelado: "DIGITAL",
+                obsInspector: "no corresponden los siguientes campos Marca: SIEMENS, Condición: Propio, Año fabricación: 2000, Tipo revelado: DIGITAL",
+              },
+            ],
           },
         ],
       },
@@ -256,66 +272,63 @@ const RectificacionTramite = () => {
   };
 
   // Manejo de unidades a agregar
-  const handleSaveAddUnit = () => {
-    if (addUnitModal.editIndex !== null) {
-      setUnidadesAgregar((prev) =>
-        prev.map((u, i) =>
-          i === addUnitModal.editIndex
-            ? {
-              ...u,
-              marca: addUnitModal.marca,
-              modelo: addUnitModal.modelo,
-              serie: addUnitModal.serie,
-              condicion: addUnitModal.condicion,
-              anoFab: addUnitModal.anoFab,
-              tipoRevelado: addUnitModal.tipoRevelado,
-              obsInspector: addUnitModal.obsInspector || "Valores rectificados por el efector",
-            }
-            : u
-        )
-      );
-    } else {
-      setUnidadesAgregar((prev) => [
-        ...prev,
-        {
-          marca: addUnitModal.marca || "SIEMENS",
-          modelo: addUnitModal.modelo || "Multix Impact",
-          serie: addUnitModal.serie || "SN-" + Math.floor(100000 + Math.random() * 900000),
-          condicion: addUnitModal.condicion || "Propio",
-          anoFab: addUnitModal.anoFab || "2022",
-          tipoRevelado: addUnitModal.tipoRevelado || "DIGITAL",
-          obsInspector: "Valores rectificados por el efector",
-        },
-      ]);
-    }
+  const handleOpenAddUnitModal = () => {
     setAddUnitModal({
-      open: false,
-      editIndex: null,
-      marca: "SIEMENS",
-      modelo: "Multix Impact",
-      serie: "SN-684291-DE",
+      open: true,
+      marca: "",
+      modelo: "",
+      serie: "",
       condicion: "Propio",
-      anoFab: "2022",
+      anoFab: "",
       tipoRevelado: "DIGITAL",
     });
+    setAddUnitErrors({});
+  };
+
+  const handleCancelAddUnit = () => {
+    setAddUnitModal({
+      open: false,
+      marca: "",
+      modelo: "",
+      serie: "",
+      condicion: "Propio",
+      anoFab: "",
+      tipoRevelado: "DIGITAL",
+    });
+    setAddUnitErrors({});
+  };
+
+  const handleSaveAddUnit = () => {
+    const errs = {};
+    if (!addUnitModal.marca?.trim()) errs.marca = "Campo requerido";
+    if (!addUnitModal.modelo?.trim()) errs.modelo = "Campo requerido";
+    if (!addUnitModal.serie?.trim()) errs.serie = "Campo requerido";
+    if (!addUnitModal.condicion?.trim()) errs.condicion = "Campo requerido";
+    if (!addUnitModal.anoFab?.trim()) errs.anoFab = "Campo requerido";
+    if (!addUnitModal.tipoRevelado?.trim()) errs.tipoRevelado = "Campo requerido";
+
+    if (Object.keys(errs).length > 0) {
+      setAddUnitErrors(errs);
+      return;
+    }
+
+    setUnidadesAgregar((prev) => [
+      ...prev,
+      {
+        marca: addUnitModal.marca.trim(),
+        modelo: addUnitModal.modelo.trim(),
+        serie: addUnitModal.serie.trim(),
+        condicion: addUnitModal.condicion,
+        anoFab: addUnitModal.anoFab.trim(),
+        tipoRevelado: addUnitModal.tipoRevelado,
+      },
+    ]);
+
+    handleCancelAddUnit();
   };
 
   const handleDeleteUnit = (index) => {
     setUnidadesAgregar((prev) => prev.filter((_, i) => i !== index));
-  };
-
-  const handleEditUnit = (u, index) => {
-    setAddUnitModal({
-      open: true,
-      editIndex: index,
-      marca: u.marca,
-      modelo: u.modelo,
-      serie: u.serie,
-      condicion: u.condicion,
-      anoFab: u.anoFab,
-      tipoRevelado: u.tipoRevelado,
-      obsInspector: u.obsInspector || "",
-    });
   };
 
   return (
@@ -1117,7 +1130,7 @@ const RectificacionTramite = () => {
                                       </TableContainer>
                                     </Paper>
 
-                                    {/* BLOQUE: UNIDADES A AGREGAR (FOTO 3) */}
+                                    {/* BLOQUE: UNIDADES A AGREGAR */}
                                     <Paper
                                       variant="outlined"
                                       sx={{
@@ -1128,7 +1141,7 @@ const RectificacionTramite = () => {
                                     >
                                       <Box sx={{ bgcolor: "#e2e8f0", px: 2, py: 1 }}>
                                         <Typography sx={{ fontWeight: 850, fontSize: "0.78rem", color: "#1e293b", textTransform: "uppercase" }}>
-                                          UNIDADES A AGREGAR ({unidadesAgregar?.length || 0})
+                                          UNIDADES A AGREGAR ({unidadesAgregar.length})
                                         </Typography>
                                       </Box>
                                       <TableContainer>
@@ -1141,113 +1154,93 @@ const RectificacionTramite = () => {
                                               <TableCell sx={{ fontWeight: 800, fontSize: "0.72rem", color: "#475569" }}>Condición</TableCell>
                                               <TableCell sx={{ fontWeight: 800, fontSize: "0.72rem", color: "#475569" }}>Año Fab.</TableCell>
                                               <TableCell sx={{ fontWeight: 800, fontSize: "0.72rem", color: "#475569" }}>Tipo Revelado</TableCell>
-                                              <TableCell align="center" sx={{ fontWeight: 800, fontSize: "0.72rem", color: "#475569", width: 90 }}>Acciones</TableCell>
+                                              <TableCell align="center" sx={{ fontWeight: 800, fontSize: "0.72rem", color: "#475569" }}>Acciones</TableCell>
                                             </TableRow>
                                           </TableHead>
                                           <TableBody sx={{ bgcolor: "#ffffff" }}>
-                                            {unidadesAgregar?.length === 0 ? (
+                                            {unidadesAgregar.length === 0 ? (
                                               <TableRow sx={{ "&:hover": { bgcolor: "#f8fafc" } }}>
-                                                <TableCell colSpan={6} sx={{ fontSize: "0.75rem", color: "#64748b", py: 1.5 }}>
+                                                <TableCell colSpan={6} sx={{ fontStyle: "italic", color: "#94a3b8", fontSize: "0.75rem", py: 1.2 }}>
                                                   Pendiente de carga
                                                 </TableCell>
-                                                <TableCell align="center" sx={{ py: 1 }}>
-                                                  <IconButton
-                                                    size="small"
-                                                    onClick={() =>
-                                                      setAddUnitModal({
-                                                        open: true,
-                                                        editIndex: null,
-                                                        marca: "",
-                                                        modelo: "",
-                                                        serie: "",
-                                                        condicion: "Propio",
-                                                        anoFab: "",
-                                                        tipoRevelado: "DIGITAL",
-                                                      })
-                                                    }
-                                                    sx={{
-                                                      color: "#005596",
-                                                      bgcolor: "#e0f2fe",
-                                                      border: "1px solid #bae6fd",
-                                                      "&:hover": { bgcolor: "#bae6fd" },
-                                                      width: 26,
-                                                      height: 26,
-                                                    }}
-                                                  >
-                                                    <AddIcon sx={{ fontSize: 16 }} />
-                                                  </IconButton>
+                                                <TableCell align="center" sx={{ py: 0.8 }}>
+                                                  <Tooltip title="Agregar Unidad">
+                                                    <IconButton
+                                                      onClick={handleOpenAddUnitModal}
+                                                      size="small"
+                                                      sx={{
+                                                        bgcolor: "#e0f2fe",
+                                                        color: "#0284c7",
+                                                        border: "1px solid #bae6fd",
+                                                        width: 28,
+                                                        height: 28,
+                                                        borderRadius: "50%",
+                                                        "&:hover": { bgcolor: "#bae6fd" },
+                                                      }}
+                                                    >
+                                                      <AddIcon sx={{ fontSize: 18 }} />
+                                                    </IconButton>
+                                                  </Tooltip>
                                                 </TableCell>
                                               </TableRow>
                                             ) : (
-                                              <>
-                                                {unidadesAgregar.map((u, uIdx) => (
-                                                  <TableRow key={uIdx} sx={{ "&:hover": { bgcolor: "#f8fafc" } }}>
-                                                    <TableCell sx={{ fontWeight: 700, fontSize: "0.75rem", color: "#1e293b" }}>{u.marca}</TableCell>
-                                                    <TableCell sx={{ fontSize: "0.75rem", color: "#334155" }}>{u.modelo}</TableCell>
-                                                    <TableCell sx={{ fontSize: "0.75rem", color: "#334155" }}>{u.serie}</TableCell>
-                                                    <TableCell sx={{ fontSize: "0.75rem", color: "#334155" }}>{u.condicion}</TableCell>
-                                                    <TableCell sx={{ fontSize: "0.75rem", color: "#334155" }}>{u.anoFab}</TableCell>
-                                                    <TableCell sx={{ fontSize: "0.75rem", color: "#334155" }}>{u.tipoRevelado}</TableCell>
-                                                    <TableCell align="center" sx={{ py: 0.8 }}>
-                                                      <Box sx={{ display: "flex", justifyContent: "center", gap: 0.5 }}>
+                                              unidadesAgregar.map((u, uIdx) => (
+                                                <TableRow key={uIdx} sx={{ "&:hover": { bgcolor: "#f8fafc" } }}>
+                                                  <TableCell sx={{ fontSize: "0.75rem", color: "#334155", fontWeight: 700 }}>
+                                                    {u.marca}
+                                                  </TableCell>
+                                                  <TableCell sx={{ fontSize: "0.75rem", color: "#334155" }}>
+                                                    {u.modelo}
+                                                  </TableCell>
+                                                  <TableCell sx={{ fontSize: "0.75rem", color: "#334155" }}>
+                                                    {u.serie}
+                                                  </TableCell>
+                                                  <TableCell sx={{ fontSize: "0.75rem", color: "#334155" }}>
+                                                    {u.condicion}
+                                                  </TableCell>
+                                                  <TableCell sx={{ fontSize: "0.75rem", color: "#334155" }}>
+                                                    {u.anoFab}
+                                                  </TableCell>
+                                                  <TableCell sx={{ fontSize: "0.75rem", color: "#334155" }}>
+                                                    {u.tipoRevelado}
+                                                  </TableCell>
+                                                  <TableCell align="center" sx={{ py: 0.5 }}>
+                                                    <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 1 }}>
+                                                      <Tooltip title="Agregar otra unidad">
                                                         <IconButton
+                                                          onClick={handleOpenAddUnitModal}
                                                           size="small"
-                                                          onClick={() => handleEditUnit(u, uIdx)}
-                                                          sx={{ color: "#0284c7", p: 0.5 }}
+                                                          sx={{
+                                                            bgcolor: "#e0f2fe",
+                                                            color: "#0284c7",
+                                                            border: "1px solid #bae6fd",
+                                                            width: 26,
+                                                            height: 26,
+                                                            borderRadius: "50%",
+                                                            "&:hover": { bgcolor: "#bae6fd" },
+                                                          }}
                                                         >
-                                                          <EditIcon sx={{ fontSize: 16 }} />
+                                                          <AddIcon sx={{ fontSize: 16 }} />
                                                         </IconButton>
+                                                      </Tooltip>
+                                                      <Tooltip title="Eliminar unidad">
                                                         <IconButton
                                                           size="small"
                                                           onClick={() => handleDeleteUnit(uIdx)}
-                                                          sx={{ color: "#ef4444", p: 0.5 }}
+                                                          sx={{ color: "#ef4444", "&:hover": { bgcolor: "#fee2e2" }, width: 26, height: 26 }}
                                                         >
-                                                          <DeleteIcon sx={{ fontSize: 16 }} />
+                                                          <DeleteIcon sx={{ fontSize: 17 }} />
                                                         </IconButton>
-                                                      </Box>
-                                                    </TableCell>
-                                                  </TableRow>
-                                                ))}
-                                                <TableRow sx={{ bgcolor: "#fafafa" }}>
-                                                  <TableCell colSpan={6} sx={{ fontSize: "0.72rem", color: "#64748b", fontStyle: "italic", py: 1 }}>
-                                                    Agregar otra unidad rectificatoria
-                                                  </TableCell>
-                                                  <TableCell align="center" sx={{ py: 1 }}>
-                                                    <IconButton
-                                                      size="small"
-                                                      onClick={() =>
-                                                        setAddUnitModal({
-                                                          open: true,
-                                                          editIndex: null,
-                                                          marca: "",
-                                                          modelo: "",
-                                                          serie: "",
-                                                          condicion: "Propio",
-                                                          anoFab: "",
-                                                          tipoRevelado: "DIGITAL",
-                                                        })
-                                                      }
-                                                      sx={{
-                                                        color: "#005596",
-                                                        bgcolor: "#e0f2fe",
-                                                        border: "1px solid #bae6fd",
-                                                        "&:hover": { bgcolor: "#bae6fd" },
-                                                        width: 26,
-                                                        height: 26,
-                                                      }}
-                                                    >
-                                                      <AddIcon sx={{ fontSize: 16 }} />
-                                                    </IconButton>
+                                                      </Tooltip>
+                                                    </Box>
                                                   </TableCell>
                                                 </TableRow>
-                                              </>
+                                              ))
                                             )}
                                           </TableBody>
                                         </Table>
                                       </TableContainer>
                                     </Paper>
-
-
                                   </Box>
                                 </Collapse>
                               )}
@@ -1466,82 +1459,164 @@ const RectificacionTramite = () => {
         </DialogActions>
       </Dialog>
 
-      {/* DIALOG PARA AGREGAR / EDITAR UNIDAD */}
+      {/* DIALOG PARA AGREGAR UNIDAD (FOTO 3) */}
       <Dialog
         open={addUnitModal.open}
-        onClose={() => setAddUnitModal({ open: false, editIndex: null, marca: "", modelo: "", serie: "", condicion: "Tercerizado", pmDeclarado: "", pmObservado: "-" })}
-        maxWidth="sm"
+        onClose={handleCancelAddUnit}
+        maxWidth="xs"
         fullWidth
-        PaperProps={{ sx: { borderRadius: 3 } }}
+        PaperProps={{ sx: { borderRadius: 2, overflow: "hidden" } }}
       >
-        <DialogTitle sx={{ bgcolor: "#005596", color: "white", fontWeight: 850, py: 2 }}>
-          {addUnitModal.editIndex !== null ? "Editar Unidad a Agregar" : "Cargar Unidad a Agregar"}
+        <DialogTitle
+          sx={{
+            bgcolor: "#005596",
+            color: "white",
+            fontWeight: 900,
+            py: 1.8,
+            textAlign: "center",
+            fontSize: "1.1rem",
+            letterSpacing: 0.5,
+          }}
+        >
+          NUEVO EQUIPO
         </DialogTitle>
-        <DialogContent sx={{ p: 3, mt: 1 }}>
-          <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 2 }}>
-            <TextField
-              label="Marca"
-              value={addUnitModal.marca}
-              onChange={(e) => setAddUnitModal((prev) => ({ ...prev, marca: e.target.value }))}
-              size="small"
-              fullWidth
-            />
-            <TextField
-              label="Modelo"
-              value={addUnitModal.modelo}
-              onChange={(e) => setAddUnitModal((prev) => ({ ...prev, modelo: e.target.value }))}
-              size="small"
-              fullWidth
-            />
-            <TextField
-              label="Serie"
-              value={addUnitModal.serie}
-              onChange={(e) => setAddUnitModal((prev) => ({ ...prev, serie: e.target.value }))}
-              size="small"
-              fullWidth
-            />
-            <TextField
-              label="Condición"
+        <DialogContent
+          sx={{
+            p: 3,
+            pt: "28px !important",
+            display: "flex",
+            flexDirection: "column",
+            gap: 2.2,
+          }}
+        >
+          <TextField
+            variant="standard"
+            label="Marca *"
+            value={addUnitModal.marca}
+            onChange={(e) => {
+              setAddUnitModal((prev) => ({ ...prev, marca: e.target.value }));
+              if (addUnitErrors.marca) setAddUnitErrors((prev) => ({ ...prev, marca: null }));
+            }}
+            error={!!addUnitErrors.marca}
+            helperText={addUnitErrors.marca}
+            fullWidth
+            autoFocus
+          />
+          <TextField
+            variant="standard"
+            label="Modelo *"
+            value={addUnitModal.modelo}
+            onChange={(e) => {
+              setAddUnitModal((prev) => ({ ...prev, modelo: e.target.value }));
+              if (addUnitErrors.modelo) setAddUnitErrors((prev) => ({ ...prev, modelo: null }));
+            }}
+            error={!!addUnitErrors.modelo}
+            helperText={addUnitErrors.modelo}
+            fullWidth
+          />
+          <TextField
+            variant="standard"
+            label="Serie *"
+            value={addUnitModal.serie}
+            onChange={(e) => {
+              setAddUnitModal((prev) => ({ ...prev, serie: e.target.value }));
+              if (addUnitErrors.serie) setAddUnitErrors((prev) => ({ ...prev, serie: null }));
+            }}
+            error={!!addUnitErrors.serie}
+            helperText={addUnitErrors.serie}
+            fullWidth
+          />
+          <FormControl variant="standard" fullWidth error={!!addUnitErrors.condicion}>
+            <InputLabel id="condicion-select-label">Condición *</InputLabel>
+            <Select
+              labelId="condicion-select-label"
               value={addUnitModal.condicion}
-              onChange={(e) => setAddUnitModal((prev) => ({ ...prev, condicion: e.target.value }))}
-              size="small"
-              fullWidth
-            />
-            <TextField
-              label="Año Fabricación"
-              value={addUnitModal.anoFab}
-              onChange={(e) => setAddUnitModal((prev) => ({ ...prev, anoFab: e.target.value }))}
-              size="small"
-              fullWidth
-            />
-            <TextField
-              label="Tipo Revelado"
+              onChange={(e) => {
+                setAddUnitModal((prev) => ({ ...prev, condicion: e.target.value }));
+                if (addUnitErrors.condicion) setAddUnitErrors((prev) => ({ ...prev, condicion: null }));
+              }}
+              label="Condición *"
+            >
+              <MenuItem value="Propio">Propio</MenuItem>
+              <MenuItem value="Tercerizado">Tercerizado</MenuItem>
+              <MenuItem value="Alquilado">Alquilado</MenuItem>
+              <MenuItem value="Comodato">Comodato</MenuItem>
+            </Select>
+            {addUnitErrors.condicion && <FormHelperText>{addUnitErrors.condicion}</FormHelperText>}
+          </FormControl>
+          <TextField
+            variant="standard"
+            label="Año fabricación *"
+            value={addUnitModal.anoFab}
+            onChange={(e) => {
+              setAddUnitModal((prev) => ({ ...prev, anoFab: e.target.value }));
+              if (addUnitErrors.anoFab) setAddUnitErrors((prev) => ({ ...prev, anoFab: null }));
+            }}
+            error={!!addUnitErrors.anoFab}
+            helperText={addUnitErrors.anoFab}
+            fullWidth
+          />
+          <FormControl variant="standard" fullWidth error={!!addUnitErrors.tipoRevelado}>
+            <InputLabel id="revelado-select-label">Tipo de revelado *</InputLabel>
+            <Select
+              labelId="revelado-select-label"
               value={addUnitModal.tipoRevelado}
-              onChange={(e) => setAddUnitModal((prev) => ({ ...prev, tipoRevelado: e.target.value }))}
-              size="small"
-              fullWidth
-            />
-          </Box>
+              onChange={(e) => {
+                setAddUnitModal((prev) => ({ ...prev, tipoRevelado: e.target.value }));
+                if (addUnitErrors.tipoRevelado) setAddUnitErrors((prev) => ({ ...prev, tipoRevelado: null }));
+              }}
+              label="Tipo de revelado *"
+            >
+              <MenuItem value="DIGITAL">DIGITAL</MenuItem>
+              <MenuItem value="ANALÓGICO">ANALÓGICO</MenuItem>
+            </Select>
+            {addUnitErrors.tipoRevelado && <FormHelperText>{addUnitErrors.tipoRevelado}</FormHelperText>}
+          </FormControl>
         </DialogContent>
-        <DialogActions sx={{ p: 2.5, bgcolor: "#f8fafc", borderTop: "1px solid #e2e8f0" }}>
+        <DialogActions
+          sx={{
+            px: 3,
+            pb: 3,
+            pt: 1.5,
+            display: "flex",
+            justifyContent: "space-between",
+          }}
+        >
           <Button
-            onClick={() =>
-              setAddUnitModal({
-                open: false,
-                editIndex: null,
-                marca: "SIEMENS",
-                modelo: "Multix Impact",
-                serie: "SN-684291-DE",
-                condicion: "Propio",
-                anoFab: "2022",
-                tipoRevelado: "DIGITAL",
-              })
-            }
+            variant="contained"
+            onClick={handleCancelAddUnit}
+            startIcon={<CancelIcon sx={{ fontSize: 18 }} />}
+            sx={{
+              bgcolor: "#d32f2f",
+              "&:hover": { bgcolor: "#b71c1c" },
+              color: "white",
+              fontWeight: 800,
+              textTransform: "uppercase",
+              px: 2.5,
+              py: 0.9,
+              borderRadius: 1.5,
+              boxShadow: "none",
+            }}
           >
-            Cancelar
+            CANCELAR
           </Button>
-          <Button variant="contained" onClick={handleSaveAddUnit} sx={{ bgcolor: "#005596", fontWeight: 800 }}>
-            Guardar Unidad
+          <Button
+            variant="contained"
+            onClick={handleSaveAddUnit}
+            endIcon={<SendIcon sx={{ fontSize: 18 }} />}
+            sx={{
+              bgcolor: "#005596",
+              "&:hover": { bgcolor: "#004377" },
+              color: "white",
+              fontWeight: 800,
+              textTransform: "uppercase",
+              px: 2.5,
+              py: 0.9,
+              borderRadius: 1.5,
+              boxShadow: "none",
+            }}
+          >
+            AGREGAR
           </Button>
         </DialogActions>
       </Dialog>
