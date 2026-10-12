@@ -16,6 +16,7 @@ const getTipologiaIcon = (tipologia?: string) => {
   if (t.includes('DIÁLISIS')) return 'water_drop'
   if (t.includes('ODONTOL') || t.includes('DENTAL')) return 'dentistry'
   if (t.includes('CONSULTORIO')) return 'medical_services'
+  if (t.includes('RADIOFÍSICA') || t.includes('RADIOFISICA') || t.includes('RAYOS')) return 'sensors'
   if (t.includes('CIRUGÍA')) return 'healing'
   return 'domain'
 }

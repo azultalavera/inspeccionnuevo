@@ -45,6 +45,7 @@ import {
   ReportProblem as ReportProblemIcon,
   Message as MessageIcon,
   PhotoCamera,
+  Sensors as SensorsIcon,
 } from "@mui/icons-material";
 import ReporteInspeccionPDF from "../../../../ReporteInspeccion.pdf";
 
@@ -59,7 +60,20 @@ const RevisionActaView = ({
   onIrAInspeccion,
   showIrAInspeccion = false,
   rol = null,
+  tramite = null,
+  isRadiofisica = false,
+  tipoServicio = "Rayos X",
+  subservicio = "Radiología Convencional Simple",
 }) => {
+  const esRadiofisicaActual = Boolean(
+    isRadiofisica ||
+    tramite?.tipologia?.toUpperCase().includes("RADIOFÍSICA") ||
+    tramite?.tipologia?.toUpperCase().includes("RADIOFISICA") ||
+    tramite?.denominacion?.toUpperCase().includes("RADIOFÍSICA") ||
+    tramite?.denominacion?.toUpperCase().includes("RADIOFISICA") ||
+    tramite?.id?.includes("RF")
+  );
+
   // Pestañas: 0 = ACTA 1, 1 = ACTA 2 (Respuesta Emplazamiento), 2 = ACTA 3 (Aprobada)
   const [activeTab, setActiveTab] = useState(1);
   const [statuses, setStatuses] = useState({});
@@ -277,6 +291,98 @@ const RevisionActaView = ({
       };
     }
 
+    if (esRadiofisicaActual) {
+      return {
+        mainTitle: "Acta de Radiofísica y Protección Radiológica",
+        otherTitle: "DATOS TRÁMITE Y ANTECEDENTES",
+        otherCount: 2,
+        otherHelp: "Evaluaciones técnicas complementarias por Arquitectura y Auditoría Sanitaria",
+        sections: [
+          {
+            category: "1. MATERIALIDAD DE LA SALA Y BLINDAJE PLOMADO",
+            items: [
+              {
+                id: "rf_muros_plomados",
+                elemento: "LÁMINA DE PLOMO EN MUROS (TABIQUE SUR - 2.0 MM PB)",
+                statusObs: "NO CUMPLE",
+                obs: "El muro divisorio colindante a sala de espera pública carece de la atenuación de 2.0 mm Pb equivalente calculada para la carga semanal de trabajo del tubo de rayos X.",
+                respuesta: "Se colocó tabique de emplomado continuo de 2.0 mm Pb con solape estanco de 2 cm conforme a memoria técnica visada por el Colegio de Ingenieros Especialistas (CIE).",
+                evidence: "https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=800",
+              },
+              {
+                id: "rf_puerta_visor",
+                elemento: "PUERTA DE ACCESO Y VISOR DE VIDRIO PLOMADO",
+                statusObs: "NO CUMPLE",
+                obs: "La puerta de acceso batiente presenta fuga en umbral inferior y el visor instalado es vidrio común sin certificación de atenuación equivalente a 2.0 mm Pb.",
+                respuesta: "Se reemplazó el visor por vidrio plomado de 2.1 mm Pb certificado con ensayo de atenuación óptica y se instaló burlete plomado perimetral con solape en marco.",
+                evidence: "https://images.unsplash.com/photo-1516549655169-df83a0774514?w=800",
+              },
+            ],
+          },
+          {
+            category: "2. ELEMENTOS DE PROTECCIÓN PERSONAL (EPP) Y DOSIMETRÍA",
+            items: [
+              {
+                id: "rf_epp_delantales",
+                elemento: "INTEGRIDAD RADIOLÓGICA DE DELANTALES PLOMADOS Y TIROIDEOS",
+                statusObs: "NO CUMPLE",
+                obs: "Dos delantales plomados presentaron fisuras internas por plegado inadecuado constatadas bajo control fluoroscópico; sin protectores tiroideos.",
+                respuesta: "Se adquirieron 3 delantales plomados nuevos de 0.5 mm Pb marca Bar-Ray homologados y 2 collares tiroideos con garantía de fábrica y control radioscópico de conformidad sin fisuras.",
+                evidence: "https://images.unsplash.com/photo-1584515979956-d9f6e5d09982?w=800",
+              },
+              {
+                id: "rf_dosimetria_personal",
+                elemento: "DOSIMETRÍA PERSONAL Y REGISTRO HISTÓRICO TRIMESTRAL",
+                statusObs: "NO CUMPLE",
+                obs: "Falta reporte de dosimetría de cuerpo entero de los últimos dos bimestres para 3 técnicos radiólogos que operan el equipo generador.",
+                respuesta: "Se adjunta historial dosimétrico emitido por el laboratorio TECNODOSIS S.R.L. habilitado por la ARN con lecturas actualizadas registradas dentro de los límites anuales permitidos (< 20 mSv/año).",
+                evidence: "https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=800",
+              },
+            ],
+          },
+          {
+            category: "3. SEÑALIZACIÓN DE SEGURIDAD Y ENCLAVAMIENTO RADIOLÓGICO",
+            items: [
+              {
+                id: "rf_senaletica_luz",
+                elemento: "SEÑALIZACIÓN LUMINOSA DE ADVERTENCIA EN ACCESO",
+                statusObs: "NO CUMPLE",
+                obs: "No se encuentra operativo el artefacto lumínico de advertencia color rojo sincronizado automáticamente con el comando de disparo del equipo de rayos X.",
+                respuesta: "Se reparó e instaló el circuito eléctrico de señalización luminosa en dintel de acceso con indicador retroiluminado rojo 'RADIACIÓN - PROHIBIDO PASAR' sincronizado al disparo.",
+                evidence: "https://images.unsplash.com/photo-1579684385127-1ef15d508118?w=800",
+              },
+            ],
+          },
+          {
+            category: "4. EQUIPO GENERADOR DE RAYOS X Y PRUEBA DE FUGA",
+            items: [
+              {
+                id: "rf_prueba_fuga",
+                elemento: "PRUEBA DE FUGA DEL CABEZAL Y CALIBRACIÓN DE COLIMADOR",
+                statusObs: "NO CUMPLE",
+                obs: "La medición de radiación de fuga a 1 metro en flanco lateral derecho arrojó 1.35 mGy/h (límite máximo permitido: 1.0 mGy/h según Norma AR 10.1.1).",
+                respuesta: "Servicio técnico oficial SIEMENS calibró el colimador de apertura manual y reemplazó empaques de plomo del cabezal emisor. Nueva medición certifica 0.26 mGy/h a 1 metro.",
+                evidence: "https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=800",
+              },
+            ],
+          },
+          {
+            category: "5. RESPONSABLE DE USO Y PERMISO ARN",
+            items: [
+              {
+                id: "rf_permiso_arn",
+                elemento: "PERMISO INDIVIDUAL ARN DEL RESPONSABLE DE USO",
+                statusObs: "NO CUMPLE",
+                obs: "Permiso Individual de Uso otorgado por la Autoridad Regulatoria Nuclear (ARN) del Responsable de Uso Lic. Martín S. Benítez vencido al momento de la inspección.",
+                respuesta: "Se adjunta Certificado de Renovación emitido por la ARN bajo Resolución N° PI-84920/26 con vigencia reglamentaria quinquenal 2026-2031 para diagnóstico médico con rayos X.",
+                evidence: "https://images.unsplash.com/photo-1603398938378-e54eab446dde?w=800",
+              },
+            ],
+          },
+        ],
+      };
+    }
+
     // INSPECTOR (Default): Datos Generales exactamente como en la imagen
     return {
       mainTitle: "Datos Generales",
@@ -312,175 +418,276 @@ const RevisionActaView = ({
         },
       ],
     };
-  }, [rol]);
+  }, [rol, esRadiofisicaActual]);
 
   // Apartados del Trámite evaluados por otros agentes (Arquitectura y Auditoría)
-  const apartadosOtrosAgentes = useMemo(() => [
-    {
-      id: "step_arq",
-      stepNumber: 1,
-      apartado: "Paso 1: Planos y Arquitectura",
-      area: "Arquitectura y Edificación",
-      rolResponsable: "ARQUITECTO",
-      agenteNombre: "Arq. Gonzalo Morales",
-      estadoGeneral: "VALIDADO",
-      totalItems: 4,
-      validados: 4,
-      items: [
+  const apartadosOtrosAgentes = useMemo(() => {
+    if (esRadiofisicaActual) {
+      return [
         {
-          id: "DISTRIBUCIÓN DE ÁREAS Y CIRCULACIONES",
-          elemento: "DISTRIBUCIÓN DE ÁREAS Y CIRCULACIONES",
-          statusObs: "NO CUMPLE",
-          obs: "El plano de edificación presentado no coincide con la distribución espacial actual de consultorios y circulaciones asistenciales.",
-          respuesta: "Se adjunta plano digital visado por el Colegio de Arquitectos con firma digital oficial válida y distribución conforme a obra.",
-          evidence: "https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=800",
-          evaluador: "Arq. Gonzalo Morales (Arquitectura)",
-          estado: "VALIDADO",
-          fecha: "Hoy, 10:15 hs",
+          id: "step_arq_rf",
+          stepNumber: 1,
+          apartado: "Paso 1: Planos y Memoria de Blindaje",
+          area: "Arquitectura y Blindaje Radiológico",
+          rolResponsable: "ARQUITECTO",
+          agenteNombre: "Arq. Gonzalo Morales",
+          estadoGeneral: "VALIDADO",
+          totalItems: 1,
+          validados: 1,
+          items: [
+            {
+              id: "PLANO DE BLINDAJE PLOMADO EN RAYOS X (2MM PB)",
+              elemento: "PLANO DE BLINDAJE PLOMADO EN RAYOS X (2MM PB)",
+              statusObs: "NO CUMPLE",
+              obs: "Falta cálculo de blindaje y especificación técnica en plano de lámina de plomo en tabique sur y panel de comando.",
+              respuesta: "Se adjunta plano digital visado por el Colegio de Ingenieros Especialistas (CIE) con memoria técnica de cálculo de blindaje plomado de 2mm Pb conforme a obra.",
+              evidence: "https://images.unsplash.com/photo-1579684385127-1ef15d508118?w=800",
+              evaluador: "Arq. Gonzalo Morales (Arquitectura)",
+              estado: "VALIDADO",
+              fecha: "Hoy, 10:50 hs",
+            },
+          ],
         },
         {
-          id: "VÍAS DE ESCAPE Y ANCHO DE PASILLOS",
-          elemento: "VÍAS DE ESCAPE Y ANCHO DE PASILLOS",
-          statusObs: "NO CUMPLE",
-          obs: "Ancho libre de pasillo de evacuación inferior al estándar reglamentario y fecha de plano de evacuación vencida.",
-          respuesta: "Se removieron tabiques provisorios y se amplió el pasillo central a 2.40 metros libres conforme a plano de evacuación aprobado.",
-          evidence: "https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=800",
-          evaluador: "Arq. Gonzalo Morales (Arquitectura)",
-          estado: "VALIDADO",
-          fecha: "Hoy, 10:20 hs",
+          id: "step_aud_rf",
+          stepNumber: 2,
+          apartado: "Paso 2: Habilitación Sanitaria y Documentación Institucional",
+          area: "Auditoría Legal y Sanitaria",
+          rolResponsable: "AUDITOR",
+          agenteNombre: "Dra. Silvina Romero",
+          estadoGeneral: "VALIDADO",
+          totalItems: 1,
+          validados: 1,
+          items: [
+            {
+              id: "CONTRATO INSTITUCIONAL Y DIRECCIÓN TÉCNICA",
+              elemento: "DESIGNACIÓN Y MATRÍCULA DE ESPECIALISTA EN RADIOFÍSICA",
+              statusObs: "NO CUMPLE",
+              obs: "Falta constancia de designación formal de Responsable de Instalación y vigencia de matrícula profesional especialista.",
+              respuesta: "Se adjunta acta de designación del Ing. Carlos A. Varela, certificado de matrícula del Colegio Profesional y pago de aranceles anuales.",
+              evidence: "https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=800",
+              evaluador: "Dra. Silvina Romero (Auditoría Central)",
+              estado: "VALIDADO",
+              fecha: "Ayer, 17:15 hs",
+            },
+          ],
         },
-        {
-          id: "METRAJE REGLAMENTARIO DE INTERNACIÓN (M² POR CAMA)",
-          elemento: "METRAJE REGLAMENTARIO DE INTERNACIÓN (M² POR CAMA)",
-          statusObs: "NO CUMPLE",
-          obs: "Excedente de camas transitorias que no respeta los metros cuadrados mínimos por cama exigidos por Ley 9847.",
-          respuesta: "Se retiraron 4 camas excedentes ajustando la superficie reglamentaria a 7.5 m² mínimos por unidad en plano adjunto.",
-          evidence: "https://images.unsplash.com/photo-1516549655169-df83a0774514?w=800",
-          evaluador: "Arq. Gonzalo Morales (Arquitectura)",
-          estado: "VALIDADO",
-          fecha: "Hoy, 10:35 hs",
-        },
-        {
-          id: "PLANO DE BLINDAJE PLOMADO EN RAYOS X (2MM PB)",
-          elemento: "PLANO DE BLINDAJE PLOMADO EN RAYOS X (2MM PB)",
-          statusObs: "NO CUMPLE",
-          obs: "Falta cálculo de blindaje y especificación técnica en plano de lámina de plomo en puerta de acceso y panel de comando.",
-          respuesta: "Se instaló revestimiento de plomo de 2mm Pb con certificado de conformidad técnica y plano de radiofísica visado.",
-          evidence: "https://images.unsplash.com/photo-1579684385127-1ef15d508118?w=800",
-          evaluador: "Arq. Gonzalo Morales (Arquitectura)",
-          estado: "VALIDADO",
-          fecha: "Hoy, 10:50 hs",
-        },
-      ],
-    },
-    {
-      id: "step_servicios",
-      stepNumber: 4,
-      apartado: "Paso 4: Servicios y Quirófanos",
-      area: "Auditoría Médica y Asistencial",
-      rolResponsable: "AUDITOR",
-      agenteNombre: "Dr. Carlos Medina",
-      estadoGeneral: "VALIDADO",
-      totalItems: 1,
-      validados: 1,
-      items: [
-        {
-          id: "HABILITACIÓN OPERATIVA DE QUIRÓFANOS",
-          elemento: "HABILITACIÓN OPERATIVA DE QUIRÓFANOS",
-          statusObs: "NO CUMPLE",
-          obs: "No se constatan 6 quirófanos operativos con equipamiento biomédico y anestesiología activa (declarados 11, operativos 5).",
-          respuesta: "Los 6 quirófanos restantes finalizaron obras de reacondicionamiento y cuentan con aparatología calibrada; se adjuntan actas.",
-          evidence: "https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=800",
-          evaluador: "Dr. Carlos Medina (Auditoría Médica)",
-          estado: "VALIDADO",
-          fecha: "Ayer, 16:40 hs",
-        },
-      ],
-    },
-    {
-      id: "step_rrhh",
-      stepNumber: 5,
-      apartado: "Paso 5: Recursos Humanos y Dirección Médica",
-      area: "Auditoría Sanitaria",
-      rolResponsable: "AUDITOR",
-      agenteNombre: "Dra. Silvina Romero",
-      estadoGeneral: "VALIDADO",
-      totalItems: 1,
-      validados: 1,
-      items: [
-        {
-          id: "DESIGNACIÓN FORMAL DE DIRECTOR MÉDICO Y MATRÍCULAS",
-          elemento: "DESIGNACIÓN FORMAL DE DIRECTOR MÉDICO Y MATRÍCULAS",
-          statusObs: "NO CUMPLE",
-          obs: "Falta constancia de designación formal de Director Médico y nómina de cobertura de enfermería para el sector de guardia.",
-          respuesta: "Se adjunta acta de designación formal, aceptación del cargo, matrícula provincial habilitante y cronograma mensual de guardias.",
-          evidence: "https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=800",
-          evaluador: "Dra. Silvina Romero (Auditoría Central)",
-          estado: "VALIDADO",
-          fecha: "Ayer, 17:15 hs",
-        },
-      ],
-    },
-    {
-      id: "step_equipos",
-      stepNumber: 7,
-      apartado: "Paso 7: Equipamiento Biomédico",
-      area: "Ingeniería Biomédica",
-      rolResponsable: "AUDITOR",
-      agenteNombre: "Ing. Marcelo Rossi",
-      estadoGeneral: "VALIDADO",
-      totalItems: 1,
-      validados: 1,
-      items: [
-        {
-          id: "DESFIBRILADORES DEA Y RESPIRADORES DE ALTA COMPLEJIDAD",
-          elemento: "DESFIBRILADORES DEA Y RESPIRADORES DE ALTA COMPLEJIDAD",
-          statusObs: "NO CUMPLE",
-          obs: "Falta un cardiodesfibrilador operativo en consultorios y dos respiradores declarados se encontraban fuera de servicio.",
-          respuesta: "Se incorporó DEA nuevo en sector de consultorios y se adjuntan certificados de calibración y service oficial de respiradores.",
-          evidence: "https://images.unsplash.com/photo-1603398938378-e54eab446dde?w=800",
-          evaluador: "Ing. Marcelo Rossi (Biomédica Rugepresa)",
-          estado: "VALIDADO",
-          fecha: "Hoy, 09:20 hs",
-        },
-      ],
-    },
-    {
-      id: "step_residuos",
-      stepNumber: 8,
-      apartado: "Paso 8: Documentación, Residuos y Bioquímica",
-      area: "Auditoría Ambiental y Bioquímica",
-      rolResponsable: "AUDITOR",
-      agenteNombre: "Auditoría Central Rugepresa",
-      estadoGeneral: "VALIDADO",
-      totalItems: 2,
-      validados: 2,
-      items: [
-        {
-          id: "CONTRATO DE RESIDUOS PATÓGENOS Y ÚLTIMO MANIFIESTO",
-          elemento: "CONTRATO DE RESIDUOS PATÓGENOS Y ÚLTIMO MANIFIESTO",
-          statusObs: "NO CUMPLE",
-          obs: "Contrato de servicio de recolección de residuos patógenos vencido o sin comprobante de última recolección.",
-          respuesta: "Se adjunta prórroga de contrato con empresa recolectora habilitada y último manifiesto ambiental de retiro de residuos.",
-          evidence: "https://images.unsplash.com/photo-1584515979956-d9f6e5d09982?w=800",
-          evaluador: "Auditoría Ambiental (Rugepresa)",
-          estado: "VALIDADO",
-          fecha: "Hoy, 11:05 hs",
-        },
-        {
-          id: "HABILITACIÓN POR COBICO Y CONTROL DE CALIDAD",
-          elemento: "HABILITACIÓN POR COBICO Y CONTROL DE CALIDAD",
-          statusObs: "NO CUMPLE",
-          obs: "Falta constancia de habilitación ante COBICO y protocolo de control de calidad analítico interlaboratorio.",
-          respuesta: "Se adjunta acreditación ante COBICO y reportes del programa de evaluación externa de calidad.",
-          evidence: "https://images.unsplash.com/photo-1532938911079-1b06ac7ceec7?w=800",
-          evaluador: "Auditoría Bioquímica (Rugepresa)",
-          estado: "VALIDADO",
-          fecha: "Hoy, 11:30 hs",
-        },
-      ],
-    },
-  ], []);
+      ];
+    }
+
+    return [
+      {
+        id: "step_arq",
+        stepNumber: 1,
+        apartado: "Paso 1: Planos y Arquitectura",
+        area: "Arquitectura y Edificación",
+        rolResponsable: "ARQUITECTO",
+        agenteNombre: "Arq. Gonzalo Morales",
+        estadoGeneral: "VALIDADO",
+        totalItems: 4,
+        validados: 4,
+        items: [
+          {
+            id: "DISTRIBUCIÓN DE ÁREAS Y CIRCULACIONES",
+            elemento: "DISTRIBUCIÓN DE ÁREAS Y CIRCULACIONES",
+            statusObs: "NO CUMPLE",
+            obs: "El plano de edificación presentado no coincide con la distribución espacial actual de consultorios y circulaciones asistenciales.",
+            respuesta: "Se adjunta plano digital visado por el Colegio de Arquitectos con firma digital oficial válida y distribución conforme a obra.",
+            evidence: "https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=800",
+            evaluador: "Arq. Gonzalo Morales (Arquitectura)",
+            estado: "VALIDADO",
+            fecha: "Hoy, 10:15 hs",
+          },
+          {
+            id: "VÍAS DE ESCAPE Y ANCHO DE PASILLOS",
+            elemento: "VÍAS DE ESCAPE Y ANCHO DE PASILLOS",
+            statusObs: "NO CUMPLE",
+            obs: "Ancho libre de pasillo de evacuación inferior al estándar reglamentario y fecha de plano de evacuación vencida.",
+            respuesta: "Se removieron tabiques provisorios y se amplió el pasillo central a 2.40 metros libres conforme a plano de evacuación aprobado.",
+            evidence: "https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=800",
+            evaluador: "Arq. Gonzalo Morales (Arquitectura)",
+            estado: "VALIDADO",
+            fecha: "Hoy, 10:20 hs",
+          },
+          {
+            id: "METRAJE REGLAMENTARIO DE INTERNACIÓN (M² POR CAMA)",
+            elemento: "METRAJE REGLAMENTARIO DE INTERNACIÓN (M² POR CAMA)",
+            statusObs: "NO CUMPLE",
+            obs: "Excedente de camas transitorias que no respeta los metros cuadrados mínimos por cama exigidos por Ley 9847.",
+            respuesta: "Se retiraron 4 camas excedentes ajustando la superficie reglamentaria a 7.5 m² mínimos por unidad en plano adjunto.",
+            evidence: "https://images.unsplash.com/photo-1516549655169-df83a0774514?w=800",
+            evaluador: "Arq. Gonzalo Morales (Arquitectura)",
+            estado: "VALIDADO",
+            fecha: "Hoy, 10:35 hs",
+          },
+          {
+            id: "PLANO DE BLINDAJE PLOMADO EN RAYOS X (2MM PB)",
+            elemento: "PLANO DE BLINDAJE PLOMADO EN RAYOS X (2MM PB)",
+            statusObs: "NO CUMPLE",
+            obs: "Falta cálculo de blindaje y especificación técnica en plano de lámina de plomo en puerta de acceso y panel de comando.",
+            respuesta: "Se instaló revestimiento de plomo de 2mm Pb con certificado de conformidad técnica y plano de radiofísica visado.",
+            evidence: "https://images.unsplash.com/photo-1579684385127-1ef15d508118?w=800",
+            evaluador: "Arq. Gonzalo Morales (Arquitectura)",
+            estado: "VALIDADO",
+            fecha: "Hoy, 10:50 hs",
+          },
+        ],
+      },
+      {
+        id: "step_doc_habilitaciones",
+        stepNumber: 2,
+        apartado: "Paso 2: Documentación, Habilitaciones y Seguridad",
+        area: "Auditoría Legal y Seguridad Sanitaria",
+        rolResponsable: "AUDITOR",
+        agenteNombre: "Dra. Silvina Romero",
+        estadoGeneral: "VALIDADO",
+        totalItems: 3,
+        validados: 3,
+        items: [
+          {
+            id: "CERTIFICADO DE BOMBEROS POLICÍA DE CÓRDOBA",
+            elemento: "CERTIFICADO DE BOMBEROS (RENOVADO)",
+            statusObs: "NO CUMPLE",
+            obs: "Certificado anterior vencido en Enero 2026. Falta crítica según Ley 9847.",
+            respuesta: "Se adjunta Certificado Definitivo de Bomberos N° CB-48920/26 emitido por la Dirección de Bomberos de la Policía de Córdoba, con vigencia 2026-2027.",
+            evidence: "https://images.unsplash.com/photo-1584515979956-d9f6e5d09982?w=800",
+            evaluador: "Dra. Silvina Romero (Auditoría Legal)",
+            estado: "VALIDADO",
+            fecha: "15/09/2026",
+          },
+          {
+            id: "PLAN DE EVACUACIÓN Y AUTOPROTECCIÓN",
+            elemento: "PLAN DE EVACUACIÓN CON VISADO PROFESIONAL",
+            statusObs: "NO CUMPLE",
+            obs: "El plan de evacuación no cuenta con visado ni cálculo de carga de fuego por matriculado habilitado.",
+            respuesta: "Se adjunta memoria técnica, plano de evacuación y roles de emergencia visados por el Colegio Profesional de Higiene y Seguridad Mat. CPIC 2026/894.",
+            evidence: "https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=800",
+            evaluador: "Arq. Gonzalo Morales (Arquitectura)",
+            estado: "VALIDADO",
+            fecha: "15/09/2026",
+          },
+          {
+            id: "PÓLIZA DE SEGURO RESPONSABILIDAD CIVIL",
+            elemento: "PÓLIZA CON COBERTURA DE CIRUGÍA AMBULATORIA",
+            statusObs: "NO CUMPLE",
+            obs: "Póliza original no especificaba cláusula de cobertura quirúrgica ni endoso de no repetición.",
+            respuesta: "Se adjunta póliza N° POL-8492041 de La Segunda Seguros con cobertura quirúrgica ambulatoria ampliada y cláusula de no repetición.",
+            evidence: "https://images.unsplash.com/photo-1450133064473-71024230f91b?w=800",
+            evaluador: "Dra. Silvina Romero (Auditoría Legal)",
+            estado: "VALIDADO",
+            fecha: "16/09/2026",
+          },
+        ],
+      },
+      {
+        id: "step_servicios",
+        stepNumber: 4,
+        apartado: "Paso 4: Servicios y Quirófanos",
+        area: "Auditoría Médica y Asistencial",
+        rolResponsable: "AUDITOR",
+        agenteNombre: "Dr. Carlos Medina",
+        estadoGeneral: "VALIDADO",
+        totalItems: 1,
+        validados: 1,
+        items: [
+          {
+            id: "HABILITACIÓN OPERATIVA DE QUIRÓFANOS",
+            elemento: "HABILITACIÓN OPERATIVA DE QUIRÓFANOS",
+            statusObs: "NO CUMPLE",
+            obs: "No se constatan 6 quirófanos operativos con equipamiento biomédico y anestesiología activa (declarados 11, operativos 5).",
+            respuesta: "Los 6 quirófanos restantes finalizaron obras de reacondicionamiento y cuentan con aparatología calibrada; se adjuntan actas.",
+            evidence: "https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=800",
+            evaluador: "Dr. Carlos Medina (Auditoría Médica)",
+            estado: "VALIDADO",
+            fecha: "Ayer, 16:40 hs",
+          },
+        ],
+      },
+      {
+        id: "step_rrhh",
+        stepNumber: 5,
+        apartado: "Paso 5: Recursos Humanos y Dirección Médica",
+        area: "Auditoría Sanitaria",
+        rolResponsable: "AUDITOR",
+        agenteNombre: "Dra. Silvina Romero",
+        estadoGeneral: "VALIDADO",
+        totalItems: 1,
+        validados: 1,
+        items: [
+          {
+            id: "DESIGNACIÓN FORMAL DE DIRECTOR MÉDICO Y MATRÍCULAS",
+            elemento: "DESIGNACIÓN FORMAL DE DIRECTOR MÉDICO Y MATRÍCULAS",
+            statusObs: "NO CUMPLE",
+            obs: "Falta constancia de designación formal de Director Médico y nómina de cobertura de enfermería para el sector de guardia.",
+            respuesta: "Se adjunta acta de designación formal, aceptación del cargo, matrícula provincial habilitante y cronograma mensual de guardias.",
+            evidence: "https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=800",
+            evaluador: "Dra. Silvina Romero (Auditoría Central)",
+            estado: "VALIDADO",
+            fecha: "Ayer, 17:15 hs",
+          },
+        ],
+      },
+      {
+        id: "step_equipos",
+        stepNumber: 7,
+        apartado: "Paso 7: Equipamiento Biomédico",
+        area: "Ingeniería Biomédica",
+        rolResponsable: "AUDITOR",
+        agenteNombre: "Ing. Marcelo Rossi",
+        estadoGeneral: "VALIDADO",
+        totalItems: 1,
+        validados: 1,
+        items: [
+          {
+            id: "DESFIBRILADORES DEA Y RESPIRADORES DE ALTA COMPLEJIDAD",
+            elemento: "DESFIBRILADORES DEA Y RESPIRADORES DE ALTA COMPLEJIDAD",
+            statusObs: "NO CUMPLE",
+            obs: "Falta un cardiodesfibrilador operativo en consultorios y dos respiradores declarados se encontraban fuera de servicio.",
+            respuesta: "Se incorporó DEA nuevo en sector de consultorios y se adjuntan certificados de calibración y service oficial de respiradores.",
+            evidence: "https://images.unsplash.com/photo-1603398938378-e54eab446dde?w=800",
+            evaluador: "Ing. Marcelo Rossi (Biomédica)",
+            estado: "VALIDADO",
+            fecha: "Hoy, 09:20 hs",
+          },
+        ],
+      },
+      {
+        id: "step_residuos",
+        stepNumber: 8,
+        apartado: "Paso 8: Documentación, Residuos y Bioquímica",
+        area: "Auditoría Ambiental y Bioquímica",
+        rolResponsable: "AUDITOR",
+        agenteNombre: "Auditoría Central",
+        estadoGeneral: "VALIDADO",
+        totalItems: 2,
+        validados: 2,
+        items: [
+          {
+            id: "CONTRATO DE RESIDUOS PATÓGENOS Y ÚLTIMO MANIFIESTO",
+            elemento: "CONTRATO DE RESIDUOS PATÓGENOS Y ÚLTIMO MANIFIESTO",
+            statusObs: "NO CUMPLE",
+            obs: "Contrato de servicio de recolección de residuos patógenos vencido o sin comprobante de última recolección.",
+            respuesta: "Se adjunta prórroga de contrato con empresa recolectora habilitada y último manifiesto ambiental de retiro de residuos.",
+            evidence: "https://images.unsplash.com/photo-1584515979956-d9f6e5d09982?w=800",
+            evaluador: "Auditoría Ambiental",
+            estado: "VALIDADO",
+            fecha: "Hoy, 11:05 hs",
+          },
+          {
+            id: "HABILITACIÓN POR COBICO Y CONTROL DE CALIDAD",
+            elemento: "HABILITACIÓN POR COBICO Y CONTROL DE CALIDAD",
+            statusObs: "NO CUMPLE",
+            obs: "Falta constancia de habilitación ante COBICO y protocolo de control de calidad analítico interlaboratorio.",
+            respuesta: "Se adjunta acreditación ante COBICO y reportes del programa de evaluación externa de calidad.",
+            evidence: "https://images.unsplash.com/photo-1532938911079-1b06ac7ceec7?w=800",
+            evaluador: "Auditoría Bioquímica",
+            estado: "VALIDADO",
+            fecha: "Hoy, 11:30 hs",
+          },
+        ],
+      },
+    ];
+  }, [esRadiofisicaActual]);
 
   const totalOtrosItems = useMemo(() => apartadosOtrosAgentes.reduce((acc, a) => acc + a.totalItems, 0), [apartadosOtrosAgentes]);
   const totalOtrosValidados = useMemo(() => apartadosOtrosAgentes.reduce((acc, a) => acc + a.validados, 0), [apartadosOtrosAgentes]);
@@ -542,7 +749,9 @@ const RevisionActaView = ({
     <Box>
       {renderTopActions()}
       <Alert severity="warning" sx={{ mb: 4, borderRadius: 3, borderLeft: "8px solid #f59e0b", fontWeight: 700 }}>
-        HISTORIAL ACTA 1: Estos hallazgos corresponden a la inspección inicial. A continuación se presentan los emplazamientos requeridos.
+        HISTORIAL ACTA 1: {esRadiofisicaActual
+          ? "Inspección in situ de Radiofísica y Protección Radiológica. A continuación se detallan las observaciones y emplazamientos notificados en la visita inicial."
+          : "Estos hallazgos corresponden a la inspección inicial. A continuación se presentan los emplazamientos requeridos."}
       </Alert>
 
       <Accordion
@@ -565,11 +774,41 @@ const RevisionActaView = ({
           <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
             <Paper variant="outlined" sx={{ p: 2.5, bgcolor: "white", borderRadius: 3 }}>
               <Typography variant="subtitle2" sx={{ fontWeight: 850, color: "#1e293b", mb: 1 }}>
-                REGISTROS Y CONDICIONES INICIALES CONSTATADAS
+                {esRadiofisicaActual
+                  ? "HALLAZGOS REGISTRADOS EN INSPECCIÓN PRESENCIAL DE RADIOFÍSICA (ACTA 1)"
+                  : "REGISTROS Y CONDICIONES INICIALES CONSTATADAS"}
               </Typography>
-              <Typography variant="body2" sx={{ color: "#64748b" }}>
-                Durante la visita de inspección inicial se formularon emplazamientos respecto a condiciones de habilitación, señalización de seguridad y libros sanitarios obligatorios.
+              <Typography variant="body2" sx={{ color: "#64748b", mb: 2 }}>
+                {esRadiofisicaActual
+                  ? "Durante la inspección técnica realizada en el Servicio de Rayos X (Radiología Convencional Simple), el inspector formuló emplazamiento formal por faltas críticas a subsanar antes del plazo perentorio de ley (Ley Nac. 17.557, Dec. Prov. 2680/68 y Normas ARN)."
+                  : "Durante la visita de inspección inicial se formularon emplazamientos respecto a condiciones de habilitación, señalización de seguridad y libros sanitarios obligatorios."}
               </Typography>
+
+              {esRadiofisicaActual && (
+                <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
+                  {[
+                    { tit: "Blindaje de Muros", desc: "El muro divisorio colindante a sala de espera pública carece de la atenuación de 2.0 mm Pb equivalente calculada.", norma: "Ley Nac. 17.557 / Res. Min. 2680/68" },
+                    { tit: "Puerta y Visor", desc: "Puerta batiente con fuga en umbral inferior y visor sin certificación de plomo.", norma: "Norma ARN AR 10.1.1" },
+                    { tit: "Elementos de Protección Personal (EPP)", desc: "Dos delantales plomados fisurados constatados bajo control fluoroscópico; sin collares tiroideos.", norma: "Res. Min. 2680/68 Art. 14" },
+                    { tit: "Dosimetría Personal", desc: "Falta reporte bimestral de lecturas dosimétricas para 3 operadores de rayos X.", norma: "Reglamentación ARN - Dosis personal" },
+                    { tit: "Señalización de Seguridad", desc: "Artefacto lumínico rojo exterior fuera de servicio.", norma: "Norma IRAM 10005" },
+                    { tit: "Equipo SIEMENS Multix - Radiación de Fuga", desc: "Fuga a 1 metro arrojó 1.35 mGy/h (límite: 1.0 mGy/h).", norma: "Norma Técnica Nacional de Radiología" },
+                    { tit: "Permiso Individual ARN", desc: "Permiso individual del Responsable de Uso vencido al momento de la inspección.", norma: "Ley 17.557 Art. 9" },
+                  ].map((h, idx) => (
+                    <Box key={idx} sx={{ p: 1.5, bgcolor: "#f8fafc", borderRadius: 2, border: "1px solid #e2e8f0" }}>
+                      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 0.5, flexWrap: "wrap", gap: 1 }}>
+                        <Typography sx={{ fontWeight: 800, fontSize: "0.85rem", color: "#b91c1c" }}>
+                          • {h.tit} (NO CUMPLE)
+                        </Typography>
+                        <Chip label={h.norma} size="small" sx={{ fontSize: "0.68rem", fontWeight: 700, bgcolor: "#fee2e2", color: "#991b1b" }} />
+                      </Box>
+                      <Typography variant="caption" sx={{ color: "#475569" }}>
+                        {h.desc}
+                      </Typography>
+                    </Box>
+                  ))}
+                </Box>
+              )}
             </Paper>
           </Box>
         </AccordionDetails>
@@ -923,7 +1162,7 @@ const RevisionActaView = ({
                         <Chip label="5/5 VALIDADO" size="small" sx={{ bgcolor: "#dcfce7", color: "#15803d", fontWeight: 850, fontSize: "0.68rem", height: 20 }} />
                       </Box>
                       <Typography variant="caption" sx={{ color: "#64748b", display: "block", mb: 1.2 }}>
-                        Responsable: <b>Auditoría Técnica Rugepresa</b> · Quirófanos, RRHH, equipamiento biomédico y residuos.
+                        Responsable: <b>Auditoría Técnica</b> · Quirófanos, RRHH, equipamiento biomédico y residuos.
                       </Typography>
                       <LinearProgress variant="determinate" value={100} sx={{ height: 6, borderRadius: 3, bgcolor: "#e2e8f0", "& .MuiLinearProgress-bar": { bgcolor: "#16a34a" } }} />
                     </Paper>
@@ -1304,6 +1543,88 @@ const RevisionActaView = ({
           to { opacity: 1; transform: translateY(0); }
         }
       `}</style>
+
+      {/* Banner de Información del Trámite */}
+      {tramite && (
+        <Paper
+          elevation={0}
+          sx={{
+            mb: 3,
+            p: 2.5,
+            borderRadius: 3.5,
+            border: "1px solid #e2e8f0",
+            background: esRadiofisicaActual
+              ? "linear-gradient(135deg, #f0fdf4 0%, #ffffff 50%, #f0f9ff 100%)"
+              : "#ffffff",
+            display: "flex",
+            flexDirection: { xs: "column", md: "row" },
+            justifyContent: "space-between",
+            alignItems: { xs: "flex-start", md: "center" },
+            gap: 2,
+            boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
+          }}
+        >
+          <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+            <Box
+              sx={{
+                width: 50,
+                height: 50,
+                borderRadius: 3,
+                bgcolor: esRadiofisicaActual ? "#e0f2fe" : "#ecfdf5",
+                color: esRadiofisicaActual ? "#0284c7" : "#059669",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flexShrink: 0,
+                boxShadow: "0 2px 6px rgba(2, 132, 199, 0.15)",
+              }}
+            >
+              <SensorsIcon sx={{ fontSize: 30 }} />
+            </Box>
+            <Box>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, flexWrap: "wrap" }}>
+                <Typography sx={{ fontWeight: 900, color: "#0f172a", fontSize: "1.15rem" }}>
+                  {tramite.denominacion}
+                </Typography>
+                <Chip
+                  label={tramite.tipologia}
+                  size="small"
+                  sx={{
+                    bgcolor: esRadiofisicaActual ? "#0284c7" : "#10b981",
+                    color: "white",
+                    fontWeight: 850,
+                    fontSize: "0.7rem",
+                  }}
+                />
+              </Box>
+              <Typography variant="body2" sx={{ color: "#64748b", mt: 0.4, display: "flex", alignItems: "center", gap: 1.5, flexWrap: "wrap", fontSize: "0.85rem" }}>
+                <span><b>Trámite:</b> <span style={{ fontFamily: "monospace" }}>{tramite.nroTramite}</span></span>
+                <span>•</span>
+                <span><b>Expediente:</b> <span style={{ fontFamily: "monospace" }}>{tramite.nroExpediente}</span></span>
+                <span>•</span>
+                <span><b>Servicio:</b> {tipoServicio} ({subservicio})</span>
+                <span>•</span>
+                <span><b>Inspector:</b> {tramite.inspectorAsignado || "Ing. Carlos Varela"}</span>
+              </Typography>
+            </Box>
+          </Box>
+
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, flexShrink: 0 }}>
+            <Chip
+              label="RESPUESTA EMPLAZAMIENTO"
+              sx={{
+                bgcolor: "#fef3c7",
+                color: "#92400e",
+                border: "1.5px solid #fde68a",
+                fontWeight: 900,
+                fontSize: "0.75rem",
+                px: 1,
+                py: 0.5,
+              }}
+            />
+          </Box>
+        </Paper>
+      )}
 
       {/* Título: Acta de Inspección (Idéntico a las Fotos 1 y 2) */}
       <Box sx={{ mb: 3.5, borderBottom: "3px solid #005596", pb: 1.5 }}>

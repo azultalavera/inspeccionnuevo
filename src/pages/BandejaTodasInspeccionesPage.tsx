@@ -443,7 +443,11 @@ export default function BandejaTodasInspeccionesPage() {
           tramite={tramiteEmitirOrden}
           onClose={() => setTramiteEmitirOrden(null)}
           onSuccess={(nuevo) => {
-            setLocalTramites((prev) => [nuevo, ...prev]);
+            setLocalTramites((prev) =>
+              prev.some((t) => t.id === nuevo.id)
+                ? prev.map((t) => (t.id === nuevo.id ? nuevo : t))
+                : [nuevo, ...prev]
+            );
           }}
         />
       )}

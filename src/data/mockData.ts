@@ -19,6 +19,7 @@ export type EstadoTramite =
   | 'RECTIFICADO_AUD'
   | 'ACEPTADO_DOC_AUD'
   | 'OBSERVADO_INSP'
+  | 'EN_INSPECCION'
   | 'DESCARGO_INSP'
   | 'ACEPTADO_INSP'
   | 'RECHAZADO_INSP'
@@ -47,6 +48,7 @@ export interface Tramite {
   localidad: string;
   departamento?: string;
   estado: EstadoTramite;
+  estadoActa?: string;
   fechaIngreso: string;
   inspectorAsignado: string;
   inspectoresAsignados?: string[];
@@ -56,9 +58,21 @@ export interface Tramite {
   agenteAsignado?: string; // Para asignación del coordinador
   esAdecuacion?: boolean; // Para bandeja de adecuación del coordinador
   tipoTramite?: 'ALTA_DIGITAL' | 'HABILITACION' | 'RENOVACION' | 'MODIFICACION' | 'ADECUACION';
-  alertaRutina?: 'ALERTA_T30' | 'ALERTA_T15' | 'CRITICO_VENCIDO' | 'AL_DIA';
+  tipoServicio?: string;
+  subservicio?: string;
+  alertaRutina?: 'ALERTA_T30' | 'ALERTA_T15' | 'CRITICO_VENCIDO' | 'AL_DIA' | 'SIN_FECHA';
   solapamientoTramiteId?: string;
   solapamientoTramiteNro?: string;
+  tramiteActivoEnCurso?: {
+    id: string;
+    nroTramite: string;
+    nroExpediente?: string;
+    tipo: 'RENOVACION' | 'MODIFICACION' | 'HABILITACION' | 'ADECUACION';
+    estado: string;
+    estadoSimultaneo?: 'INICIADO' | 'ENVIADO';
+    fechaEstado?: string;
+    descripcion?: string;
+  };
   emplazamiento?: EmplazamientoRutina;
   actaPadreId?: string;
   /** Fecha límite asignada por el coordinador para la re-inspección (DD/MM/AAAA) */
@@ -71,6 +85,10 @@ export interface Tramite {
   inspeccionesRealizadasAno?: number;
   fechaUltimaInspeccion?: string;
   ultimaInspeccionFecha?: string;
+  fechaHabilitacion?: string;
+  ordenEmitida?: boolean;
+  nroOrden?: string;
+  motivoRechazoActa?: string;
 }
 
 export interface Establecimiento {
@@ -194,7 +212,267 @@ export interface DocumentoAdjunto {
 
 // ── TRÁMITES MOCK ──────────────────────────────────────────────
 
+export const INSPECCIONES_RUTINA_DEMO: Tramite[] = [
+  {
+    id: 'TRM-RUT-87104',
+    nroTramite: '87104',
+    nroExpediente: 'EX-2026-23744223- -GDEBA-MSGP',
+    denominacion: 'Servicio de Radiofísica',
+    cuit: '30-22009122-3',
+    tipologia: 'RADIOFÍSICA',
+    subservicio: 'rad-convencional-simple',
+    domicilio: 'Córdoba',
+    localidad: 'Córdoba',
+    departamento: 'Capital',
+    estado: 'EN_INSPECCION',
+    fechaIngreso: '2025-10-19',
+    fechaUltimaInspeccion: '19/10/2025',
+    inspectorAsignado: 'Valeria Romero',
+    inspectoresAsignados: ['Valeria Romero'],
+    tipoInspeccion: 'RUTINA',
+    formatoInspeccion: 'PRESENCIAL',
+    tipoTramite: 'HABILITACION',
+    alertaRutina: 'ALERTA_T15',
+  },
+  {
+    id: 'TRM-RUT-82038',
+    nroTramite: '82038',
+    nroExpediente: 'EX-2026-17116671- -GDEBA-MSGP',
+    denominacion: 'Conci Carpinella',
+    cuit: '30-48357466-1',
+    tipologia: 'CLÍNICA, SANATORIO U HOSPITAL PRIVADO',
+    domicilio: 'Córdoba',
+    localidad: 'Córdoba',
+    departamento: 'Capital',
+    estado: 'ACEPTADO_DOC_AUD',
+    fechaIngreso: '2026-01-01',
+    inspectorAsignado: 'Valeria Romero',
+    inspectoresAsignados: ['Valeria Romero'],
+    tipoInspeccion: 'RUTINA',
+    formatoInspeccion: 'PRESENCIAL',
+    tipoTramite: 'HABILITACION',
+    alertaRutina: 'SIN_FECHA',
+  },
+  {
+    id: 'TRM-RUT-55918',
+    nroTramite: '55918',
+    nroExpediente: 'EX-2026-75622551- -GDEBA-MSGP',
+    denominacion: 'Sanatorio m',
+    cuit: '30-91502468-7',
+    tipologia: 'CLÍNICA, SANATORIO U HOSPITAL PRIVADO',
+    domicilio: 'Córdoba',
+    localidad: 'Córdoba',
+    departamento: 'Capital',
+    estado: 'ACEPTADO_INSP',
+    fechaIngreso: '2026-01-01',
+    fechaUltimaInspeccion: '14/08/2025',
+    inspectorAsignado: 'Valeria Romero',
+    inspectoresAsignados: ['Valeria Romero'],
+    tipoInspeccion: 'RUTINA',
+    formatoInspeccion: 'PRESENCIAL',
+    tipoTramite: 'HABILITACION',
+    alertaRutina: 'CRITICO_VENCIDO',
+  },
+  {
+    id: 'TRM-RUT-15112',
+    nroTramite: '15112',
+    nroExpediente: 'EX-2026-19377604- -GDEBA-MSGP',
+    denominacion: 'Hospital Privado',
+    cuit: '30-32974445-8',
+    tipologia: 'CLÍNICA, SANATORIO U HOSPITAL PRIVADO',
+    domicilio: 'Córdoba',
+    localidad: 'Córdoba',
+    departamento: 'Capital',
+    estado: 'ACEPTADO_INSP',
+    fechaIngreso: '2026-01-01',
+    fechaUltimaInspeccion: '18/10/2025',
+    inspectorAsignado: 'Valeria Romero',
+    inspectoresAsignados: ['Valeria Romero'],
+    tipoInspeccion: 'RUTINA',
+    formatoInspeccion: 'PRESENCIAL',
+    tipoTramite: 'HABILITACION',
+    alertaRutina: 'ALERTA_T15',
+  },
+  {
+    id: 'TRM-RUT-15062',
+    nroTramite: '15062',
+    nroExpediente: 'EX-2026-96480531- -GDEBA-MSGP',
+    denominacion: 'Clínica del Sol',
+    cuit: '30-17394296-8',
+    tipologia: 'CLÍNICA, SANATORIO U HOSPITAL PRIVADO',
+    domicilio: 'Córdoba',
+    localidad: 'Córdoba',
+    departamento: 'Capital',
+    estado: 'ACEPTADO_INSP',
+    fechaIngreso: '2026-01-01',
+    fechaUltimaInspeccion: '12/11/2025',
+    inspectorAsignado: 'Valeria Romero',
+    inspectoresAsignados: ['Valeria Romero'],
+    tipoInspeccion: 'RUTINA',
+    formatoInspeccion: 'PRESENCIAL',
+    tipoTramite: 'HABILITACION',
+    alertaRutina: 'AL_DIA',
+  },
+  {
+    id: 'TRM-RUT-31757',
+    nroTramite: '31757',
+    nroExpediente: 'EX-2026-67434249- -GDEBA-MSGP',
+    denominacion: 'Primero',
+    cuit: '30-92796141-8',
+    tipologia: 'ESTABLECIMIENTOS GERIÁTRICOS / RESIDENCIA',
+    domicilio: 'Córdoba',
+    localidad: 'Córdoba',
+    departamento: 'Capital',
+    estado: 'ACEPTADO_INSP',
+    fechaIngreso: '2026-01-01',
+    fechaUltimaInspeccion: '08/10/2026',
+    fechaHabilitacion: '08/10/2026',
+    inspectorAsignado: 'Valeria Romero',
+    inspectoresAsignados: ['Valeria Romero'],
+    tipoInspeccion: 'RUTINA',
+    formatoInspeccion: 'PRESENCIAL',
+    tipoTramite: 'HABILITACION',
+    alertaRutina: 'AL_DIA',
+  },
+  {
+    id: 'TRM-RAD-002',
+    nroTramite: '2026-HAB-009102',
+    nroExpediente: 'EX-2026-0091020-APN-MS#CBA',
+    denominacion: 'Centro Radiológico San Francisco - Radiofísica',
+    cuit: '30-71829340-5',
+    tipologia: 'RADIOFÍSICA',
+    subservicio: 'Radiología Convencional Simple',
+    domicilio: 'Av. Vélez Sarsfield 1450',
+    localidad: 'Córdoba',
+    departamento: 'Capital',
+    estado: 'DESCARGO_INSP',
+    estadoActa: 'RESPUESTA EMPLAZAMIENTO',
+    fechaIngreso: '2026-06-15',
+    fechaUltimaInspeccion: '15/07/2026',
+    inspectorAsignado: 'Dr. Valeria Romero',
+    agenteAsignado: 'Dr. Valeria Romero',
+    inspectoresAsignados: ['Dr. Valeria Romero'],
+    tipoInspeccion: 'RUTINA',
+    formatoInspeccion: 'PRESENCIAL',
+    tipoTramite: 'HABILITACION',
+    nroActa: 105,
+    alertaRutina: 'CRITICO_VENCIDO',
+    emplazamiento: {
+      actaNumero: '105/2026',
+      diasRestantes: 5,
+      fechaVencimiento: '21/07/2026',
+      faltasCriticasCount: 4,
+      observaciones: [
+        'Dosimetría: Empresa',
+        'Materialidad de la sala: Búnker NO CUMPLE',
+        'Responsable de uso: documento de autorizacion individual no es correcto',
+        'Equipamiento: El equipo declarado no existe en el establecimiento',
+      ],
+    },
+  },
+  {
+    id: 'TRM-RUT-4415',
+    nroTramite: '004415',
+    nroExpediente: 'EX-2026-0044150-APN-MS#CBA',
+    denominacion: 'Centro Radiológico Privado - Radiofísica',
+    cuit: '30-71829340-5',
+    tipologia: 'RADIOFÍSICA',
+    subservicio: 'Radiología Convencional Simple',
+    domicilio: 'Av. Vélez Sarsfield 1450',
+    localidad: 'Córdoba',
+    departamento: 'Capital',
+    estado: 'EN_ANALISIS_AUD',
+    fechaIngreso: '2026-09-20',
+    fechaUltimaInspeccion: '20/09/2026',
+    inspectorAsignado: 'Valeria Romero',
+    inspectoresAsignados: ['Valeria Romero'],
+    tipoInspeccion: 'RUTINA',
+    formatoInspeccion: 'PRESENCIAL',
+    tipoTramite: 'HABILITACION',
+    alertaRutina: 'AL_DIA',
+  },
+];
+
 export const TRAMITES: Tramite[] = [
+  ...INSPECCIONES_RUTINA_DEMO,
+  {
+    id: 'TRM-RAD-001',
+    nroTramite: '2026-HAB-009101',
+    nroExpediente: 'EX-2026-0091010-APN-MS#CBA',
+    denominacion: 'HABILITACION - RADIOFÍSICA',
+    cuit: '30-71829340-5',
+    tipologia: 'RADIOFÍSICA',
+    domicilio: 'Av. Vélez Sarsfield 1450',
+    localidad: 'Córdoba',
+    departamento: 'Capital',
+    estado: 'ACEPTADO_DOC_AUD',
+    fechaIngreso: '2026-09-15',
+    fechaUltimaInspeccion: '15/09/2026',
+    inspectorAsignado: 'Valeria Romero',
+    agenteAsignado: 'Valeria Romero',
+    inspectoresAsignados: ['Valeria Romero'],
+    tipoInspeccion: 'HABILITACION',
+    formatoInspeccion: 'PRESENCIAL',
+    tipoTramite: 'HABILITACION',
+    nroActa: 1,
+  },
+  {
+    id: 'TRM-1420',
+    nroTramite: '1420',
+    nroExpediente: '0425-014523/2026',
+    denominacion: 'Sanatorio Allende Cerro',
+    cuit: '30-54896321-8',
+    tipologia: 'CLÍNICA, SANATORIO U HOSPITAL PRIVADO',
+    domicilio: 'Av. Rafael Núñez 5200',
+    localidad: 'Córdoba',
+    departamento: 'Capital',
+    estado: 'OBSERVADO_INSP',
+    fechaIngreso: '2025-08-11',
+    fechaUltimaInspeccion: '11/08/2025',
+    inspectorAsignado: 'Valeria Romero',
+    agenteAsignado: 'Valeria Romero',
+    inspectoresAsignados: ['Valeria Romero'],
+    tipoInspeccion: 'HABILITACION',
+    formatoInspeccion: 'PRESENCIAL',
+    tipoTramite: 'HABILITACION',
+    nroActa: 108,
+    tramiteActivoEnCurso: {
+      id: 'TRM-2026-08812',
+      nroTramite: '2026-08812',
+      nroExpediente: '0425-014523/2026',
+      tipo: 'RENOVACION',
+      estado: 'ENVIADO',
+      estadoSimultaneo: 'ENVIADO',
+      fechaEstado: '10/08/2026',
+      descripcion: 'Renovación de Habilitación en proceso de evaluación técnica',
+    },
+    solapamientoTramiteId: 'TRM-2026-08812',
+    solapamientoTramiteNro: '2026-08812',
+  },
+  {
+    id: 'TRM-1429',
+    nroTramite: '1429',
+    nroExpediente: '0425-015880/2026',
+    denominacion: 'Centro de Cirugía Ambulatoria Nueva Córdoba',
+    cuit: '30-71456321-0',
+    tipologia: 'CENTRO DE CIRUGÍA AMBULATORIA',
+    domicilio: 'Estrada 350',
+    localidad: 'Córdoba',
+    departamento: 'Capital',
+    estado: 'EN_ANALISIS_AUD',
+    estadoActa: 'EN_PROCESO',
+    fechaIngreso: '2025-07-22',
+    fechaUltimaInspeccion: '28/09/2026',
+    inspectorAsignado: 'Athina Bringas',
+    agenteAsignado: 'Athina Bringas',
+    inspectoresAsignados: ['Athina Bringas'],
+    tipoInspeccion: 'RE_INSPECCION',
+    formatoInspeccion: 'PRESENCIAL',
+    tipoTramite: 'HABILITACION',
+    nroActa: 2,
+    fechaLimiteReInspeccion: '2026-10-15',
+    motivoReInspeccion: 'Acta 2: Constatación in situ de correcciones de Acta 1 y verificación física de documentación validada.',
+  },
   {
     id: 'TRM-HAB-001',
     nroTramite: '2026-HAB-000101',
@@ -213,6 +491,42 @@ export const TRAMITES: Tramite[] = [
     formatoInspeccion: 'PRESENCIAL',
     tipoTramite: 'HABILITACION',
     nroActa: 1,
+  },
+  {
+    id: 'TRM-HAB-RF-001',
+    nroTramite: '2026-HAB-004410',
+    nroExpediente: 'EX-2026-0044100-APN-MS#CBA',
+    denominacion: 'Centro de Diagnóstico por Imágenes y Radiofísica San Miguel',
+    cuit: '30-71649281-4',
+    tipologia: 'RADIOFÍSICA',
+    domicilio: 'Av. Vélez Sarsfield 1450',
+    localidad: 'Córdoba',
+    departamento: 'Capital',
+    estado: 'DESCARGO_INSP',
+    fechaIngreso: '2026-08-15',
+    inspectorAsignado: 'Ing. Carlos Varela',
+    agenteAsignado: 'Ing. Carlos Varela',
+    tipoInspeccion: 'HABILITACION',
+    formatoInspeccion: 'PRESENCIAL',
+    tipoTramite: 'HABILITACION',
+    nroActa: 1,
+    tipoServicio: 'Rayos X',
+    subservicio: 'Radiología Convencional Simple',
+    emplazamiento: {
+      actaNumero: 'ACTA-001/2026-RF',
+      faltasCriticasCount: 5,
+      diasRestantes: 8,
+      fechaVencimiento: '2026-10-15',
+      respuestaEmplazamientoRealizada: true,
+      observaciones: [
+        'Lámina de plomo en muros: Falta blindaje continuo de 2.0 mm Pb en tabique colindante',
+        'Puerta y visor de sala RX sin atenuación homologada ni burlete plomado',
+        'Delantales plomados de protección radiológica fisurados y sin collares tiroideos',
+        'Señalización lumínica de advertencia exterior desconectada del disparo',
+        'Radiación de fuga en cabezal SIEMENS Multix superior a 1 mGy/h a 1 metro',
+        'Permiso Individual de Uso ARN del Responsable de Uso vencido'
+      ]
+    }
   },
   {
     id: 'TRM-HAB-002',
@@ -394,7 +708,8 @@ export const TRAMITES: Tramite[] = [
     fechaUltimaInspeccion: '14/06/2025',
     inspectorAsignado: 'Dra. Valeria Romero, Dr. Marcelo Juárez',
     inspectoresAsignados: ['Dra. Valeria Romero', 'Dr. Marcelo Juárez'],
-    tipoInspeccion: 'RUTINA',
+    tipoInspeccion: 'HABILITACION',
+    alertaRutina: 'CRITICO_VENCIDO',
     formatoInspeccion: 'PRESENCIAL',
     nroActa: 3,
     agenteAsignado: 'Dra. Valeria Romero',
@@ -454,7 +769,8 @@ export const TRAMITES: Tramite[] = [
     fechaIngreso: '2024-07-12',
     fechaUltimaInspeccion: '05/07/2025',
     inspectorAsignado: 'Lic. Mariana Silva',
-    tipoInspeccion: 'RUTINA',
+    tipoInspeccion: 'HABILITACION',
+    alertaRutina: 'ALERTA_T15',
     formatoInspeccion: 'PRESENCIAL',
     agenteAsignado: 'Lic. Mariana Silva',
     tipoTramite: 'RENOVACION'
@@ -511,7 +827,7 @@ export const TRAMITES: Tramite[] = [
     fechaIngreso: '2024-07-16',
     fechaUltimaInspeccion: '09/07/2025',
     inspectorAsignado: 'Lic. Mariana Silva',
-    tipoInspeccion: 'RUTINA',
+    tipoInspeccion: 'HABILITACION',
     formatoInspeccion: 'PRESENCIAL',
     agenteAsignado: 'Lic. Mariana Silva',
     tipoTramite: 'RENOVACION'
@@ -550,7 +866,7 @@ export const TRAMITES: Tramite[] = [
     fechaIngreso: '2024-05-10',
     fechaUltimaInspeccion: '15/07/2025',
     inspectorAsignado: 'Dr. Marcelo Juárez',
-    tipoInspeccion: 'RUTINA',
+    tipoInspeccion: 'HABILITACION',
     formatoInspeccion: 'PRESENCIAL',
     nroActa: 108,
     agenteAsignado: 'Dr. Marcelo Juárez',
@@ -650,7 +966,8 @@ export const TRAMITES: Tramite[] = [
     fechaIngreso: '2024-07-08',
     fechaUltimaInspeccion: '08/07/2025',
     inspectorAsignado: 'Dra. Valeria Romero',
-    tipoInspeccion: 'RUTINA',
+    tipoInspeccion: 'HABILITACION',
+    alertaRutina: 'ALERTA_T15',
     formatoInspeccion: 'PRESENCIAL',
     nroActa: 8,
     agenteAsignado: 'Dra. Valeria Romero',
@@ -669,7 +986,8 @@ export const TRAMITES: Tramite[] = [
     fechaIngreso: '2024-07-09',
     fechaUltimaInspeccion: '09/07/2025',
     inspectorAsignado: 'Dr. Marcelo Juárez',
-    tipoInspeccion: 'RUTINA',
+    tipoInspeccion: 'HABILITACION',
+    alertaRutina: 'ALERTA_T30',
     formatoInspeccion: 'VIRTUAL',
     nroActa: 9,
     agenteAsignado: 'Dr. Marcelo Juárez',
@@ -729,7 +1047,8 @@ export const TRAMITES: Tramite[] = [
     fechaIngreso: '2024-07-15',
     fechaUltimaInspeccion: '12/07/2025',
     inspectorAsignado: 'Dra. Valeria Romero',
-    tipoInspeccion: 'RUTINA',
+    tipoInspeccion: 'HABILITACION',
+    alertaRutina: 'ALERTA_T30',
     formatoInspeccion: 'PRESENCIAL',
     nroActa: 12,
     agenteAsignado: 'Dra. Valeria Romero',
@@ -750,7 +1069,8 @@ export const TRAMITES: Tramite[] = [
     fechaIngreso: '2024-07-18',
     fechaUltimaInspeccion: '18/07/2025',
     inspectorAsignado: 'Dr. Marcelo Juárez',
-    tipoInspeccion: 'RUTINA',
+    tipoInspeccion: 'HABILITACION',
+    alertaRutina: 'AL_DIA',
     formatoInspeccion: 'PRESENCIAL',
     nroActa: 13,
     agenteAsignado: 'Dr. Marcelo Juárez',
@@ -769,7 +1089,8 @@ export const TRAMITES: Tramite[] = [
     fechaIngreso: '2024-07-20',
     fechaUltimaInspeccion: '20/07/2025',
     inspectorAsignado: 'Lic. Mariana Silva',
-    tipoInspeccion: 'RUTINA',
+    tipoInspeccion: 'HABILITACION',
+    alertaRutina: 'AL_DIA',
     formatoInspeccion: 'PRESENCIAL',
     nroActa: 14,
     agenteAsignado: 'Lic. Mariana Silva',
@@ -788,7 +1109,7 @@ export const TRAMITES: Tramite[] = [
     fechaIngreso: '2024-06-01',
     fechaUltimaInspeccion: '01/08/2025',
     inspectorAsignado: 'Dra. Valeria Romero',
-    tipoInspeccion: 'RUTINA',
+    tipoInspeccion: 'HABILITACION',
     formatoInspeccion: 'PRESENCIAL',
     nroActa: 101,
     agenteAsignado: 'Dra. Valeria Romero',
@@ -817,7 +1138,7 @@ export const TRAMITES: Tramite[] = [
     fechaIngreso: '2024-06-05',
     fechaUltimaInspeccion: '05/06/2025',
     inspectorAsignado: 'Dra. Valeria Romero',
-    tipoInspeccion: 'RUTINA',
+    tipoInspeccion: 'HABILITACION',
     formatoInspeccion: 'PRESENCIAL',
     nroActa: 102,
     agenteAsignado: 'Dra. Valeria Romero',
@@ -838,7 +1159,7 @@ export const TRAMITES: Tramite[] = [
     fechaUltimaInspeccion: '10/06/2025',
     inspectorAsignado: 'Dra. Valeria Romero, Dr. Marcelo Juárez',
     inspectoresAsignados: ['Dra. Valeria Romero', 'Dr. Marcelo Juárez'],
-    tipoInspeccion: 'RUTINA',
+    tipoInspeccion: 'HABILITACION',
     formatoInspeccion: 'VIRTUAL',
     nroActa: 103,
     agenteAsignado: 'Dra. Valeria Romero',
@@ -860,7 +1181,7 @@ export const TRAMITES: Tramite[] = [
     fechaIngreso: '2024-06-15',
     fechaUltimaInspeccion: '15/06/2025',
     inspectorAsignado: 'Dra. Valeria Romero',
-    tipoInspeccion: 'RUTINA',
+    tipoInspeccion: 'HABILITACION',
     formatoInspeccion: 'PRESENCIAL',
     nroActa: 104,
     agenteAsignado: 'Dra. Valeria Romero',
@@ -881,7 +1202,7 @@ export const TRAMITES: Tramite[] = [
     fechaUltimaInspeccion: '18/06/2025',
     inspectorAsignado: 'Dra. Valeria Romero',
     inspectoresAsignados: ['Dra. Valeria Romero'],
-    tipoInspeccion: 'RUTINA',
+    tipoInspeccion: 'HABILITACION',
     formatoInspeccion: 'PRESENCIAL',
     nroActa: 105,
     agenteAsignado: 'Dra. Valeria Romero',
@@ -894,6 +1215,17 @@ export const TRAMITES: Tramite[] = [
 // ── ESTABLECIMIENTOS MOCK ──────────────────────────────────────
 
 export const ESTABLECIMIENTOS: Establecimiento[] = [
+  {
+    id: 'EST-RAD-001',
+    nroExpediente: 'EX-2026-0091010-APN-MS#CBA',
+    denominacion: 'HABILITACION - RADIOFÍSICA',
+    cuit: '30-71829340-5',
+    fechaCreacion: '15/09/2026',
+    departamento: 'Capital',
+    localidad: 'Córdoba',
+    tipologia: 'RADIOFÍSICA',
+    estado: 'En Proceso',
+  },
   {
     id: 'EST001',
     nroExpediente: '0425-010203/2023',
@@ -1108,7 +1440,7 @@ export const USUARIOS: Usuario[] = [
     id: 'USR001',
     nombre: 'Valeria',
     apellido: 'Romero',
-    cuil: '27-33445566-7',
+    cuil: '27-31456789-4',
     rol: 'INSPECTOR',
     avatar: 'VR',
   },
@@ -1206,6 +1538,7 @@ export const ESTADO_CONFIG: Record<EstadoTramite, { label: string; badge: string
   RECTIFICADO_AUD: { label: 'Rectificado Auditoría', badge: 'badge-warning', icon: 'edit_note' },
   ACEPTADO_DOC_AUD: { label: 'Aceptado Doc. Auditoría', badge: 'badge-success', icon: 'check_circle' },
   OBSERVADO_INSP: { label: 'Observado Inspección', badge: 'badge-danger', icon: 'warning' },
+  EN_INSPECCION: { label: 'En Inspección', badge: 'badge-warning', icon: 'pending_actions' },
   DESCARGO_INSP: { label: 'Respuesta Emplazamiento', badge: 'badge-warning', icon: 'assignment_returned' },
   ACEPTADO_INSP: { label: 'Aceptado Inspección', badge: 'badge-success', icon: 'check_circle' },
   RECHAZADO_INSP: { label: 'Rechazado Inspección', badge: 'badge-danger', icon: 'cancel' },

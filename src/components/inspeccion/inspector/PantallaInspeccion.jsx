@@ -21,9 +21,14 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  Snackbar,
+  Alert,
 } from "@mui/material";
+import SaveIcon from "@mui/icons-material/Save";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import DomainIcon from "@mui/icons-material/Domain";
+import ApartmentIcon from "@mui/icons-material/Apartment";
+import PersonIcon from "@mui/icons-material/Person";
 import PeopleIcon from "@mui/icons-material/People";
 import MedicalServicesIcon from "@mui/icons-material/MedicalServices";
 import BedIcon from "@mui/icons-material/Bed";
@@ -42,10 +47,23 @@ import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
 import UnfoldMoreIcon from "@mui/icons-material/UnfoldMore";
 import UnfoldLessIcon from "@mui/icons-material/UnfoldLess";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import ChatBubbleIcon from "@mui/icons-material/ChatBubble";
+import ChatBubbleOutlineIcon from "@mui/icons-material/ChatBubbleOutlined";
+import MapIcon from "@mui/icons-material/Map";
+import AccessTimeIcon from "@mui/icons-material/AccessTime";
+import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
+import CloudUploadOutlinedIcon from "@mui/icons-material/CloudUploadOutlined";
+import AddBoxOutlinedIcon from "@mui/icons-material/AddBoxOutlined";
+import PersonOutlinedIcon from "@mui/icons-material/PersonOutlined";
+import PeopleOutlinedIcon from "@mui/icons-material/PeopleOutlined";
 
 import { useApp } from "../../../context/AppContext";
 import { useAuth } from "../../../context/AuthContext";
 import { getMasterConfig, DEFAULT_EFECTOR_DATA } from "../../../data/masterConfig";
+import ModalRadiofisicaServicios from "../../../components/ModalRadiofisicaServicios";
+import ModalResponderEmplazamiento from "../../../components/ModalResponderEmplazamiento";
+import { getRadiofisicaConfig } from "../../../data/radiofisicaConfig";
+import ModalOrigenFoto from "./components/ModalOrigenFoto";
 
 import {
   normalize,
@@ -64,6 +82,11 @@ import FileViewerModal from "./components/FileViewerModal";
 import PhotoViewer from "./components/PhotoViewer";
 import RevisionActaView from "./components/RevisionActaView";
 import SignatureModal from "./components/SignatureModal";
+import DatosTramiteRadiofisica from "./components/DatosTramiteRadiofisica";
+import RadiacionDispersaSection from "./components/RadiacionDispersaSection";
+import PruebaFugaSection from "./components/PruebaFugaSection";
+import RepetibilidadTuboSection from "./components/RepetibilidadTuboSection";
+import CalidadImagenSection from "./components/CalidadImagenSection";
 
 const PantallaInspeccion = ({
   serviciosEfector: propsServicios = null,
@@ -74,13 +97,28 @@ const PantallaInspeccion = ({
 } = {}) => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const { tramites, finalizarInspeccion, actualizarInspeccion, responderEmplazamiento, solicitarReInspeccion, emplazarTramite, actualizarEstadoTramite } = useApp();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { tramites, finalizarInspeccion, actualizarInspeccion, responderEmplazamiento, solicitarReInspeccion, emplazarTramite, actualizarEstadoTramite, actualizarTramite } = useApp();
   const { user } = useAuth();
 
   const tramiteActual = React.useMemo(() => {
     return tramites.find(t => t.id === id) || null;
   }, [tramites, id]);
+
+  const isRadiofisica =
+    tramiteActual?.tipologia?.toUpperCase().includes("RADIOFÍSICA") ||
+    tramiteActual?.tipologia?.toUpperCase().includes("RADIOFISICA") ||
+    tramiteActual?.denominacion?.toUpperCase().includes("RADIOFÍSICA") ||
+    tramiteActual?.denominacion?.toUpperCase().includes("RADIOFISICA") ||
+    Boolean(searchParams.get("tipoServicio"));
+
+  const [tipoServicio, setTipoServicio] = useState(
+    searchParams.get("tipoServicio") || tramiteActual?.tipoServicio || "Rayos X"
+  );
+  const [subservicio, setSubservicio] = useState(
+    searchParams.get("subservicio") || tramiteActual?.subservicio || "Radiología Convencional Simple"
+  );
+  const [modalRadioOpen, setModalRadioOpen] = useState(false);
 
   const isAgentEvaluation = user?.rol === 'ARQUITECTO' || user?.rol === 'AUDITOR';
   const isDescargo = tramiteActual?.estado === 'DESCARGO_INSP' || isAgentEvaluation;
@@ -89,8 +127,20 @@ const PantallaInspeccion = ({
   const paramView = searchParams.get('view');
 
   const [loading, setLoading] = useState(false);
-  const [tipologia, setTipologia] = useState(tramiteActual?.tipologia || "CLÍNICAS, SANATORIOS Y HOSPITALES");
-  const [config, setConfig] = useState(() => getMasterConfig(tramiteActual?.tipologia || "CLÍNICAS, SANATORIOS Y HOSPITALES"));
+  const initialTipologia = isRadiofisica
+    ? "RADIOFÍSICA"
+    : tramiteActual?.tipologia || "CLÍNICAS, SANATORIOS Y HOSPITALES";
+  const [tipologia, setTipologia] = useState(initialTipologia);
+
+  const [config, setConfig] = useState(() => {
+    if (isRadiofisica) {
+      return getRadiofisicaConfig(
+        searchParams.get("tipoServicio") || "Rayos X",
+        searchParams.get("subservicio") || "Radiología Convencional Simple"
+      );
+    }
+    return getMasterConfig(tramiteActual?.tipologia || "CLÍNICAS, SANATORIOS Y HOSPITALES");
+  });
   const [inspectorData, setInspectorData] = useState({});
   const [viewerFile, setViewerFile] = useState(null);
   const [obsDatosGenerales, setObsDatosGenerales] = useState([]);
@@ -122,19 +172,53 @@ const PantallaInspeccion = ({
   const [historyAnchorEl, setHistoryAnchorEl] = useState(null);
   const historyMenuOpen = Boolean(historyAnchorEl);
 
+  const [activeTabActa, setActiveTabActa] = useState(
+    searchParams.get("acta") === "2" ? "ACTA_2" : "ACTA_1"
+  );
+  const [selectedStepActa1, setSelectedStepActa1] = useState("ARQUITECTURA");
+  const [expandedGeneralesActa1, setExpandedGeneralesActa1] = useState(false);
+  const [expandedTramiteActa1, setExpandedTramiteActa1] = useState(true);
+
+  const STEPPER_ACTA_1 = [
+    { id: "ARQUITECTURA", label: "ARQUITECTURA", icon: <MapIcon sx={{ fontSize: 22 }} /> },
+    { id: "SERVICIOS", label: "SERVICIOS", icon: <MedicalServicesIcon sx={{ fontSize: 22 }} /> },
+    { id: "DIRECTOR_TECNICO", label: "DIRECTOR TÉCNICO", icon: <PersonOutlinedIcon sx={{ fontSize: 22 }} /> },
+    { id: "SALAS_Y_CAMAS", label: "SALAS Y CAMAS", icon: <BedIcon sx={{ fontSize: 22 }} /> },
+    { id: "PERSONAL", label: "PERSONAL", icon: <PeopleOutlinedIcon sx={{ fontSize: 22 }} /> },
+    { id: "EQUIPAMIENTO", label: "EQUIPAMIENTO", icon: <AddBoxOutlinedIcon sx={{ fontSize: 22 }} /> },
+    { id: "DOCUMENTOS_ADJUNTOS", label: "DOCUMENTOS ADJUNTOS", icon: <CloudUploadOutlinedIcon sx={{ fontSize: 22 }} /> },
+  ];
+
   const [autoFillAnchorEl, setAutoFillAnchorEl] = useState(null);
   const autoFillMenuOpen = Boolean(autoFillAnchorEl);
 
   const [closeActaModalOpen, setCloseActaModalOpen] = useState(false);
   const [closeActaAction, setCloseActaAction] = useState("");
   const [closeActaNote, setCloseActaNote] = useState("");
+  const [emisionEmplazamientoOpen, setEmisionEmplazamientoOpen] = useState(false);
+
+  const [saveSuccessOpen, setSaveSuccessOpen] = useState(false);
+
+  const handleSaveInspection = () => {
+    try {
+      const storageKey = id ? `inspector_data_${id}` : "inspector_data";
+      localStorage.setItem(storageKey, JSON.stringify(inspectorData));
+      localStorage.setItem(`general_obs_${id || 'default'}`, generalObs);
+      setSaveSuccessOpen(true);
+    } catch (err) {
+      console.error("Error al guardar inspección:", err);
+    }
+  };
 
   const [expandedSectionsGenerales, setExpandedSectionsGenerales] = useState({});
+  const [expandedSectionsMediciones, setExpandedSectionsMediciones] = useState({});
   const [expandedSectionsTramite, setExpandedSectionsTramite] = useState({});
   const [allGeneralesExpanded, setAllGeneralesExpanded] = useState(true);
+  const [allMedicionesExpanded, setAllMedicionesExpanded] = useState(true);
   const [allTramiteExpanded, setAllTramiteExpanded] = useState(true);
 
   const isGeneralesExpanded = (secId) => expandedSectionsGenerales[secId] !== false;
+  const isMedicionesExpanded = (secId) => expandedSectionsMediciones[secId] !== false;
   const isTramiteExpanded = (secId) => expandedSectionsTramite[secId] !== false;
 
   const handleToggleAllGenerales = () => {
@@ -153,6 +237,20 @@ const PantallaInspeccion = ({
     setExpandedSectionsGenerales(newState);
   };
 
+  const handleToggleAllMediciones = (e) => {
+    e?.stopPropagation();
+    const expand = !allMedicionesExpanded;
+    setAllMedicionesExpanded(expand);
+    const newState = {};
+    if (registroMedicionesSrv?.sections) {
+      registroMedicionesSrv.sections.forEach((s, index) => {
+        const sectionKey = s.id || `med_sec_${index}`;
+        newState[sectionKey] = expand;
+      });
+    }
+    setExpandedSectionsMediciones(newState);
+  };
+
   const handleToggleAllTramite = (e) => {
     e.stopPropagation();
     const expand = !allTramiteExpanded;
@@ -169,6 +267,11 @@ const PantallaInspeccion = ({
   };
 
   const handleOpenCloseActa = (action) => {
+    if (action === "NO APROBAR" || action === "RECHAZAR") {
+      setEmisionEmplazamientoOpen(true);
+      return;
+    }
+
     setCloseActaAction(action);
     setCloseActaNote("");
     setCloseActaModalOpen(true);
@@ -213,8 +316,10 @@ const PantallaInspeccion = ({
 
   const [viewerPhoto, setViewerPhoto] = useState(null);
   const [targetPhotoField, setTargetPhotoField] = useState(null);
+  const [modalOrigenObsOpen, setModalOrigenObsOpen] = useState(false);
 
-  const photoInputRef = useRef(null);
+  const photoCameraInputRef = useRef(null);
+  const photoGalleryInputRef = useRef(null);
 
   const handleFileSelect = (e) => {
     const files = Array.from(e.target.files || []);
@@ -253,7 +358,13 @@ const PantallaInspeccion = ({
   };
 
   const [expandedEstablecimiento, setExpandedEstablecimiento] = useState(true);
-  const [selectedCategory, setSelectedCategory] = useState("ARQUITECTURA");
+  const [selectedCategory, setSelectedCategory] = useState(isRadiofisica ? "ESTABLECIMIENTO" : "ARQUITECTURA");
+
+  useEffect(() => {
+    if (isRadiofisica && (selectedCategory === "ARQUITECTURA" || selectedCategory === "SERVICIOS")) {
+      setSelectedCategory("ESTABLECIMIENTO");
+    }
+  }, [isRadiofisica, selectedCategory]);
   const [serviciosEfector, setServiciosEfector] = useState(DEFAULT_EFECTOR_DATA.servicios);
   const [infraEfector, setInfraEfector] = useState(DEFAULT_EFECTOR_DATA.infraestructura);
   const [rrhhEfector, setRrhhEfector] = useState([
@@ -265,15 +376,58 @@ const PantallaInspeccion = ({
 
   const denominacionEstablecimiento = tramiteActual?.denominacion || inspectorData["f-nomtcemx"] || "SANATORIO ALLENDE";
 
-  const datosGeneralesSrv = React.useMemo(() =>
-    config?.servicios?.find((s) => normalize(s.name).includes("DATOS GENERALES")),
-    [config]
-  );
+  const isMedicionSection = React.useCallback((sec) => {
+    const id = sec?.id || "";
+    const name = normalize(sec?.name || "");
+    return (
+      id === "sec-rad-cs-repetibilidad" ||
+      id === "sec-rad-cs-fuga" ||
+      id === "sec-rad-cs-dispersa" ||
+      id === "sec-rad-cs-dosis-anual" ||
+      id === "sec-rad-cs-calidad-imagen" ||
+      name.includes("REPETIBILIDAD") ||
+      name.includes("PRUEBA DE FUGA") ||
+      name.includes("RADIACION DISPERSA") ||
+      name.includes("DOSIS ANUAL") ||
+      name.includes("CALIDAD DE IMAGEN")
+    );
+  }, []);
+
+  const datosGeneralesSrv = React.useMemo(() => {
+    const srv = config?.servicios?.find((s) => normalize(s.name).includes("DATOS GENERALES"));
+    if (!srv) return null;
+    if (!srv.sections) return srv;
+    return {
+      ...srv,
+      sections: srv.sections.filter((sec) => !isMedicionSection(sec))
+    };
+  }, [config, isMedicionSection]);
+
+  const registroMedicionesSrv = React.useMemo(() => {
+    const srv = config?.servicios?.find((s) => {
+      const n = normalize(s.name);
+      return n.includes("REGISTRO DE MEDICIONES") || n.includes("MEDICIONES");
+    });
+    if (srv && srv.sections && srv.sections.length > 0) return srv;
+
+    // Fallback dinámico si aún estuviera en datos generales
+    const rawGen = config?.servicios?.find((s) => normalize(s.name).includes("DATOS GENERALES"));
+    const medSections = rawGen?.sections?.filter((sec) => isMedicionSection(sec)) || [];
+    if (medSections.length > 0) {
+      return {
+        id: "srv-med-rad-fallback",
+        name: "REGISTRO DE MEDICIONES",
+        sections: medSections
+      };
+    }
+    return null;
+  }, [config, isMedicionSection]);
 
   const otherServices = React.useMemo(() => {
     return config?.servicios?.filter((s) => {
       const isGeneral = normalize(s.name).includes("DATOS GENERALES");
-      if (isGeneral) return false;
+      const isMed = normalize(s.name).includes("REGISTRO DE MEDICIONES") || normalize(s.name).includes("MEDICIONES");
+      if (isGeneral || isMed) return false;
 
       const allEfectorSelection = [
         ...(serviciosEfector || []),
@@ -315,6 +469,50 @@ const PantallaInspeccion = ({
 
     if (savedData) {
       setInspectorData(JSON.parse(savedData));
+    } else if (isRadiofisica) {
+      const isDescargoRadio = isRadiofisica && (tramiteActual?.estado === 'DESCARGO_INSP' || tramiteActual?.id === 'TRM-HAB-RF-001');
+      setInspectorData({
+        "f-rad-exp": tramiteActual?.nroExpediente || "EX-2026-0044100-APN-MS#CBA",
+        "f-rad-denominacion": tramiteActual?.denominacion || "Centro de Diagnóstico por Imágenes y Radiofísica San Miguel",
+        "f-rad-tipologia": "RADIOFÍSICA",
+        "f-rad-tipo-tramite": "HABILITACIÓN",
+        "f-rad-tipo-servicio": tipoServicio,
+        "f-rad-subservicio": subservicio,
+        "f-rad-formato": tramiteActual?.formatoInspeccion || "PRESENCIAL",
+        "f-rad-domicilio": tramiteActual?.domicilio || "Av. Vélez Sarsfield 1450",
+        "f-rad-localidad": tramiteActual?.localidad || "Córdoba",
+        "f-rad-email": "radiofisica.salud@cordoba.gob.ar",
+        "f-rad-resp-nombre": "Lic. Martín S. Benítez (Físico Médico)",
+        "f-rad-resp-matricula": "MP-5892 / Especialista en Radiofísica",
+        "f-rad-permiso-arn": isDescargoRadio ? { value: false, obs: "Permiso Individual de Uso ARN del Responsable de Uso Lic. Martín S. Benítez vencido al momento de la inspección." } : true,
+        "f-rad-dosimetria": isDescargoRadio ? { value: false, obs: "Falta reporte de dosimetría de cuerpo entero de los últimos dos bimestres para 3 técnicos radiólogos." } : true,
+        "f-rad-memoria-blindaje": isDescargoRadio ? { value: false, obs: "El muro divisorio colindante a sala de espera pública carece de la atenuación de 2.0 mm Pb equivalente." } : true,
+        "f-rad-garantia-calidad": true,
+        "f-rad-senales-iram": true,
+        "f-rad-luces-emergencia": true,
+        "f-rad-extintores": true,
+        "f-rad-residuos": true,
+        "f-rad-botiquin": true,
+        "rf-rx-blindaje-sala": isDescargoRadio ? { value: false, obs: "Puerta de acceso batiente presenta fuga en umbral inferior y visor no plomado." } : true,
+        "rf-rx-senal-luminosa": isDescargoRadio ? { value: false, obs: "No funciona la luz roja de advertencia exterior sincronizada con el comando de disparo del equipo." } : true,
+        "rf-rx-epp-plomados": isDescargoRadio ? { value: false, obs: "Dos delantales plomados presentaron fisuras internas por plegado inadecuado bajo escopía; falta protector de tiroides." } : true,
+        "rf-rx-calibracion-haz": isDescargoRadio ? { value: false, obs: "La medición de radiación de fuga a 1 metro en flanco lateral derecho arrojó 1.35 mGy/h (límite: 1.0 mGy/h)." } : true,
+        "sec-rad-cs-fuga": isDescargoRadio ? { value: false, obs: "Prueba de fuga superó tolerancia reglamentaria en cabezal SIEMENS Multix." } : true,
+        "f-mat-muros-blindados": isDescargoRadio ? { value: false, obs: "El muro divisorio con sala de espera no alcanza 2.0 mm Pb equivalente." } : true,
+        "f-mat-aberturas-blindadas": isDescargoRadio ? { value: false, obs: "Puerta de acceso sin visor de vidrio plomado de 2.0 mm Pb." } : true,
+        "rf-las-gafas-certificadas": true,
+        "rf-las-aviso-puerta": true,
+        "rf-las-llave-seguridad": true,
+        "rf-las-ventilacion-humos": true,
+        "rf-rm-jaula-faraday": true,
+        "rf-rm-zonas-seguridad": true,
+        "rf-rm-linea-5gauss": true,
+        "rf-rm-quench-linea": true,
+        "rf-uv-corte-automatico": true,
+        "rf-uv-parada-emergencia": true,
+        "rf-uv-prohibicion-menores": true,
+        "rf-uv-gafas-uv": true,
+      });
     } else {
       setInspectorData({
         "f-fecqs7p6": new Date().toISOString().split("T")[0],
@@ -383,6 +581,27 @@ const PantallaInspeccion = ({
         genSummary.push({ id: f.id, label: f.label, text: obs, type: 'OBS', hasPhoto: !!photo, photo });
       }
     });
+
+    // Observaciones de secciones generales de Registro de Mediciones
+    if (registroMedicionesSrv?.sections) {
+      registroMedicionesSrv.sections.forEach((sec, idx) => {
+        const secKey = sec.id || `med_sec_${idx}`;
+        const secData = inspectorData[secKey];
+        const secObs = extractObs(secData);
+        const photo = extractPhoto(secData);
+        if (secObs) {
+          genSummary.push({
+            id: secKey,
+            label: sec.name,
+            text: secObs,
+            type: 'OBS',
+            hasPhoto: !!photo,
+            photo
+          });
+        }
+      });
+    }
+
     setObsDatosGenerales(genSummary);
 
     // 2. Datos Trámite
@@ -489,12 +708,14 @@ const PantallaInspeccion = ({
     localStorage.setItem(`obs_datos_generales_${id || 'default'}`, JSON.stringify(genSummary));
     localStorage.setItem(`obs_datos_tramite_${id || 'default'}`, JSON.stringify(traSummary));
     localStorage.setItem(`inspector_emplazamientos_${id || 'default'}`, JSON.stringify(emplazamientos));
-  }, [inspectorData, config, datosGeneralesSrv, otherServices, infraEfector, equiposEfector, id]);
+  }, [inspectorData, config, datosGeneralesSrv, registroMedicionesSrv, otherServices, infraEfector, equiposEfector, id]);
 
-  const hasObservations =
-    (obsDatosGenerales?.length || 0) > 0 ||
-    (obsDatosTramite?.length || 0) > 0 ||
-    (generalObs || "").trim().length > 0;
+  const obsCount =
+    (obsDatosGenerales?.length || 0) +
+    (obsDatosTramite?.length || 0) +
+    ((generalObs || "").trim().length > 0 ? 1 : 0);
+
+  const hasObservations = obsCount > 0;
 
   const getFormatoInspeccion = () => {
     if (tramiteActual?.formatoInspeccion) return tramiteActual.formatoInspeccion.toUpperCase();
@@ -523,29 +744,36 @@ const PantallaInspeccion = ({
     const fetchData = async () => {
       try {
         setLoading(true);
+        if (isRadiofisica) {
+          const cfg = getRadiofisicaConfig(tipoServicio, subservicio);
+          setConfig(cfg);
+          localStorage.setItem("master_config", JSON.stringify(cfg));
+          return;
+        }
+
         // 1. Cargar localmente primero
         const localCfg = getMasterConfig(tipologia);
         if (localCfg) {
           setConfig(localCfg);
           localStorage.setItem("master_config", JSON.stringify(localCfg));
-        }
-
-        // 2. Intentar API externa si estuviese levantada
-        try {
-          const res = await fetch(
-            `http://localhost:3001/configuraciones_maestras?tipologia=${encodeURIComponent(
-              tipologia,
-            )}`,
-          );
-          if (res.ok) {
-            const data = await res.json();
-            if (data && data.length > 0) {
-              setConfig(data[0]);
-              localStorage.setItem("master_config", JSON.stringify(data[0]));
+        } else {
+          // 2. Intentar API externa solo si no existe configuración local
+          try {
+            const res = await fetch(
+              `http://localhost:3001/configuraciones_maestras?tipologia=${encodeURIComponent(
+                tipologia,
+              )}`,
+            );
+            if (res.ok) {
+              const data = await res.json();
+              if (data && data.length > 0) {
+                setConfig(data[0]);
+                localStorage.setItem("master_config", JSON.stringify(data[0]));
+              }
             }
+          } catch {
+            // masterConfig local es el fallback
           }
-        } catch {
-          // Si no hay json-server, usamos el masterConfig local
         }
       } catch (err) {
         console.error("Error al cargar configuración", err);
@@ -554,7 +782,21 @@ const PantallaInspeccion = ({
       }
     };
     fetchData();
-  }, [tipologia]);
+  }, [tipologia, isRadiofisica, tipoServicio, subservicio]);
+
+  const handleConfirmRadiofisica = (newTipo, newSub) => {
+    setTipoServicio(newTipo);
+    setSubservicio(newSub);
+    setSearchParams((prev) => {
+      const sp = new URLSearchParams(prev);
+      sp.set("tipoServicio", newTipo);
+      sp.set("subservicio", newSub);
+      return sp;
+    });
+    const newCfg = getRadiofisicaConfig(newTipo, newSub);
+    setConfig(newCfg);
+    setModalRadioOpen(false);
+  };
 
   const handleFieldChange = (fieldId, newValue) => {
     setInspectorData((prev) => {
@@ -570,13 +812,13 @@ const PantallaInspeccion = ({
     setCloseActaModalOpen(false);
     
     const esAprobacion = closeActaAction === "APROBAR";
-    const esRechazo = closeActaAction === "RECHAZAR";
+    const esNoAprobar = closeActaAction === "RECHAZAR" || closeActaAction === "NO APROBAR";
     if (id) {
       actualizarInspeccion({
         tramiteId: id,
         cierre: {
           dictamen: esAprobacion ? 'APRUEBA' : 'NO_APRUEBA',
-          notasCierre: esRechazo ? `[ACTA RECHAZADA] ${closeActaNote}` : closeActaNote,
+          notasCierre: esNoAprobar ? `[ACTA NO APROBADA] ${closeActaNote}` : closeActaNote,
           firmaInspector: signatures.inspector.data || undefined,
           firmaResponsable: signatures.representative.data || undefined,
         }
@@ -584,8 +826,8 @@ const PantallaInspeccion = ({
       finalizarInspeccion();
     }
     
-    alert(esRechazo 
-      ? `Acta rechazada con éxito.\nMotivo: ${closeActaNote || 'Sin observaciones adicionales'}`
+    alert(esNoAprobar 
+      ? `Acta no aprobada con éxito.\nMotivo: ${closeActaNote || 'Sin observaciones adicionales'}`
       : `Acta cerrada (${closeActaAction}) con éxito.\nNota: ${closeActaNote || 'Sin notas adicionales'}`
     );
     navigate(user?.rol === 'COORDINADOR' ? '/coordinador/inspeccion/habilitacion' : '/inspector/inspeccion-tipo/habilitacion');
@@ -639,6 +881,36 @@ const PantallaInspeccion = ({
       icon: <DescriptionIcon sx={{ fontSize: 28 }} />,
     },
   ];
+
+  const PESTAÑAS_RADIOFISICA = [
+    {
+      id: "ESTABLECIMIENTO",
+      label: "ESTABLECIMIENTO",
+      icon: <ApartmentIcon sx={{ fontSize: 28 }} />,
+    },
+    {
+      id: "DIRECTOR_TECNICO",
+      label: "RESPONSABLE",
+      icon: <PersonIcon sx={{ fontSize: 28 }} />,
+    },
+    {
+      id: "PERSONAL",
+      label: "PLANTEL",
+      icon: <PeopleIcon sx={{ fontSize: 28 }} />,
+    },
+    {
+      id: "EQUIPAMIENTO",
+      label: "EQUIPAMIENTO",
+      icon: <MedicalServicesIcon sx={{ fontSize: 28 }} />,
+    },
+    {
+      id: "DOCUMENTACION",
+      label: "DOCUMENTOS ADJUNTOS",
+      icon: <DescriptionIcon sx={{ fontSize: 28 }} />,
+    },
+  ];
+
+  const pestañasActivas = isRadiofisica ? PESTAÑAS_RADIOFISICA : PESTAÑAS;
 
   const renderProgressBar = (stats) => {
     return (
@@ -729,6 +1001,13 @@ const PantallaInspeccion = ({
       fillFields(genFields);
     }
 
+    if (registroMedicionesSrv) {
+      const medFields = registroMedicionesSrv.sections
+        ? getFlatFields(registroMedicionesSrv.sections)
+        : registroMedicionesSrv.fields || [];
+      fillFields(medFields);
+    }
+
     otherServices.forEach(srv => {
       const srvFields = srv.sections
         ? getFlatFields(srv.sections)
@@ -747,7 +1026,7 @@ const PantallaInspeccion = ({
     ? '/auditor/expedientes'
     : '/inspector/inspeccion-tipo/habilitacion';
 
-  if (activeView === "REVISION") {
+  if (isRadiofisica && activeView === "REVISION") {
     return (
       <Box
         sx={{
@@ -767,6 +1046,10 @@ const PantallaInspeccion = ({
           obsGenerales={obsDatosGenerales}
           obsTramite={obsDatosTramite}
           rol={user?.rol}
+          tramite={tramiteActual}
+          isRadiofisica={isRadiofisica}
+          tipoServicio={tipoServicio}
+          subservicio={subservicio}
           onVolver={() => navigate(backPath)}
           onAceptarReinspeccion={() => {
             if (id) {
@@ -902,7 +1185,7 @@ const PantallaInspeccion = ({
               <Divider orientation="vertical" flexItem sx={{ mx: 1, height: 18, my: 'auto' }} />
 
               <Typography variant="caption" sx={{ fontWeight: 800, color: '#64748b' }}>
-                DIRECTOR TÉCNICO: <Box component="span" sx={{ color: '#0f172a', fontWeight: 900 }}>{directorTecnico.nombre} {directorTecnico.apellido}</Box>
+                {isRadiofisica ? 'RESPONSABLE: ' : 'DIRECTOR TÉCNICO: '}<Box component="span" sx={{ color: '#0f172a', fontWeight: 900 }}>{directorTecnico.nombre} {directorTecnico.apellido}</Box>
               </Typography>
 
               <Divider orientation="vertical" flexItem sx={{ mx: 1, height: 18, my: 'auto' }} />
@@ -934,150 +1217,777 @@ const PantallaInspeccion = ({
 
             <Button
               variant="contained"
-              onClick={() => handleOpenCloseActa("RECHAZAR")}
+              onClick={() => handleOpenCloseActa("NO APROBAR")}
               sx={{
                 fontWeight: 900,
                 borderRadius: 2,
-                bgcolor: "#dc2626",
+                bgcolor: "#ea580c",
                 color: "white",
                 px: 2.5,
-                boxShadow: "0 2px 8px rgba(220, 38, 38, 0.3)",
-                "&:hover": { bgcolor: "#b91c1c" }
+                boxShadow: "0 2px 8px rgba(234, 88, 12, 0.3)",
+                "&:hover": { bgcolor: "#c2410c" }
               }}
             >
-              Rechazar Acta
+              No Aprobar
             </Button>
           </Box>
         </Box>
+
+        {/* Banner Informativo y Selector para Radiofísica */}
+        {isRadiofisica && (
+          <Box
+            sx={{
+              mt: 2.5,
+              pt: 2,
+              borderTop: "1px dashed #cbd5e1",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              flexWrap: "wrap",
+              gap: 2,
+              bgcolor: "#F8FAFC",
+              p: 2,
+              borderRadius: 3,
+            }}
+          >
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, flexWrap: "wrap" }}>
+              <Chip
+                icon={<span className="material-icons" style={{ fontSize: 16 }}>health_and_safety</span>}
+                label="HABILITACIÓN - RADIOFÍSICA"
+                sx={{
+                  bgcolor: "#004B87",
+                  color: "#FFFFFF",
+                  fontWeight: 800,
+                  fontSize: "0.75rem",
+                  "& .MuiChip-icon": { color: "#FFFFFF" },
+                }}
+              />
+              <Chip
+                label={`Tipo: ${tipoServicio}`}
+                sx={{
+                  bgcolor: "#E0F2FE",
+                  color: "#0369A1",
+                  fontWeight: 800,
+                  fontSize: "0.75rem",
+                  border: "1px solid #BAE6FD",
+                }}
+              />
+              <Chip
+                label={`Servicio: ${subservicio}`}
+                sx={{
+                  bgcolor: "#DCFCE7",
+                  color: "#15803D",
+                  fontWeight: 800,
+                  fontSize: "0.75rem",
+                  border: "1px solid #BBF7D0",
+                }}
+              />
+            </Box>
+            <Button
+              variant="contained"
+              size="small"
+              onClick={() => setModalRadioOpen(true)}
+              startIcon={<span className="material-icons" style={{ fontSize: 18 }}>tune</span>}
+              sx={{
+                bgcolor: "#004B87",
+                color: "#FFFFFF",
+                fontWeight: 750,
+                textTransform: "none",
+                borderRadius: 2,
+                boxShadow: "0 2px 6px rgba(0, 75, 135, 0.25)",
+                "&:hover": { bgcolor: "#003865" },
+              }}
+            >
+              Cambiar Tipo / Subservicio
+            </Button>
+          </Box>
+        )}
       </Paper>
 
-      {/* Selector de Acta / Revisión / Historial */}
-      <Box
-        sx={{
-          bgcolor: '#ebeef2',
-          borderRadius: 6,
-          p: 0.8,
-          mb: 4,
-          display: 'flex',
-          alignItems: 'center',
-          gap: 0.5,
-          boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.02)'
-        }}
-      >
-        {currentActaNum > 1 && (
-          <>
-            <Button
-              onClick={handleHistoryClick}
-              startIcon={<HistoryIcon sx={{ color: '#0ea5e9' }} />}
-              endIcon={historyMenuOpen ? <KeyboardArrowUpIcon sx={{ color: '#0ea5e9' }} /> : <KeyboardArrowDownIcon sx={{ color: '#0ea5e9' }} />}
-              sx={{
-                bgcolor: historyMenuOpen ? 'white' : 'transparent',
-                borderRadius: 5,
-                px: 3,
-                py: 1,
-                fontWeight: 900,
-                color: '#0ea5e9',
-                boxShadow: historyMenuOpen ? '0 2px 8px rgba(0,0,0,0.08)' : 'none',
-                textTransform: 'uppercase',
-                fontSize: '0.85rem',
-                letterSpacing: '0.02em',
-                '&:hover': { bgcolor: historyMenuOpen ? '#ffffff' : 'rgba(0,0,0,0.04)' }
-              }}
-            >
-              HISTORIAL ({currentActaNum - 1})
-            </Button>
+      {/* Selector de Acta para Radiofísica */}
+      {isRadiofisica && (
+        <Box
+          sx={{
+            bgcolor: '#ebeef2',
+            borderRadius: 6,
+            p: 0.8,
+            mb: 4,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 0.5,
+            boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.02)'
+          }}
+        >
+          {currentActaNum > 1 && (
+            <>
+              <Button
+                onClick={handleHistoryClick}
+                startIcon={<HistoryIcon sx={{ color: '#0ea5e9' }} />}
+                endIcon={historyMenuOpen ? <KeyboardArrowUpIcon sx={{ color: '#0ea5e9' }} /> : <KeyboardArrowDownIcon sx={{ color: '#0ea5e9' }} />}
+                sx={{
+                  bgcolor: historyMenuOpen ? 'white' : 'transparent',
+                  borderRadius: 5,
+                  px: 3,
+                  py: 1,
+                  fontWeight: 900,
+                  color: '#0ea5e9',
+                  boxShadow: historyMenuOpen ? '0 2px 8px rgba(0,0,0,0.08)' : 'none',
+                  textTransform: 'uppercase',
+                  fontSize: '0.85rem',
+                  letterSpacing: '0.02em',
+                  '&:hover': { bgcolor: historyMenuOpen ? '#ffffff' : 'rgba(0,0,0,0.04)' }
+                }}
+              >
+                HISTORIAL ({currentActaNum - 1})
+              </Button>
 
-            <Menu
-              anchorEl={historyAnchorEl}
-              open={historyMenuOpen}
-              onClose={handleHistoryClose}
-              PaperProps={{
-                elevation: 0,
-                sx: {
-                  mt: 1.5,
-                  borderRadius: 4,
-                  minWidth: 180,
-                  boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1)',
-                  border: '1px solid #f1f5f9',
-                  '& .MuiMenuItem-root': {
-                    fontWeight: 800,
-                    color: '#64748b',
-                    fontSize: '0.9rem',
-                    py: 1.5,
-                    px: 3,
-                    mx: 1,
-                    borderRadius: 2,
-                    '&:hover': {
-                      bgcolor: '#f0f9ff',
-                      color: '#0ea5e9'
+              <Menu
+                anchorEl={historyAnchorEl}
+                open={historyMenuOpen}
+                onClose={handleHistoryClose}
+                PaperProps={{
+                  elevation: 0,
+                  sx: {
+                    mt: 1.5,
+                    borderRadius: 4,
+                    minWidth: 180,
+                    boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1)',
+                    border: '1px solid #f1f5f9',
+                    '& .MuiMenuItem-root': {
+                      fontWeight: 800,
+                      color: '#64748b',
+                      fontSize: '0.9rem',
+                      py: 1.5,
+                      px: 3,
+                      mx: 1,
+                      borderRadius: 2,
+                      '&:hover': {
+                        bgcolor: '#f0f9ff',
+                        color: '#0ea5e9'
+                      }
                     }
                   }
-                }
+                }}
+                transformOrigin={{ horizontal: 'left', vertical: 'top' }}
+                anchorOrigin={{ horizontal: 'left', vertical: 'bottom' }}
+              >
+                {Array.from({ length: Math.max(0, currentActaNum - 1) }, (_, i) => (
+                  <MenuItem key={i} onClick={handleHistoryClose}>
+                    ACTA {i + 1} {i === 0 ? '(INICIAL)' : ''}
+                  </MenuItem>
+                ))}
+              </Menu>
+            </>
+          )}
+
+          {(isDescargo || currentActaNum > 1) && (
+            <Button
+              variant="text"
+              onClick={() => setActiveView("REVISION")}
+              sx={{
+                flex: 1,
+                borderRadius: 5,
+                fontWeight: 900,
+                py: 1,
+                color: activeView === "REVISION" ? "#0f172a" : "#64748b",
+                bgcolor: activeView === "REVISION" ? "white" : "transparent",
+                boxShadow: activeView === "REVISION" ? "0 2px 8px rgba(0,0,0,0.08)" : "none",
+                textTransform: 'none',
+                fontSize: '0.85rem',
+                '&:hover': { bgcolor: activeView === "REVISION" ? 'white' : 'rgba(0,0,0,0.04)' }
               }}
-              transformOrigin={{ horizontal: 'left', vertical: 'top' }}
-              anchorOrigin={{ horizontal: 'left', vertical: 'bottom' }}
             >
-              {Array.from({ length: Math.max(0, currentActaNum - 1) }, (_, i) => (
-                <MenuItem key={i} onClick={handleHistoryClose}>
-                  ACTA {i + 1} {i === 0 ? '(INICIAL)' : ''}
-                </MenuItem>
-              ))}
-            </Menu>
-          </>
-        )}
+              {isAgentEvaluation
+                ? "RESPUESTA EMPLAZAMIENTO: REVISIÓN DE DESCARGO"
+                : isDescargo && currentActaNum === 1
+                ? "ACTA 1: REVISIÓN"
+                : `ACTA ${currentActaNum - 1}: REVISIÓN`}
+            </Button>
+          )}
 
-        {(isDescargo || currentActaNum > 1) && (
+          {!isDescargo && (
+            <Button
+              variant="text"
+              onClick={() => setActiveView("INSPECCION")}
+              sx={{
+                flex: 1,
+                borderRadius: 5,
+                fontWeight: 900,
+                py: 1,
+                color: activeView === "INSPECCION" ? "#0f172a" : "#64748b",
+                bgcolor: activeView === "INSPECCION" ? "white" : "transparent",
+                boxShadow: activeView === "INSPECCION" ? "0 2px 8px rgba(0,0,0,0.08)" : "none",
+                textTransform: 'none',
+                fontSize: '0.85rem',
+                '&:hover': { bgcolor: activeView === "INSPECCION" ? 'white' : 'rgba(0,0,0,0.04)' }
+              }}
+            >
+              ACTA {currentActaNum}: INSPECCIÓN
+            </Button>
+          )}
+        </Box>
+      )}
+
+      {/* Pestañas Superiores de Acta 1 / Acta 2 para trámites comunes */}
+      {!isRadiofisica && currentActaNum > 1 && (
+        <Box sx={{ display: "flex", gap: 1, mb: -0.1, zIndex: 2, position: "relative", px: { xs: 0.5, sm: 1 } }}>
           <Button
-            variant="text"
-            onClick={() => setActiveView("REVISION")}
+            onClick={() => setActiveTabActa("ACTA_1")}
             sx={{
-              flex: 1,
-              borderRadius: 5,
-              fontWeight: 900,
-              py: 1,
-              color: activeView === "REVISION" ? "#0f172a" : "#64748b",
-              bgcolor: activeView === "REVISION" ? "white" : "transparent",
-              boxShadow: activeView === "REVISION" ? "0 2px 8px rgba(0,0,0,0.08)" : "none",
-              textTransform: 'none',
-              fontSize: '0.85rem',
-              '&:hover': { bgcolor: activeView === "REVISION" ? 'white' : 'rgba(0,0,0,0.04)' }
+              bgcolor: activeTabActa === "ACTA_1" ? "#ffffff" : "#cbd5e1",
+              color: activeTabActa === "ACTA_1" ? "#0284c7" : "#475569",
+              borderTopLeftRadius: 16,
+              borderTopRightRadius: 16,
+              borderBottomLeftRadius: 0,
+              borderBottomRightRadius: 0,
+              px: { xs: 2.5, sm: 4 },
+              py: 1.2,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              textTransform: "none",
+              border: "1px solid",
+              borderColor: activeTabActa === "ACTA_1" ? "#e2e8f0" : "transparent",
+              borderBottom: activeTabActa === "ACTA_1" ? "1px solid #ffffff" : "none",
+              boxShadow: activeTabActa === "ACTA_1" ? "0 -2px 8px rgba(0,0,0,0.04)" : "none",
+              "&:hover": {
+                bgcolor: activeTabActa === "ACTA_1" ? "#ffffff" : "#b0bec5",
+              },
             }}
           >
-            {isAgentEvaluation
-              ? "RESPUESTA EMPLAZAMIENTO: REVISIÓN DE DESCARGO"
-              : isDescargo && currentActaNum === 1
-              ? "ACTA 1: REVISIÓN"
-              : `ACTA ${currentActaNum - 1}: REVISIÓN`}
+            <Typography sx={{ fontWeight: 900, fontSize: "0.88rem", lineHeight: 1.2 }}>
+              ACTA 1
+            </Typography>
+            <Typography sx={{ fontWeight: 800, fontSize: "0.68rem", lineHeight: 1.2, letterSpacing: "0.02em" }}>
+              VISUALIZACIÓN
+            </Typography>
           </Button>
-        )}
 
-        {!isDescargo && (
           <Button
-            variant="text"
-            onClick={() => setActiveView("INSPECCION")}
+            onClick={() => setActiveTabActa("ACTA_2")}
             sx={{
-              flex: 1,
-              borderRadius: 5,
-              fontWeight: 900,
-              py: 1,
-              color: activeView === "INSPECCION" ? "#0f172a" : "#64748b",
-              bgcolor: activeView === "INSPECCION" ? "white" : "transparent",
-              boxShadow: activeView === "INSPECCION" ? "0 2px 8px rgba(0,0,0,0.08)" : "none",
-              textTransform: 'none',
-              fontSize: '0.85rem',
-              '&:hover': { bgcolor: activeView === "INSPECCION" ? 'white' : 'rgba(0,0,0,0.04)' }
+              bgcolor: activeTabActa === "ACTA_2" ? "#ffffff" : "#cbd5e1",
+              color: activeTabActa === "ACTA_2" ? "#0284c7" : "#475569",
+              borderTopLeftRadius: 16,
+              borderTopRightRadius: 16,
+              borderBottomLeftRadius: 0,
+              borderBottomRightRadius: 0,
+              px: { xs: 2.5, sm: 4 },
+              py: 1.2,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              textTransform: "none",
+              border: "1px solid",
+              borderColor: activeTabActa === "ACTA_2" ? "#e2e8f0" : "transparent",
+              borderBottom: activeTabActa === "ACTA_2" ? "1px solid #ffffff" : "none",
+              boxShadow: activeTabActa === "ACTA_2" ? "0 -2px 8px rgba(0,0,0,0.04)" : "none",
+              "&:hover": {
+                bgcolor: activeTabActa === "ACTA_2" ? "#ffffff" : "#b0bec5",
+              },
             }}
           >
-            ACTA {currentActaNum}: INSPECCIÓN
+            <Typography sx={{ fontWeight: 900, fontSize: "0.88rem", lineHeight: 1.2 }}>
+              ACTA 2
+            </Typography>
+            <Typography sx={{ fontWeight: 800, fontSize: "0.68rem", lineHeight: 1.2, letterSpacing: "0.02em" }}>
+              INSPECCIÓN
+            </Typography>
           </Button>
-        )}
-      </Box>
+        </Box>
+      )}
 
-      {activeView === "REVISION" ? (
+      {/* Renderizado de ACTA 1 (VISUALIZACIÓN) */}
+      {!isRadiofisica && currentActaNum > 1 && activeTabActa === "ACTA_1" ? (
+        <Paper
+          elevation={0}
+          sx={{
+            p: { xs: 2, sm: 4 },
+            borderRadius: 4,
+            border: "1px solid #e2e8f0",
+            bgcolor: "#ffffff",
+            mb: 4,
+            boxShadow: "0 4px 20px rgba(0,0,0,0.04)",
+          }}
+        >
+          {/* Cabecera ACTA 1 | NO APROBADO */}
+          <Box sx={{ mb: 3 }}>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 2 }}>
+              <Typography
+                sx={{
+                  fontSize: { xs: "2.2rem", md: "3.2rem" },
+                  fontWeight: 950,
+                  color: "#0f172a",
+                  lineHeight: 1,
+                  letterSpacing: "-0.03em",
+                }}
+              >
+                ACTA 1
+              </Typography>
+              <Box sx={{ width: "2px", height: 36, bgcolor: "#cbd5e1" }} />
+              <Typography
+                sx={{
+                  fontSize: { xs: "1.1rem", md: "1.35rem" },
+                  fontWeight: 900,
+                  color: "#94a3b8",
+                  letterSpacing: "0.05em",
+                  textTransform: "uppercase",
+                }}
+              >
+                NO APROBADO
+              </Typography>
+            </Box>
+
+            {/* Badges de Inspector y Emplazado */}
+            <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} alignItems="flex-start">
+              <Box
+                sx={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 1,
+                  bgcolor: "#f1f5f9",
+                  border: "1px solid #e2e8f0",
+                  borderRadius: 5,
+                  px: 2,
+                  py: 0.8,
+                }}
+              >
+                <PersonIcon sx={{ fontSize: 18, color: "#475569" }} />
+                <Typography sx={{ fontSize: "0.78rem", fontWeight: 700, color: "#64748b" }}>
+                  INSPECTOR ACTUANTE: <strong style={{ color: "#0f172a", fontWeight: 900 }}>ATHINA BRINGAS</strong>
+                </Typography>
+              </Box>
+
+              <Box
+                sx={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 1,
+                  bgcolor: "#fff7ed",
+                  border: "1px solid #fed7aa",
+                  borderRadius: 5,
+                  px: 2,
+                  py: 0.8,
+                }}
+              >
+                <AccessTimeIcon sx={{ fontSize: 18, color: "#ea580c" }} />
+                <Typography sx={{ fontSize: "0.78rem", fontWeight: 700, color: "#ea580c" }}>
+                  EMPLAZADO HASTA: <strong style={{ color: "#c2410c", fontWeight: 900 }}>29/09/2026</strong>
+                </Typography>
+              </Box>
+            </Stack>
+          </Box>
+
+          {/* Acordeón 1: DATOS GENERALES */}
+          <Accordion
+            expanded={expandedGeneralesActa1}
+            onChange={() => setExpandedGeneralesActa1(!expandedGeneralesActa1)}
+            elevation={0}
+            sx={{
+              mb: 2.5,
+              border: "1px solid #e2e8f0",
+              borderRadius: "16px !important",
+              overflow: "hidden",
+              "&:before": { display: "none" },
+            }}
+          >
+            <AccordionSummary
+              expandIcon={<KeyboardArrowDownIcon sx={{ color: "#0ea5e9" }} />}
+              sx={{
+                bgcolor: "#ffffff",
+                py: 1,
+                px: 2.5,
+                "& .MuiAccordionSummary-content": {
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 0.5,
+                },
+              }}
+            >
+              <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                <Typography
+                  sx={{
+                    fontWeight: 900,
+                    color: "#0f172a",
+                    fontSize: "1.1rem",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.02em",
+                  }}
+                >
+                  DATOS GENERALES
+                </Typography>
+              </Box>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                <Chip
+                  label="9%"
+                  size="small"
+                  sx={{
+                    bgcolor: "#f1f5f9",
+                    color: "#475569",
+                    fontWeight: 800,
+                    fontSize: "0.75rem",
+                    height: 24,
+                    borderRadius: 2,
+                    border: "1px solid #e2e8f0",
+                  }}
+                />
+              </Box>
+            </AccordionSummary>
+            <AccordionDetails sx={{ px: 3, py: 2.5, bgcolor: "#f8fafc", borderTop: "1px solid #e2e8f0" }}>
+              <Typography sx={{ fontSize: "0.85rem", color: "#64748b", mb: 1.5, fontWeight: 600 }}>
+                Visualización de datos generales registrados en Acta 1:
+              </Typography>
+              <Box sx={{ p: 2, bgcolor: "#ffffff", borderRadius: 3, border: "1px solid #e2e8f0" }}>
+                <Typography sx={{ fontSize: "0.85rem", fontWeight: 800, color: "#ef4444" }}>
+                  • Convenio con Servicio de Emergencias/Unidades Móviles: <span style={{ color: "#b91c1c", fontWeight: 900 }}>NO CUMPLE</span>
+                </Typography>
+              </Box>
+            </AccordionDetails>
+          </Accordion>
+
+          {/* Acordeón 2: DATOS DEL TRÁMITE */}
+          <Accordion
+            expanded={expandedTramiteActa1}
+            onChange={() => setExpandedTramiteActa1(!expandedTramiteActa1)}
+            elevation={0}
+            sx={{
+              mb: 3,
+              border: "1px solid #e2e8f0",
+              borderRadius: "16px !important",
+              overflow: "hidden",
+              "&:before": { display: "none" },
+            }}
+          >
+            <AccordionSummary
+              expandIcon={<KeyboardArrowUpIcon sx={{ color: "#0ea5e9" }} />}
+              sx={{
+                bgcolor: "#ffffff",
+                py: 1,
+                px: 2.5,
+                "& .MuiAccordionSummary-content": {
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 0.5,
+                },
+              }}
+            >
+              <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                <Typography
+                  sx={{
+                    fontWeight: 900,
+                    color: "#0f172a",
+                    fontSize: "1.1rem",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.02em",
+                  }}
+                >
+                  DATOS DEL TRÁMITE
+                </Typography>
+              </Box>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                <Chip
+                  label="100%"
+                  size="small"
+                  sx={{
+                    bgcolor: "#e0f2fe",
+                    color: "#0284c7",
+                    fontWeight: 800,
+                    fontSize: "0.75rem",
+                    height: 24,
+                    borderRadius: 2,
+                    border: "1px solid #bae6fd",
+                  }}
+                />
+              </Box>
+            </AccordionSummary>
+            <AccordionDetails sx={{ px: { xs: 1, sm: 3 }, py: 3, bgcolor: "#ffffff", borderTop: "1px solid #e2e8f0" }}>
+              {/* Stepper Horizontal */}
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "flex-start",
+                  justifyContent: "space-between",
+                  mb: 4,
+                  mt: 1,
+                  px: { xs: 0, sm: 2 },
+                  width: "100%",
+                  position: "relative",
+                }}
+              >
+                <Box
+                  sx={{
+                    position: "absolute",
+                    top: 22,
+                    left: 36,
+                    right: 36,
+                    height: 2,
+                    bgcolor: "#e2e8f0",
+                    zIndex: 0,
+                  }}
+                />
+
+                {STEPPER_ACTA_1.map((step) => {
+                  const isSelected = selectedStepActa1 === step.id;
+                  return (
+                    <Box
+                      key={step.id}
+                      onClick={() => setSelectedStepActa1(step.id)}
+                      sx={{
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        cursor: "pointer",
+                        zIndex: 1,
+                        flex: 1,
+                        minWidth: 0,
+                        gap: 0.8,
+                      }}
+                    >
+                      <Box
+                        sx={{
+                          width: 44,
+                          height: 44,
+                          borderRadius: "50%",
+                          display: "flex",
+                          justifyContent: "center",
+                          alignItems: "center",
+                          bgcolor: isSelected ? "#0ea5e9" : "#ffffff",
+                          color: isSelected ? "white" : "#94a3b8",
+                          border: isSelected ? "none" : "2px solid #cbd5e1",
+                          boxShadow: isSelected
+                            ? "0 4px 10px rgba(14,165,233,0.35)"
+                            : "none",
+                          transition: "all 0.2s",
+                        }}
+                      >
+                        {step.icon}
+                      </Box>
+                      <Typography
+                        align="center"
+                        sx={{
+                          fontWeight: 900,
+                          fontSize: { xs: "0.58rem", sm: "0.70rem" },
+                          color: isSelected ? "#0ea5e9" : "#64748b",
+                          lineHeight: 1.15,
+                          textTransform: "uppercase",
+                        }}
+                      >
+                        {step.label}
+                      </Typography>
+                    </Box>
+                  );
+                })}
+              </Box>
+
+              {/* Contenido del paso seleccionado */}
+              {selectedStepActa1 === "ARQUITECTURA" ? (
+                <Box sx={{ mb: 2 }}>
+                  <PlansTable
+                    inspectorData={inspectorData}
+                    onChange={handleFieldChange}
+                    onOpenObs={handleOpenObsDialog}
+                    onOpenViewer={setViewerFile}
+                    tramite={tramiteActual}
+                    nroActa={1}
+                    isActa1={true}
+                  />
+                </Box>
+              ) : (
+                <Box
+                  sx={{
+                    border: "2px dashed #e2e8f0",
+                    borderRadius: 4,
+                    py: 6,
+                    px: 3,
+                    textAlign: "center",
+                    bgcolor: "#fbfcfd",
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    my: 2,
+                  }}
+                >
+                  <InfoOutlinedIcon sx={{ fontSize: 44, color: "#0ea5e9", mb: 1.5 }} />
+                  <Typography sx={{ fontWeight: 800, color: "#1e293b", fontSize: "1rem", mb: 0.5 }}>
+                    No hay datos disponibles para este paso
+                  </Typography>
+                  <Typography sx={{ color: "#64748b", fontSize: "0.85rem" }}>
+                    Este paso no contiene datos. Por favor, seleccione otro paso.
+                  </Typography>
+                </Box>
+              )}
+            </AccordionDetails>
+          </Accordion>
+
+          {/* Resumen de Observaciones Registradas */}
+          <Paper
+            variant="outlined"
+            sx={{
+              p: { xs: 2.5, sm: 3.5 },
+              borderRadius: 4,
+              border: "1px solid #e2e8f0",
+              bgcolor: "#ffffff",
+            }}
+          >
+            <Typography
+              variant="h6"
+              sx={{
+                fontWeight: 900,
+                color: "#1e293b",
+                mb: 3,
+                letterSpacing: "0.01em",
+                fontSize: "1.15rem",
+              }}
+            >
+              RESUMEN DE OBSERVACIONES REGISTRADAS
+            </Typography>
+
+            {/* OBSERVACIONES EN DATOS GENERALES */}
+            <Box sx={{ mb: 3 }}>
+              <Typography
+                sx={{
+                  fontWeight: 800,
+                  color: "#475569",
+                  fontSize: "0.85rem",
+                  mb: 1.5,
+                  letterSpacing: "0.02em",
+                }}
+              >
+                OBSERVACIONES EN DATOS GENERALES
+              </Typography>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1, pl: 1 }}>
+                <Box sx={{ width: 6, height: 6, borderRadius: "50%", bgcolor: "#0ea5e9" }} />
+                <Typography sx={{ fontSize: "0.88rem", color: "#334155" }}>
+                  <strong style={{ fontWeight: 800 }}>Convenio con Servicio de Emergencias/Unidades Móviles:</strong> NO CUMPLE
+                </Typography>
+              </Box>
+            </Box>
+
+            {/* OBSERVACIONES EN DATOS DEL TRÁMITE */}
+            <Box sx={{ mb: 4 }}>
+              <Typography
+                sx={{
+                  fontWeight: 800,
+                  color: "#475569",
+                  fontSize: "0.85rem",
+                  mb: 1.5,
+                  letterSpacing: "0.02em",
+                }}
+              >
+                OBSERVACIONES EN DATOS DEL TRÁMITE
+              </Typography>
+              <Stack spacing={1.5} sx={{ pl: 1 }}>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                  <Box sx={{ width: 6, height: 6, borderRadius: "50%", bgcolor: "#0ea5e9" }} />
+                  <Typography sx={{ fontSize: "0.88rem", color: "#334155" }}>
+                    <strong style={{ fontWeight: 800 }}>Desfibrilador - HEMODIÁLISIS:</strong> DECLARADO: 1, OBSERVADO: 0
+                  </Typography>
+                </Box>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                  <Box sx={{ width: 6, height: 6, borderRadius: "50%", bgcolor: "#0ea5e9" }} />
+                  <Typography sx={{ fontSize: "0.88rem", color: "#334155" }}>
+                    <strong style={{ fontWeight: 800 }}>Arquitectura - Plano General (plano1.pdf):</strong> OBSERVADO
+                  </Typography>
+                </Box>
+              </Stack>
+            </Box>
+
+            {/* OBSERVACIONES GENERALES */}
+            <Box sx={{ mb: 4 }}>
+              <Typography
+                sx={{
+                  fontWeight: 800,
+                  color: "#475569",
+                  fontSize: "0.85rem",
+                  mb: 1.5,
+                  letterSpacing: "0.02em",
+                }}
+              >
+                OBSERVACIONES GENERALES
+              </Typography>
+              <Box
+                sx={{
+                  border: "1px solid #e2e8f0",
+                  borderRadius: 3,
+                  p: 2,
+                  minHeight: 120,
+                  bgcolor: "#ffffff",
+                  position: "relative",
+                }}
+              >
+                <Typography sx={{ color: "#94a3b8", fontSize: "0.9rem" }}>
+                  Escriba aquí cualquier observación general sobre la inspección...
+                </Typography>
+                <Typography
+                  sx={{
+                    position: "absolute",
+                    bottom: 12,
+                    right: 16,
+                    color: "#94a3b8",
+                    fontSize: "0.75rem",
+                    fontWeight: 700,
+                  }}
+                >
+                  0 / 2000
+                </Typography>
+              </Box>
+              <Typography sx={{ color: "#94a3b8", fontSize: "0.75rem", mt: 1, pl: 0.5 }}>
+                0/100
+              </Typography>
+            </Box>
+
+            {/* FIRMAS */}
+            <Box
+              sx={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: 4,
+                pt: 2,
+                borderTop: "1px solid #f1f5f9",
+              }}
+            >
+              <Box sx={{ textAlign: "center" }}>
+                <Typography
+                  variant="caption"
+                  sx={{
+                    fontWeight: 800,
+                    color: "#64748b",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.05em",
+                  }}
+                >
+                  FIRMA RESPONSABLE
+                </Typography>
+              </Box>
+              <Box sx={{ textAlign: "center" }}>
+                <Typography
+                  variant="caption"
+                  sx={{
+                    fontWeight: 800,
+                    color: "#64748b",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.05em",
+                  }}
+                >
+                  FIRMA INSPECTOR
+                </Typography>
+              </Box>
+            </Box>
+          </Paper>
+        </Paper>
+      ) : isRadiofisica && activeView === "REVISION" ? (
         <RevisionActaView
           obsGenerales={obsDatosGenerales}
           obsTramite={obsDatosTramite}
           rol={user?.rol}
+          tramite={tramiteActual}
+          isRadiofisica={isRadiofisica}
+          tipoServicio={tipoServicio}
+          subservicio={subservicio}
+          onVolver={() => navigate(backPath)}
+          onIrAInspeccion={() => setActiveView("INSPECCION")}
+          showIrAInspeccion={user?.rol === 'INSPECTOR'}
           onAceptarReinspeccion={() => {
             if (id) {
               if (user?.rol === 'ARQUITECTO') {
@@ -1188,6 +2098,7 @@ const PantallaInspeccion = ({
                                     key={field.id}
                                     field={field}
                                     value={inspectorData[field.id]}
+                                    allData={inspectorData}
                                     onChange={handleFieldChange}
                                     onOpenObs={(fid, lbl, val) => handleOpenObsDialog(fid, lbl, val, "GENERAL")}
                                     infraEfector={infraEfector}
@@ -1235,25 +2146,35 @@ const PantallaInspeccion = ({
                             {renderProgressBar(sectionStats)}
                           </AccordionSummary>
                           <AccordionDetails sx={{ py: 2 }}>
-                            <Box
-                              sx={{
-                                display: "grid",
-                                gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-                                gap: 2,
-                              }}
-                            >
-                              {sec.fields.map((field) => (
-                                <FieldItem
-                                  key={field.id}
-                                  field={field}
-                                  value={inspectorData[field.id]}
-                                  onChange={handleFieldChange}
-                                  onOpenObs={(fid, lbl, val) => handleOpenObsDialog(fid, lbl, val, "GENERAL")}
-                                  infraEfector={infraEfector}
-                                  serviciosEfector={serviciosEfector}
-                                />
-                              ))}
-                            </Box>
+                            {sec.id === "sec-rad-cs-dispersa" || sec.name === "RADIACIÓN DISPERSA" ? (
+                              <RadiacionDispersaSection
+                                fields={sec.fields}
+                                inspectorData={inspectorData}
+                                onChange={handleFieldChange}
+                                onOpenObs={(fid, lbl, val) => handleOpenObsDialog(fid, lbl, val, "GENERAL")}
+                              />
+                            ) : (
+                              <Box
+                                sx={{
+                                  display: "grid",
+                                  gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+                                  gap: 2,
+                                }}
+                              >
+                                {sec.fields.map((field) => (
+                                  <FieldItem
+                                    key={field.id}
+                                    field={field}
+                                    value={inspectorData[field.id]}
+                                    allData={inspectorData}
+                                    onChange={handleFieldChange}
+                                    onOpenObs={(fid, lbl, val) => handleOpenObsDialog(fid, lbl, val, "GENERAL")}
+                                    infraEfector={infraEfector}
+                                    serviciosEfector={serviciosEfector}
+                                  />
+                                ))}
+                              </Box>
+                            )}
                           </AccordionDetails>
                         </Accordion>
                       );
@@ -1271,6 +2192,7 @@ const PantallaInspeccion = ({
                             key={field.id}
                             field={field}
                             value={inspectorData[field.id]}
+                            allData={inspectorData}
                             onChange={handleFieldChange}
                             onOpenObs={(fid, lbl, val) => handleOpenObsDialog(fid, lbl, val, "GENERAL")}
                             infraEfector={infraEfector}
@@ -1284,7 +2206,146 @@ const PantallaInspeccion = ({
             </Paper>
           )}
 
-          {/* SECCIÓN 2: DATOS DEL TRÁMITE CON CATEGORÍAS */}
+          {/* SECCIÓN 2: REGISTRO DE MEDICIONES (ENTRE DATOS GENERALES Y DATOS DEL TRÁMITE) */}
+          {(isRadiofisica || registroMedicionesSrv) && registroMedicionesSrv && (
+            <Paper
+              sx={{
+                mb: 4,
+                boxShadow: "0 4px 12px rgba(0,0,0,0.05)",
+                borderRadius: "12px",
+                border: "1px solid #e2e8f0",
+                overflow: "hidden"
+              }}
+            >
+              <Box sx={{ px: { xs: 2, sm: 3 }, py: 2, bgcolor: "#f8fafc", borderBottom: "1px solid #e2e8f0" }}>
+                <Box sx={{ display: "flex", flexDirection: "column", width: "100%", pr: 2 }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                    <Typography variant="h6" sx={{ fontWeight: 900, color: "#1e293b", textTransform: "uppercase" }}>
+                      REGISTRO DE MEDICIONES
+                    </Typography>
+                    <Box>
+                      <Tooltip title={allMedicionesExpanded ? "Contraer todos" : "Desplegar todos"}>
+                        <IconButton size="small" onClick={handleToggleAllMediciones} sx={{ color: '#64748b' }}>
+                          {allMedicionesExpanded ? <UnfoldLessIcon /> : <UnfoldMoreIcon />}
+                        </IconButton>
+                      </Tooltip>
+                    </Box>
+                  </Box>
+                  {renderProgressBar(
+                    getCompletionStats(
+                      registroMedicionesSrv.sections
+                        ? getFlatFields(registroMedicionesSrv.sections)
+                        : registroMedicionesSrv.fields || [],
+                      inspectorData
+                    )
+                  )}
+                </Box>
+              </Box>
+              <Box
+                sx={{
+                  px: { xs: 2, sm: 3 },
+                  py: 3,
+                  bgcolor: "#ffffff",
+                }}
+              >
+                <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
+                  {registroMedicionesSrv.sections?.map((sec, index) => {
+                    const sectionStats = getCompletionStats(sec.fields || [], inspectorData);
+                    const sectionKey = sec.id || `med_sec_${index}`;
+
+                    return (
+                      <Accordion
+                        key={sectionKey}
+                        elevation={0}
+                        expanded={isMedicionesExpanded(sectionKey)}
+                        onChange={() => setExpandedSectionsMediciones(prev => ({ ...prev, [sectionKey]: !isMedicionesExpanded(sectionKey) }))}
+                        sx={{
+                          border: "1px solid #e2e8f0",
+                          borderRadius: "12px !important",
+                          overflow: "hidden",
+                          "&:before": { display: "none" },
+                        }}
+                      >
+                        <AccordionSummary
+                          expandIcon={<ExpandMoreIcon sx={{ color: "#0ea5e9" }} />}
+                          sx={{
+                            bgcolor: "#f8fafc",
+                            "& .MuiAccordionSummary-content": {
+                              flexDirection: "column",
+                            },
+                          }}
+                        >
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', mb: 0.5 }}>
+                            <Typography
+                              variant="subtitle2"
+                              sx={{
+                                fontWeight: 800,
+                                color: "#475569",
+                                textTransform: "uppercase",
+                                fontSize: "0.8rem",
+                              }}
+                            >
+                              {sec.name}
+                            </Typography>
+                          </Box>
+                          {renderProgressBar(sectionStats)}
+                        </AccordionSummary>
+                        <AccordionDetails sx={{ py: 2 }}>
+                          {sec.id === "sec-rad-cs-dispersa" || sec.name === "RADIACIÓN DISPERSA" ? (
+                            <RadiacionDispersaSection
+                              fields={sec.fields}
+                              inspectorData={inspectorData}
+                              onChange={handleFieldChange}
+                            />
+                          ) : sec.id === "sec-rad-cs-fuga" || sec.name === "PRUEBA DE FUGA" ? (
+                            <PruebaFugaSection
+                              fields={sec.fields}
+                              inspectorData={inspectorData}
+                              onChange={handleFieldChange}
+                            />
+                          ) : sec.id === "sec-rad-cs-repetibilidad" || sec.name === "REPETIBILIDAD DEL TUBO" ? (
+                            <RepetibilidadTuboSection
+                              fields={sec.fields}
+                              inspectorData={inspectorData}
+                              onChange={handleFieldChange}
+                            />
+                          ) : sec.id === "sec-rad-cs-calidad-imagen" || normalize(sec.name).includes("CALIDAD DE IMAGEN") ? (
+                            <CalidadImagenSection
+                              fields={sec.fields}
+                              inspectorData={inspectorData}
+                              onChange={handleFieldChange}
+                            />
+                          ) : (
+                            <Box
+                              sx={{
+                                display: "grid",
+                                gridTemplateColumns: { xs: "1fr", sm: "repeat(2, minmax(0, 1fr))" },
+                                gap: 2,
+                              }}
+                            >
+                              {sec.fields?.map((field) => (
+                                <FieldItem
+                                  key={field.id}
+                                  field={field}
+                                  value={inspectorData[field.id]}
+                                  allData={inspectorData}
+                                  onChange={handleFieldChange}
+                                  infraEfector={infraEfector}
+                                  serviciosEfector={serviciosEfector}
+                                />
+                              ))}
+                            </Box>
+                          )}
+                        </AccordionDetails>
+                      </Accordion>
+                    );
+                  })}
+                </Box>
+              </Box>
+            </Paper>
+          )}
+
+          {/* SECCIÓN 3: DATOS DEL TRÁMITE CON CATEGORÍAS */}
           <Accordion
             expanded={expandedEstablecimiento}
             onChange={() => setExpandedEstablecimiento(!expandedEstablecimiento)}
@@ -1365,7 +2426,7 @@ const PantallaInspeccion = ({
                   }}
                 />
 
-                {PESTAÑAS.map((tab) => {
+                {pestañasActivas.map((tab) => {
                   const isSelected = selectedCategory === tab.id;
                   return (
                     <Box
@@ -1419,212 +2480,237 @@ const PantallaInspeccion = ({
               </Box>
 
               <Box sx={{ display: "flex", flexDirection: "column", gap: 2, flexGrow: 1 }}>
-                {selectedCategory === "ARQUITECTURA" && (
-                  <Box sx={{ mb: 4 }}>
-                    <PlansTable
-                      inspectorData={inspectorData}
-                      onChange={handleFieldChange}
-                      onOpenObs={handleOpenObsDialog}
-                      onOpenViewer={setViewerFile}
-                    />
-                  </Box>
-                )}
+                {isRadiofisica ? (
+                  <DatosTramiteRadiofisica
+                    category={selectedCategory}
+                    subservicio={subservicio}
+                    tipoServicio={tipoServicio}
+                    inspectorData={inspectorData}
+                    onChange={handleFieldChange}
+                    onOpenObs={handleOpenObsDialog}
+                    onOpenViewer={setViewerFile}
+                  />
+                ) : (
+                  <>
+                    {selectedCategory === "ARQUITECTURA" && (
+                      <Box sx={{ mb: 4 }}>
+                        <PlansTable
+                          inspectorData={inspectorData}
+                          onChange={handleFieldChange}
+                          onOpenObs={handleOpenObsDialog}
+                          onOpenViewer={setViewerFile}
+                          tramite={tramiteActual}
+                          nroActa={currentActaNum}
+                        />
+                      </Box>
+                    )}
 
-                {selectedCategory === "DOCUMENTACION" && (
-                  <Box sx={{ mb: 4 }}>
-                    <DocumentsTable
-                      inspectorData={inspectorData}
-                      onChange={handleFieldChange}
-                      onOpenObs={handleOpenObsDialog}
-                      onOpenViewer={setViewerFile}
-                    />
-                  </Box>
-                )}
+                    {selectedCategory === "DOCUMENTACION" && (
+                      <Box sx={{ mb: 4 }}>
+                        <DocumentsTable
+                          inspectorData={inspectorData}
+                          onChange={handleFieldChange}
+                          onOpenObs={handleOpenObsDialog}
+                          onOpenViewer={setViewerFile}
+                          tramite={tramiteActual}
+                          nroActa={currentActaNum}
+                        />
+                      </Box>
+                    )}
 
-                {selectedCategory === "SERVICIOS" && (
-                  <Box sx={{ mb: 4 }}>
-                    <ServicesTable
-                      inspectorData={inspectorData}
-                      onChange={handleFieldChange}
-                      onOpenObs={handleOpenObsDialog}
-                      serviciosEfector={serviciosEfector}
-                    />
-                  </Box>
-                )}
+                    {selectedCategory === "SERVICIOS" && (
+                      <Box sx={{ mb: 4 }}>
+                        <ServicesTable
+                          inspectorData={inspectorData}
+                          onChange={handleFieldChange}
+                          onOpenObs={handleOpenObsDialog}
+                          serviciosEfector={serviciosEfector}
+                        />
+                      </Box>
+                    )}
 
-                {(selectedCategory === "EQUIPAMIENTO" || selectedCategory === "SALAS Y CAMAS" || selectedCategory === "RECURSOS HUMANOS") && (
-                  <Box sx={{ mb: 4 }}>
-                    <AggregatedInspectionTable
-                      category={selectedCategory}
-                      services={otherServices}
-                      inspectorData={inspectorData}
-                      infraEfector={infraEfector}
-                      equiposEfector={equiposEfector}
-                      rrhhEfector={rrhhEfector}
-                      onChange={handleFieldChange}
-                      onOpenObs={handleOpenObsDialog}
-                    />
-                  </Box>
+                    {(selectedCategory === "EQUIPAMIENTO" || selectedCategory === "SALAS Y CAMAS" || selectedCategory === "RECURSOS HUMANOS") && (
+                      <Box sx={{ mb: 4 }}>
+                        <AggregatedInspectionTable
+                          category={selectedCategory}
+                          services={otherServices}
+                          inspectorData={inspectorData}
+                          infraEfector={infraEfector}
+                          equiposEfector={equiposEfector}
+                          rrhhEfector={rrhhEfector}
+                          onChange={handleFieldChange}
+                          onOpenObs={handleOpenObsDialog}
+                        />
+                      </Box>
+                    )}
+
+                    {otherServices.map((srv, index) => {
+                      let matchedSections = [];
+
+                      if (selectedCategory === "SERVICIOS") {
+                        if (srv.sections) {
+                          matchedSections = srv.sections.filter((sec) => {
+                            const n = sec.name.toUpperCase();
+                            return (
+                              !n.includes("ARQUITECTURA") &&
+                              !n.includes("EQUIPAMIENTO") &&
+                              !n.includes("RECURSOS") &&
+                              !n.includes("RRHH") &&
+                              !n.includes("JEFE")
+                            );
+                          });
+                        }
+                      } else {
+                        if (srv.sections) {
+                          const keyword =
+                            selectedCategory === "RECURSOS HUMANOS"
+                              ? "RECURSOS"
+                              : selectedCategory === "SALAS Y CAMAS"
+                                ? "SALA"
+                                : selectedCategory === "DOCUMENTACION"
+                                  ? "DOCUMENTO"
+                                  : selectedCategory;
+                          
+                          matchedSections = srv.sections.filter((sec) => {
+                            const n = sec.name.toUpperCase();
+                            const isMatch =
+                              n.includes(keyword) ||
+                              (selectedCategory === "DOCUMENTACION" && n.includes("DOCUMENTA")) ||
+                              (selectedCategory === "RECURSOS HUMANOS" && n.includes("JEFE")) ||
+                              (selectedCategory === "SALAS Y CAMAS" && n.includes("CAMA"));
+
+                            if (!isMatch || ["DOCUMENTACION", "EQUIPAMIENTO", "SALAS Y CAMAS", "RECURSOS HUMANOS"].includes(selectedCategory)) return false;
+                            return sec.fields && sec.fields.length > 0;
+                          });
+                        }
+                      }
+
+                      if (!matchedSections || matchedSections.length === 0) return null;
+
+                      const sectionKey = srv.id || `other_sec_${index}`;
+                      return (
+                        <Accordion
+                          key={sectionKey}
+                          expanded={isTramiteExpanded(sectionKey)}
+                          onChange={() => setExpandedSectionsTramite(prev => ({ ...prev, [sectionKey]: !isTramiteExpanded(sectionKey) }))}
+                          sx={{
+                            mb: 1,
+                            boxShadow: "none",
+                            borderRadius: "12px !important",
+                            border: "1px solid #e2e8f0",
+                            "&:before": { display: "none" },
+                          }}
+                        >
+                          <AccordionSummary
+                            expandIcon={<ExpandMoreIcon sx={{ color: "#475569" }} />}
+                            sx={{
+                              bgcolor: "#f8fafc",
+                              px: 3,
+                              "&.Mui-expanded": {
+                                borderBottom: "1px solid #e2e8f0",
+                              },
+                              "& .MuiAccordionSummary-content": {
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                                width: '100%',
+                                pr: 2
+                              }
+                            }}
+                          >
+                            <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                              <LocalHospitalIcon sx={{ color: "#64748b", fontSize: 20 }} />
+                              <Typography
+                                variant="h6"
+                                sx={{
+                                  fontWeight: 900,
+                                  color: "#1e293b",
+                                  fontSize: "1rem",
+                                  textTransform: "uppercase"
+                                }}
+                              >
+                                {srv.name}
+                              </Typography>
+                            </Box>
+                            {renderProgressBar(getCompletionStats(getFlatFields(matchedSections), inspectorData))}
+                          </AccordionSummary>
+                          <AccordionDetails sx={{ p: 3 }}>
+                            {matchedSections.map((section) => {
+                              const sectionFields = section.fields.filter((f) => {
+                                if (section.name.toUpperCase().includes("SALA") || section.name.toUpperCase().includes("CAMA")) {
+                                  const label = f.label || f.name;
+                                  const uLabel = label.toUpperCase();
+                                  const isGenericLabel = uLabel.includes("CAMAS") || uLabel.includes("SALAS") || uLabel.includes("HABITACION") || (uLabel.includes("N") && uLabel.includes("DE"));
+                                  if (isGenericLabel && infraEfector && (infraEfector[srv.name] || infraEfector[srv.id])) return true;
+                                  return infraEfector && (infraEfector[label] > 0);
+                                }
+                                return true;
+                              });
+                              const sectionStats = getCompletionStats(sectionFields, inspectorData);
+
+                              return (
+                                <Box key={section.id} sx={{ mb: 4 }}>
+                                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, borderBottom: "1px solid #f1f5f9", pb: 1 }}>
+                                    <Typography variant="subtitle2" sx={{ fontWeight: 800, color: "#64748b", textTransform: "uppercase" }}>
+                                      {section.name}
+                                    </Typography>
+                                    {renderProgressBar(sectionStats)}
+                                  </Box>
+
+                                  {(section.name.includes("EQUIPAMIENTO") ||
+                                    section.name.includes("RECURSOS") ||
+                                    section.name.includes("RRHH") ||
+                                    section.name.includes("SALA") ||
+                                    section.name.includes("CAMA")) ? (
+                                    <VerificationTable
+                                      fields={sectionFields}
+                                      inspectorData={inspectorData}
+                                      onChange={handleFieldChange}
+                                      onOpenObs={handleOpenObsDialog}
+                                      infraEfector={infraEfector}
+                                      rrhhEfector={rrhhEfector}
+                                      equiposEfector={equiposEfector}
+                                      currentSrvName={srv.name}
+                                      serviciosEfector={serviciosEfector}
+                                    />
+                                  ) : (section.id === "sec-rad-cs-dispersa" || section.name === "RADIACIÓN DISPERSA") ? (
+                                    <RadiacionDispersaSection
+                                      fields={section.fields}
+                                      inspectorData={inspectorData}
+                                      onChange={handleFieldChange}
+                                    />
+                                  ) : (
+                                    <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)" }, gap: 3 }}>
+                                      {section.fields?.map((field) => (
+                                        <FieldItem
+                                          key={field.id}
+                                          field={field}
+                                          value={inspectorData[field.id]}
+                                          allData={inspectorData}
+                                          onChange={handleFieldChange}
+                                          infraEfector={infraEfector}
+                                          serviciosEfector={serviciosEfector}
+                                        />
+                                      ))}
+                                    </Box>
+                                  )}
+                                </Box>
+                              );
+                            })}
+                          </AccordionDetails>
+                        </Accordion>
+                      );
+                    })}
+                  </>
                 )}
 
                 <FileViewerModal
                   file={viewerFile}
                   onClose={() => setViewerFile(null)}
                 />
-
-                {otherServices.map((srv, index) => {
-                  let matchedSections = [];
-
-                  if (selectedCategory === "SERVICIOS") {
-                    if (srv.sections) {
-                      matchedSections = srv.sections.filter((sec) => {
-                        const n = sec.name.toUpperCase();
-                        return (
-                          !n.includes("ARQUITECTURA") &&
-                          !n.includes("EQUIPAMIENTO") &&
-                          !n.includes("RECURSOS") &&
-                          !n.includes("RRHH") &&
-                          !n.includes("JEFE")
-                        );
-                      });
-                    }
-                  } else {
-                    if (srv.sections) {
-                      const keyword =
-                        selectedCategory === "RECURSOS HUMANOS"
-                          ? "RECURSOS"
-                          : selectedCategory === "SALAS Y CAMAS"
-                            ? "SALA"
-                            : selectedCategory === "DOCUMENTACION"
-                              ? "DOCUMENTO"
-                              : selectedCategory;
-                      
-                      matchedSections = srv.sections.filter((sec) => {
-                        const n = sec.name.toUpperCase();
-                        const isMatch =
-                          n.includes(keyword) ||
-                          (selectedCategory === "DOCUMENTACION" && n.includes("DOCUMENTA")) ||
-                          (selectedCategory === "RECURSOS HUMANOS" && n.includes("JEFE")) ||
-                          (selectedCategory === "SALAS Y CAMAS" && n.includes("CAMA"));
-
-                        if (!isMatch || ["DOCUMENTACION", "EQUIPAMIENTO", "SALAS Y CAMAS", "RECURSOS HUMANOS"].includes(selectedCategory)) return false;
-                        return sec.fields && sec.fields.length > 0;
-                      });
-                    }
-                  }
-
-                  if (!matchedSections || matchedSections.length === 0) return null;
-
-                  const sectionKey = srv.id || `other_sec_${index}`;
-                  return (
-                    <Accordion
-                      key={sectionKey}
-                      expanded={isTramiteExpanded(sectionKey)}
-                      onChange={() => setExpandedSectionsTramite(prev => ({ ...prev, [sectionKey]: !isTramiteExpanded(sectionKey) }))}
-                      sx={{
-                        mb: 1,
-                        boxShadow: "none",
-                        borderRadius: "12px !important",
-                        border: "1px solid #e2e8f0",
-                        "&:before": { display: "none" },
-                      }}
-                    >
-                      <AccordionSummary
-                        expandIcon={<ExpandMoreIcon sx={{ color: "#475569" }} />}
-                        sx={{
-                          bgcolor: "#f8fafc",
-                          px: 3,
-                          "&.Mui-expanded": {
-                            borderBottom: "1px solid #e2e8f0",
-                          },
-                          "& .MuiAccordionSummary-content": {
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center',
-                            width: '100%',
-                            pr: 2
-                          }
-                        }}
-                      >
-                        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-                          <LocalHospitalIcon sx={{ color: "#64748b", fontSize: 20 }} />
-                          <Typography
-                            variant="h6"
-                            sx={{
-                              fontWeight: 900,
-                              color: "#1e293b",
-                              fontSize: "1rem",
-                              textTransform: "uppercase"
-                            }}
-                          >
-                            {srv.name}
-                          </Typography>
-                        </Box>
-                        {renderProgressBar(getCompletionStats(getFlatFields(matchedSections), inspectorData))}
-                      </AccordionSummary>
-                      <AccordionDetails sx={{ p: 3 }}>
-                        {matchedSections.map((section) => {
-                          const sectionFields = section.fields.filter((f) => {
-                            if (section.name.toUpperCase().includes("SALA") || section.name.toUpperCase().includes("CAMA")) {
-                              const label = f.label || f.name;
-                              const uLabel = label.toUpperCase();
-                              const isGenericLabel = uLabel.includes("CAMAS") || uLabel.includes("SALAS") || uLabel.includes("HABITACION") || (uLabel.includes("N") && uLabel.includes("DE"));
-                              if (isGenericLabel && infraEfector && (infraEfector[srv.name] || infraEfector[srv.id])) return true;
-                              return infraEfector && (infraEfector[label] > 0);
-                            }
-                            return true;
-                          });
-                          const sectionStats = getCompletionStats(sectionFields, inspectorData);
-
-                          return (
-                            <Box key={section.id} sx={{ mb: 4 }}>
-                              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, borderBottom: "1px solid #f1f5f9", pb: 1 }}>
-                                <Typography variant="subtitle2" sx={{ fontWeight: 800, color: "#64748b", textTransform: "uppercase" }}>
-                                  {section.name}
-                                </Typography>
-                                {renderProgressBar(sectionStats)}
-                              </Box>
-
-                              {(section.name.includes("EQUIPAMIENTO") ||
-                                section.name.includes("RECURSOS") ||
-                                section.name.includes("RRHH") ||
-                                section.name.includes("SALA") ||
-                                section.name.includes("CAMA")) ? (
-                                <VerificationTable
-                                  fields={sectionFields}
-                                  inspectorData={inspectorData}
-                                  onChange={handleFieldChange}
-                                  onOpenObs={handleOpenObsDialog}
-                                  infraEfector={infraEfector}
-                                  rrhhEfector={rrhhEfector}
-                                  equiposEfector={equiposEfector}
-                                  currentSrvName={srv.name}
-                                  serviciosEfector={serviciosEfector}
-                                />
-                              ) : (
-                                <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)" }, gap: 3 }}>
-                                  {section.fields?.map((field) => (
-                                    <FieldItem
-                                      key={field.id}
-                                      field={field}
-                                      value={inspectorData[field.id]}
-                                      onChange={handleFieldChange}
-                                      infraEfector={infraEfector}
-                                      serviciosEfector={serviciosEfector}
-                                    />
-                                  ))}
-                                </Box>
-                              )}
-                            </Box>
-                          );
-                        })}
-                      </AccordionDetails>
-                    </Accordion>
-                  );
-                })}
-              </Box>
-            </AccordionDetails>
-          </Accordion>
+                </Box>
+              </AccordionDetails>
+            </Accordion>
 
           <ObservationDialog
             open={obsDialog.open}
@@ -1718,7 +2804,7 @@ const PantallaInspeccion = ({
                                     setViewerPhoto(obs.photo);
                                   } else {
                                     setTargetPhotoField(obs.id);
-                                    if (photoInputRef.current) photoInputRef.current.click();
+                                    setModalOrigenObsOpen(true);
                                   }
                                 }}
                                 sx={{ ml: 1, color: obs.hasPhoto ? '#0ea5e9' : '#94a3b8', '&:hover': { color: '#0ea5e9' } }}
@@ -1788,7 +2874,7 @@ const PantallaInspeccion = ({
                                     setViewerPhoto(obs.photo);
                                   } else {
                                     setTargetPhotoField(obs.id);
-                                    if (photoInputRef.current) photoInputRef.current.click();
+                                    setModalOrigenObsOpen(true);
                                   }
                                 }}
                                 sx={{ ml: 1, color: obs.hasPhoto ? '#0ea5e9' : '#94a3b8', '&:hover': { color: '#0ea5e9' } }}
@@ -1839,7 +2925,10 @@ const PantallaInspeccion = ({
             <Box sx={{ display: "flex", gap: 2, mb: 3 }}>
               <Button
                 variant="outlined"
-                onClick={() => photoInputRef.current?.click()}
+                onClick={() => {
+                  setTargetPhotoField(null);
+                  setModalOrigenObsOpen(true);
+                }}
                 startIcon={<PhotoCamera />}
                 sx={{
                   borderRadius: 3,
@@ -1852,14 +2941,21 @@ const PantallaInspeccion = ({
                   "&:hover": { bgcolor: "#f1f5f9", borderColor: "#cbd5e1" },
                 }}
               >
-                Abrir Cámara / Adjuntar Evidencia
+                Sacar foto / Adjuntar imagen
               </Button>
               <input
-                ref={photoInputRef}
+                ref={photoCameraInputRef}
                 type="file"
                 hidden
                 accept="image/*"
                 capture="environment"
+                onChange={handleFileSelect}
+              />
+              <input
+                ref={photoGalleryInputRef}
+                type="file"
+                hidden
+                accept="image/*"
                 onChange={handleFileSelect}
               />
             </Box>
@@ -2022,18 +3118,18 @@ const PantallaInspeccion = ({
                   fullWidth
                   variant="contained"
                   size="large"
-                  onClick={() => handleOpenCloseActa("RECHAZAR")}
+                  onClick={() => handleOpenCloseActa("NO APROBAR")}
                   sx={{
                     py: 2,
                     borderRadius: 4,
                     fontWeight: 900,
                     fontSize: "1.1rem",
-                    bgcolor: "#dc2626",
-                    boxShadow: "0 10px 15px -3px rgba(220, 38, 38, 0.3)",
-                    "&:hover": { bgcolor: "#b91c1c" },
+                    bgcolor: "#ea580c",
+                    boxShadow: "0 10px 15px -3px rgba(234, 88, 12, 0.3)",
+                    "&:hover": { bgcolor: "#c2410c" },
                   }}
                 >
-                  RECHAZAR ACTA
+                  NO APROBAR
                 </Button>
 
                 <Button
@@ -2065,9 +3161,9 @@ const PantallaInspeccion = ({
                       borderRadius: 4,
                       fontWeight: 900,
                       fontSize: "1.1rem",
-                      bgcolor: "#ef4444",
-                      boxShadow: "0 10px 15px -3px rgba(239, 68, 68, 0.3)",
-                      "&:hover": { bgcolor: "#dc2626" },
+                      bgcolor: "#ea580c",
+                      boxShadow: "0 10px 15px -3px rgba(234, 88, 12, 0.3)",
+                      "&:hover": { bgcolor: "#c2410c" },
                     }}
                   >
                     OBSERVAR / NO APROBAR
@@ -2113,19 +3209,42 @@ const PantallaInspeccion = ({
 
             <Stack direction="row" spacing={1.5} sx={{ width: { xs: "100%", sm: "auto" } }}>
               <Button
-                variant="contained"
-                onClick={() => handleOpenCloseActa("RECHAZAR")}
+                variant="outlined"
+                startIcon={<SaveIcon />}
+                onClick={handleSaveInspection}
                 sx={{
                   fontWeight: 900,
                   px: 3,
                   py: 1.2,
                   borderRadius: 2.5,
-                  bgcolor: "#dc2626",
-                  boxShadow: "0 4px 12px rgba(220, 38, 38, 0.35)",
-                  "&:hover": { bgcolor: "#b91c1c" },
+                  color: "#1e293b",
+                  borderColor: "#cbd5e1",
+                  borderWidth: 1.5,
+                  bgcolor: "#ffffff",
+                  "&:hover": {
+                    borderWidth: 1.5,
+                    borderColor: "#94a3b8",
+                    bgcolor: "#f8fafc",
+                  },
                 }}
               >
-                RECHAZAR ACTA
+                GUARDAR
+              </Button>
+
+              <Button
+                variant="contained"
+                onClick={() => handleOpenCloseActa("NO APROBAR")}
+                sx={{
+                  fontWeight: 900,
+                  px: 3,
+                  py: 1.2,
+                  borderRadius: 2.5,
+                  bgcolor: "#ea580c",
+                  boxShadow: "0 4px 12px rgba(234, 88, 12, 0.35)",
+                  "&:hover": { bgcolor: "#c2410c" },
+                }}
+              >
+                NO APROBAR
               </Button>
 
               {!allSigned ? (
@@ -2177,7 +3296,18 @@ const PantallaInspeccion = ({
         onSave={handleSaveSignature}
       />
 
-      {/* Diálogo de Cierre / Nota Final / Rechazo */}
+      {emisionEmplazamientoOpen && tramiteActual && (
+        <ModalResponderEmplazamiento
+          tramite={tramiteActual}
+          mode="emision"
+          isRadiofisica={isRadiofisica}
+          observacionesIniciales={obsDatosTramite.map(observacion => observacion.text || observacion.label).filter(Boolean)}
+          onClose={() => setEmisionEmplazamientoOpen(false)}
+          onOpenIniciarModificacion={() => {}}
+          onEmitirFinalizado={() => navigate(backPath)}
+        />
+      )}
+
       <Dialog
         open={closeActaModalOpen}
         onClose={() => setCloseActaModalOpen(false)}
@@ -2187,20 +3317,20 @@ const PantallaInspeccion = ({
           sx: { borderRadius: 4, p: 2 }
         }}
       >
-        <DialogTitle sx={{ fontWeight: 900, color: closeActaAction === "RECHAZAR" ? '#dc2626' : '#1e293b', pb: 1 }}>
-          {closeActaAction === "RECHAZAR" ? "Rechazar Acta de Inspección" : `Nota de Cierre - ${closeActaAction}`}
+        <DialogTitle sx={{ fontWeight: 900, color: (closeActaAction === "RECHAZAR" || closeActaAction === "NO APROBAR") ? '#ea580c' : '#1e293b', pb: 1 }}>
+          {(closeActaAction === "RECHAZAR" || closeActaAction === "NO APROBAR") ? "No Aprobar Acta de Inspección" : `Nota de Cierre - ${closeActaAction}`}
         </DialogTitle>
         <DialogContent>
           <Typography sx={{ color: '#64748b', mb: 3 }}>
-            {closeActaAction === "RECHAZAR"
-              ? "Indique la fundamentación o motivo técnico del rechazo del acta. Esta acción finalizará la inspección con dictamen de rechazo:"
+            {(closeActaAction === "RECHAZAR" || closeActaAction === "NO APROBAR")
+              ? "Indique la fundamentación o motivo técnico para no aprobar el acta. Esta acción finalizará la inspección con dictamen de no aprobación:"
               : `Ingrese una nota o dictamen final antes de ${closeActaAction.toLowerCase()} la inspección.`}
           </Typography>
           <TextField
             fullWidth
             multiline
             rows={4}
-            placeholder={closeActaAction === "RECHAZAR" ? "Escriba los motivos del rechazo del acta..." : "Escriba el dictamen o nota de cierre..."}
+            placeholder={(closeActaAction === "RECHAZAR" || closeActaAction === "NO APROBAR") ? "Escriba los motivos por los que no se aprueba el acta..." : "Escriba el dictamen o nota de cierre..."}
             value={closeActaNote}
             onChange={(e) => setCloseActaNote(e.target.value)}
             sx={{
@@ -2223,19 +3353,72 @@ const PantallaInspeccion = ({
             variant="contained"
             onClick={handleConfirmCierre}
             sx={{
-              bgcolor: closeActaAction === "APROBAR" ? "#059669" : "#dc2626",
+              bgcolor: closeActaAction === "APROBAR" ? "#059669" : "#ea580c",
               fontWeight: 800,
               borderRadius: 2,
               px: 3,
               "&:hover": {
-                bgcolor: closeActaAction === "APROBAR" ? "#047857" : "#b91c1c"
+                bgcolor: closeActaAction === "APROBAR" ? "#047857" : "#c2410c"
               }
             }}
           >
-            {closeActaAction === "RECHAZAR" ? "CONFIRMAR RECHAZO" : "CONFIRMAR CIERRE"}
+            {(closeActaAction === "RECHAZAR" || closeActaAction === "NO APROBAR") ? "CONFIRMAR NO APROBACIÓN" : "CONFIRMAR CIERRE"}
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Modal Selección Radiofísica */}
+      <ModalRadiofisicaServicios
+        open={modalRadioOpen}
+        onClose={() => setModalRadioOpen(false)}
+        tramite={tramiteActual}
+        initialTipo={tipoServicio}
+        initialSubservicio={subservicio}
+        onConfirm={handleConfirmRadiofisica}
+      />
+
+      {/* Modal Selección Origen Foto (Observaciones Generales) */}
+      <ModalOrigenFoto
+        open={modalOrigenObsOpen}
+        onClose={() => setModalOrigenObsOpen(false)}
+        onSelectCamera={() => {
+          if (photoCameraInputRef.current) {
+            photoCameraInputRef.current.value = "";
+            photoCameraInputRef.current.click();
+          }
+        }}
+        onSelectGallery={() => {
+          if (photoGalleryInputRef.current) {
+            photoGalleryInputRef.current.value = "";
+            photoGalleryInputRef.current.click();
+          }
+        }}
+        title="Evidencia de Observaciones Generales"
+        description="Elija si desea tomar una fotografía con la cámara o adjuntar una imagen desde su dispositivo:"
+      />
+
+      <FileViewerModal
+        file={viewerFile}
+        onClose={() => setViewerFile(null)}
+      />
+
+      {/* Notificación de Guardado */}
+      <Snackbar
+        open={saveSuccessOpen}
+        autoHideDuration={3000}
+        onClose={() => setSaveSuccessOpen(false)}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+        sx={{ mb: 10 }}
+      >
+        <Alert
+          onClose={() => setSaveSuccessOpen(false)}
+          severity="success"
+          variant="filled"
+          sx={{ width: "100%", fontWeight: 700, borderRadius: 2 }}
+        >
+          Progreso de la inspección guardado correctamente
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };

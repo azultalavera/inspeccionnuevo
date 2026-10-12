@@ -9,11 +9,15 @@ import {
 } from "@mui/material";
 import Close from "@mui/icons-material/Close";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
+import ReporteInspeccionPDF from "../../../../ReporteInspeccion.pdf";
 
 const FileViewerModal = ({ file, onClose }) => {
   if (!file) return null;
 
-  const filePath = `/src/assets/archivos/planos/${file}`;
+  const filePath =
+    file === "plano1.pdf" || file === "plano2.pdf" || file === "planoReemplazo.pdf" || file === "plano3.pdf"
+      ? `/src/assets/archivos/planos/${file}`
+      : ReporteInspeccionPDF;
 
   return (
     <Dialog

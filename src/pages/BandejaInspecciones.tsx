@@ -4,6 +4,7 @@ import { useAuth } from "../context/AuthContext";
 import { useApp } from "../context/AppContext";
 import {
   TRAMITES,
+  INSPECCIONES_RUTINA_DEMO,
   USUARIOS,
   type Tramite,
   type EstadoTramite,
@@ -12,12 +13,112 @@ import {
 import TableActionsMenu from "../components/TableActionsMenu";
 import MiPagination from "../components/MiPagination";
 import ModalEmitirOrdenRutina from "../components/ModalEmitirOrdenRutina";
+import ModalRadiofisicaServicios from "../components/ModalRadiofisicaServicios";
+import ModalTramiteEnCursoDetectado from "../components/ModalTramiteEnCursoDetectado";
+import ModalNuevoEstablecimientoRutina from "../components/ModalNuevoEstablecimientoRutina";
 
 export default function BandejaInspecciones() {
   const { user } = useAuth();
-  const { tramites, iniciarInspeccion } = useApp();
+  const { tramites, iniciarInspeccion, agregarTramite, actualizarTramite, eliminarTramite } = useApp();
   const navigate = useNavigate();
   const location = useLocation();
+
+  const STORAGE_KEY_RUTINA = "clicsalud_establecimientos_rutina";
+  const STORAGE_KEY_RUTINA_SEED_VERSION = "clicsalud_establecimientos_rutina_seed_version";
+  const RUTINA_SEED_VERSION = "2026-10-12-v1";
+
+  // Seed shared grid data once per browser, while preserving existing local edits.
+  const [establecimientosRutina, setEstablecimientosRutina] = useState<Tramite[]>(() => {
+    const saved = localStorage.getItem(STORAGE_KEY_RUTINA);
+    let list: Tramite[] = [];
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) list = parsed;
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    if (localStorage.getItem(STORAGE_KEY_RUTINA_SEED_VERSION) !== RUTINA_SEED_VERSION) {
+      const seedIds = new Set(INSPECCIONES_RUTINA_DEMO.map((tramite) => tramite.id));
+      list = [
+        ...INSPECCIONES_RUTINA_DEMO.map(
+          (tramite) => list.find((savedTramite) => savedTramite.id === tramite.id) ?? tramite,
+        ),
+        ...list.filter((tramite) => !seedIds.has(tramite.id)),
+      ];
+      localStorage.setItem(STORAGE_KEY_RUTINA, JSON.stringify(list));
+      localStorage.setItem(STORAGE_KEY_RUTINA_SEED_VERSION, RUTINA_SEED_VERSION);
+    }
+
+    return list;
+  });
+
+  const guardarEstablecimientos = (lista: Tramite[]) => {
+    setEstablecimientosRutina(lista);
+    localStorage.setItem(STORAGE_KEY_RUTINA, JSON.stringify(lista));
+  };
+
+  // Sincronizar cambios desde AppContext si algún trámite fue actualizado (ej. tras cierre de acta)
+  useEffect(() => {
+    if (tramites && tramites.length > 0 && establecimientosRutina.length > 0) {
+      setEstablecimientosRutina((prev) =>
+        prev.map((est) => {
+          const found = tramites.find((t) => t.id === est.id);
+          return found ? { ...est, ...found } : est;
+        })
+      );
+    }
+  }, [tramites]);
+
+  const [modalNuevoEstablecimientoOpen, setModalNuevoEstablecimientoOpen] = useState(false);
+  const [tipoModalNuevo, setTipoModalNuevo] = useState<"ESTABLECIMIENTO" | "SERVICIO_DIFERENCIADO">("ESTABLECIMIENTO");
+  const [menuAgregarOpen, setMenuAgregarOpen] = useState(false);
+  const menuAgregarRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        menuAgregarRef.current &&
+        !menuAgregarRef.current.contains(event.target as Node)
+      ) {
+        setMenuAgregarOpen(false);
+      }
+    };
+    if (menuAgregarOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [menuAgregarOpen]);
+
+  const handleGuardarNuevoEstablecimiento = (nuevo: Tramite) => {
+    const updated = [nuevo, ...establecimientosRutina];
+    guardarEstablecimientos(updated);
+    agregarTramite(nuevo);
+    setModalNuevoEstablecimientoOpen(false);
+  };
+
+  const handleEliminarEstablecimiento = (id: string, denominacion: string) => {
+    if (window.confirm(`¿Está seguro de eliminar "${denominacion}" de la grilla?`)) {
+      const updated = establecimientosRutina.filter((t) => t.id !== id);
+      guardarEstablecimientos(updated);
+      eliminarTramite(id);
+    }
+  };
+
+  const handleVaciarGrilla = () => {
+    if (
+      window.confirm(
+        "¿Está seguro de que desea vaciar todos los establecimientos de la grilla?"
+      )
+    ) {
+      establecimientosRutina.forEach((t) => eliminarTramite(t.id));
+      guardarEstablecimientos([]);
+    }
+  };
 
   const [localTramites, setLocalTramites] = useState<Tramite[]>(TRAMITES);
 
@@ -27,32 +128,19 @@ export default function BandejaInspecciones() {
     }
   }, [tramites]);
 
-  // Scope Filter (Tipo de Inspección)
-  const [tipoFiltro, setTipoFiltro] = useState<
-    "TODOS" | "HABILITACION" | "RUTINA" | "DENUNCIA"
+  // Scope Filter: esta pantalla de control y gestión queda exclusivamente para Rutina
+  const [filtroRutina, setFiltroRutina] = useState<
+    "TODOS" | "ORDENES" | "VENCIDOS" | "PROXIMOS" | "EN_PLAZO" | "AL_DIA" | "SIN_FECHA"
   >("TODOS");
-
-  // Contextual Sub-filters
-  const [filtroEstado, setFiltroEstado] = useState<
-    | "TODOS"
-    | "PENDIENTES"
-    | "OBSERVADAS"
-    | "RESPUESTA_EMPLAZAMIENTO"
-    | "APROBADAS"
-  >("TODOS");
-  const [filtroVentanaRutina, setFiltroVentanaRutina] =
-    useState<string>("TODAS");
-  const [filtroGeriatricos, setFiltroGeriatricos] = useState<boolean>(false);
 
   useEffect(() => {
-    if (location.state?.filtroEstado) {
-      setFiltroEstado(location.state.filtroEstado);
-    }
-    if (location.state?.tipoFiltro) {
-      setTipoFiltro(location.state.tipoFiltro);
-    }
-    if (location.state?.filtroVentanaRutina) {
-      setFiltroVentanaRutina(location.state.filtroVentanaRutina);
+    if (location.state?.filtroRutina) {
+      setFiltroRutina(location.state.filtroRutina);
+    } else if (location.state?.filtroVentanaRutina) {
+      if (location.state.filtroVentanaRutina === "CRITICO_VENCIDO") setFiltroRutina("VENCIDOS");
+      else if (location.state.filtroVentanaRutina === "ALERTA_T15") setFiltroRutina("PROXIMOS");
+      else if (location.state.filtroVentanaRutina === "ALERTA_T30") setFiltroRutina("EN_PLAZO");
+      else if (location.state.filtroVentanaRutina === "AL_DIA") setFiltroRutina("AL_DIA");
     }
   }, [location.state]);
 
@@ -69,15 +157,123 @@ export default function BandejaInspecciones() {
   const [filtroExpediente, setFiltroExpediente] = useState<string>("");
   const [filtroDepartamento, setFiltroDepartamento] = useState<string>("");
   const [filtroLocalidad, setFiltroLocalidad] = useState<string>("");
+  const [soloGeriatricos, setSoloGeriatricos] = useState<boolean>(false);
 
   const [paginaSeleccionada, setPaginaSeleccionada] = useState(1);
   const [cantidadFilasPorPagina, setCantidadFilasPorPagina] = useState(10);
 
-  // Coordinator Modal States
-  const isCoordinador = user?.rol === "COORDINADOR";
+  // Coordinator Modal States: true only when Coordinator role/route and NOT explicitly Inspector route
+  const isCoordinador =
+    location.pathname.includes("/coordinador") ||
+    (user?.rol === "COORDINADOR" && !location.pathname.includes("/inspector"));
   const [tramiteEmitirOrden, setTramiteEmitirOrden] = useState<Tramite | null>(
     null,
   );
+  const [tramiteSolapamientoDetectado, setTramiteSolapamientoDetectado] =
+    useState<Tramite | null>(null);
+
+  const handleSolicitarEmitirOrden = (t: Tramite) => {
+    if (
+      t.nroExpediente === "0425-014523/2026" ||
+      t.tramiteActivoEnCurso ||
+      t.solapamientoTramiteId
+    ) {
+      setTramiteSolapamientoDetectado(t);
+    } else {
+      setTramiteEmitirOrden(t);
+    }
+  };
+
+  // Radiofísica Modal States
+  const [modalRadiofisicaOpen, setModalRadiofisicaOpen] = useState(false);
+  const [tramiteRadiofisica, setTramiteRadiofisica] = useState<Tramite | null>(null);
+
+  const handleIniciar = (t: Tramite) => {
+    const isRadiofisica =
+      t.tipologia?.toUpperCase().includes("RADIOFÍSICA") ||
+      t.tipologia?.toUpperCase().includes("RADIOFISICA") ||
+      t.denominacion?.toUpperCase().includes("RADIOFÍSICA") ||
+      t.denominacion?.toUpperCase().includes("RADIOFISICA");
+
+    if (isRadiofisica) {
+      setTramiteRadiofisica(t);
+      setModalRadiofisicaOpen(true);
+      return;
+    }
+
+    iniciarInspeccion(t.id);
+    const basePath = isCoordinador ? "/coordinador/inspeccion" : "/inspector/inspeccion";
+    navigate(`${basePath}/${t.id}`);
+  };
+
+  const handleContinuar = (t: Tramite) => {
+    const isRadiofisica =
+      t.tipologia?.toUpperCase().includes("RADIOFÍSICA") ||
+      t.tipologia?.toUpperCase().includes("RADIOFISICA") ||
+      t.denominacion?.toUpperCase().includes("RADIOFÍSICA") ||
+      t.denominacion?.toUpperCase().includes("RADIOFISICA");
+
+    if (isRadiofisica) {
+      setTramiteRadiofisica(t);
+      setModalRadiofisicaOpen(true);
+      return;
+    }
+
+    const basePath = isCoordinador ? "/coordinador/inspeccion" : "/inspector/inspeccion";
+    navigate(`${basePath}/${t.id}`);
+  };
+
+  const handleRevisar = (t: Tramite) => {
+    navigate(`/inspector/revision-acta/${t.id}`);
+  };
+
+  const handleVisualizar = (t: Tramite) => {
+    const basePath = isCoordinador ? "/coordinador/ver-tramite" : "/inspector/ver-tramite";
+    navigate(`${basePath}/${t.id}`);
+  };
+
+  const handleIniciarOContinuar = (t: Tramite) => {
+    if (t.estado === "ACEPTADO_DOC_AUD") {
+      handleIniciar(t);
+    } else if (t.estado === "DESCARGO_INSP") {
+      handleRevisar(t);
+    } else if (t.estado === "EN_ANALISIS_AUD" || t.estado === "RE_INSP_SOLICITADA") {
+      handleContinuar(t);
+    } else {
+      handleVisualizar(t);
+    }
+  };
+
+  const handleConfirmRadiofisica = (tipoServicio: string, subservicio: string) => {
+    if (!tramiteRadiofisica) return;
+    if (tramiteRadiofisica.estado === "ACEPTADO_DOC_AUD") {
+      iniciarInspeccion(tramiteRadiofisica.id);
+    }
+    setModalRadiofisicaOpen(false);
+    const basePath = isCoordinador ? "/coordinador/inspeccion" : "/inspector/inspeccion";
+    navigate(
+      `${basePath}/${tramiteRadiofisica.id}?tipoServicio=${encodeURIComponent(tipoServicio)}&subservicio=${encodeURIComponent(subservicio)}`
+    );
+  };
+
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const handleCopy = (text: string, id: string) => {
+    if (!text) return;
+    navigator.clipboard.writeText(text);
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(null), 1800);
+  };
+
+  const [isFiltrosOpen, setIsFiltrosOpen] = useState<boolean>(true);
+
+  const formatFecha = (f?: string) => {
+    if (!f || f.trim() === "" || f === "-") return "Sin registrar";
+    if (f.includes("-")) {
+      const parts = f.split("T")[0].split("-");
+      if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
+    }
+    return f;
+  };
 
   // Cerrar Autocomplete al hacer click afuera
   useEffect(() => {
@@ -93,24 +289,11 @@ export default function BandejaInspecciones() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Reset contextual sub-filters when main type changes
-  const handleCambiarTipo = (
-    nuevoTipo: "TODOS" | "HABILITACION" | "RUTINA" | "DENUNCIA",
-  ) => {
-    setTipoFiltro(nuevoTipo);
-    setFiltroEstado("TODOS");
-    setFiltroVentanaRutina("TODAS");
-    setFiltroGeriatricos(false);
-    setPaginaSeleccionada(1);
-  };
-
   useEffect(() => {
     setPaginaSeleccionada(1);
   }, [
-    tipoFiltro,
-    filtroEstado,
-    filtroVentanaRutina,
-    filtroGeriatricos,
+    filtroRutina,
+    soloGeriatricos,
     filtroNombre,
     filtroCuit,
     filtroExpediente,
@@ -119,28 +302,10 @@ export default function BandejaInspecciones() {
     inspectorFiltro,
   ]);
 
-  const inInspectionPhase = (t: Tramite) =>
-    [
-      "ACEPTADO_DOC_AUD",
-      "EN_ANALISIS_AUD",
-      "OBSERVADO_INSP",
-      "DESCARGO_INSP",
-      "ACEPTADO_INSP",
-      "RE_INSP_SOLICITADA",
-      "EN_PROTOCOLIZACION",
-      "FINALIZADO",
-    ].includes(t.estado);
-
-  // Inspecciones base (en fase de inspección, rutina o denuncia)
+  // Inspecciones base: exclusivamente Rutina sobre Establecimientos Habilitados (inicia vacía)
   const inspeccionesBase = useMemo(() => {
-    return localTramites.filter((t) => {
-      return (
-        inInspectionPhase(t) ||
-        t.tipoInspeccion === "RUTINA" ||
-        t.tipoInspeccion === "DENUNCIA"
-      );
-    });
-  }, [localTramites]);
+    return establecimientosRutina;
+  }, [establecimientosRutina]);
 
   const getInspectoresTramite = (t: Tramite): string[] => {
     if (t.inspectoresAsignados && t.inspectoresAsignados.length > 0) {
@@ -252,146 +417,67 @@ export default function BandejaInspecciones() {
 
   const isGeriatrico = (t: Tramite) => {
     const tip = (t.tipologia || "").toLowerCase();
+    const den = (t.denominacion || "").toLowerCase();
     return (
       tip.includes("geriátrico") ||
       tip.includes("geriatrico") ||
       tip.includes("geriátricos") ||
-      tip.includes("geriatricos")
+      tip.includes("geriatricos") ||
+      tip.includes("residencia") ||
+      den.includes("geriátrico") ||
+      den.includes("geriatrico") ||
+      den.includes("geriátricos") ||
+      den.includes("geriatricos") ||
+      den.includes("residencia") ||
+      den.includes("hogar") ||
+      t.frecuenciaRutinaAnual === 3
     );
   };
 
-  // Métricas del Nivel 2 para Rutina (General)
-  const countRutinasOrdenadas = inspeccionesRutina.filter((t) =>
-    esEstadoOrdenado(t.estado),
-  ).length;
-  const countFaltantes = inspeccionesRutina.filter(
-    (t) => t.alertaRutina === "CRITICO_VENCIDO",
-  ).length;
-  const countVencidos = countFaltantes;
-  const countProximos = inspeccionesRutina.filter(
-    (t) => t.alertaRutina === "ALERTA_T15",
-  ).length;
-  const countEnPlazo = inspeccionesRutina.filter(
-    (t) => t.alertaRutina === "ALERTA_T30",
-  ).length;
-  const countMayor30 = inspeccionesRutina.filter(
-    (t) =>
-      t.alertaRutina === "AL_DIA" ||
-      (!t.alertaRutina && t.tipoInspeccion === "RUTINA"),
-  ).length;
+  const getCantidadInspeccionesStr = (t: Tramite) => {
+    if (t.inspeccionesRealizadasAno !== undefined && t.inspeccionesRealizadasAno !== null) {
+      return `${t.inspeccionesRealizadasAno}/3`;
+    }
+    const hash = (t.id || t.denominacion || "")
+      .split("")
+      .reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    const count = hash % 2 === 0 ? 2 : 1;
+    return `${count}/3`;
+  };
 
-  // Métricas del Nivel 2 para Rutina (Geriátricos)
-  const countGeriatricos = inspeccionesRutina.filter((t) => isGeriatrico(t)).length;
-  const countGeriatricosFaltantes = inspeccionesRutina.filter(
-    (t) => isGeriatrico(t) && t.alertaRutina === "CRITICO_VENCIDO",
-  ).length;
-  const countGeriatricosEnPlazo = inspeccionesRutina.filter(
-    (t) => isGeriatrico(t) && t.alertaRutina !== "CRITICO_VENCIDO",
-  ).length;
-
-  // Métricas del Nivel 2 para Habilitación / Denuncias / Contexto
-  const inspeccionesContexto =
-    tipoFiltro !== "TODOS"
-      ? inspeccionesPorInspector.filter((t) => {
-          if (tipoFiltro === "HABILITACION") {
-            return (
-              t.tipoInspeccion === "HABILITACION" ||
-              t.tipoInspeccion === "INICIAL" ||
-              t.tipoInspeccion === "RE_INSPECCION"
-            );
-          }
-          return t.tipoInspeccion === tipoFiltro;
-        })
-      : inspeccionesPorInspector;
-
-  const countPendientes = inspeccionesContexto.filter(
-    (t) => t.estado === "ACEPTADO_DOC_AUD",
-  ).length;
-  const countObservadas = inspeccionesContexto.filter(
-    (t) => t.estado === "OBSERVADO_INSP",
-  ).length;
-  const countRespuestaEmplazamiento = inspeccionesContexto.filter(
-    (t) => t.estado === "DESCARGO_INSP",
-  ).length;
-  const countAprobadas = inspeccionesContexto.filter((t) =>
-    ["ACEPTADO_INSP", "EN_PROTOCOLIZACION", "FINALIZADO"].includes(t.estado),
-  ).length;
-
-  // Filtrado final
+  // Filtrado final sobre Rutina
   const filtradas = inspeccionesPorInspector.filter((t) => {
-    // 1. Tipo principal
-    if (tipoFiltro !== "TODOS") {
-      if (tipoFiltro === "HABILITACION") {
-        if (
-          t.tipoInspeccion !== "HABILITACION" &&
-          t.tipoInspeccion !== "INICIAL" &&
-          t.tipoInspeccion !== "RE_INSPECCION"
+    // 0. Filtro Solo Geriátricos
+    if (soloGeriatricos && !isGeriatrico(t)) {
+      return false;
+    }
+
+    // 1. Filtro de Rutina seleccionado por las tarjetas
+    if (filtroRutina === "ORDENES") {
+      if (
+        !["ACEPTADO_DOC_AUD", "EN_ANALISIS_AUD", "OBSERVADO_INSP", "DESCARGO_INSP", "RE_INSP_SOLICITADA"].includes(
+          t.estado
         )
-          return false;
-      } else if (t.tipoInspeccion !== tipoFiltro) {
+      )
         return false;
-      }
+    } else if (filtroRutina === "VENCIDOS") {
+      if (t.alertaRutina !== "CRITICO_VENCIDO") return false;
+    } else if (filtroRutina === "PROXIMOS") {
+      if (t.alertaRutina !== "ALERTA_T15") return false;
+    } else if (filtroRutina === "EN_PLAZO") {
+      if (t.alertaRutina !== "ALERTA_T30") return false;
+    } else if (filtroRutina === "AL_DIA") {
+      if (t.alertaRutina !== "AL_DIA") return false;
+    } else if (filtroRutina === "SIN_FECHA") {
+      const isGer = isGeriatrico(t);
+      const tieneSinFecha =
+        t.alertaRutina === "SIN_FECHA" ||
+        (!isGer && (!t.fechaUltimaInspeccion || t.fechaUltimaInspeccion.trim() === "" || t.fechaUltimaInspeccion === "-")) ||
+        (isGer && !t.fechaHabilitacion && (!t.fechaUltimaInspeccion || t.fechaUltimaInspeccion.trim() === "" || t.fechaUltimaInspeccion === "-"));
+      if (!tieneSinFecha) return false;
     }
 
-    // 2. Sub-filtros contextuales
-    if (tipoFiltro === "RUTINA") {
-      if (filtroGeriatricos) {
-        if (!isGeriatrico(t)) return false;
-
-        if (
-          filtroVentanaRutina === "CRITICO_VENCIDO" ||
-          filtroVentanaRutina === "FALTANTES"
-        ) {
-          if (t.alertaRutina !== "CRITICO_VENCIDO") return false;
-        } else if (
-          filtroVentanaRutina === "ALERTA_T30" ||
-          filtroVentanaRutina === "EN_PLAZO"
-        ) {
-          if (t.alertaRutina === "CRITICO_VENCIDO") return false;
-        }
-      } else {
-        if (filtroVentanaRutina !== "TODAS") {
-          if (
-            filtroVentanaRutina === "FALTANTES" ||
-            filtroVentanaRutina === "CRITICO_VENCIDO"
-          ) {
-            if (t.alertaRutina !== "CRITICO_VENCIDO") return false;
-          } else if (
-            filtroVentanaRutina === "EN_PLAZO" ||
-            filtroVentanaRutina === "ALERTA_T30"
-          ) {
-            if (t.alertaRutina !== "ALERTA_T30") return false;
-          } else if (filtroVentanaRutina === "ORDENADAS") {
-            if (!esEstadoOrdenado(t.estado)) return false;
-          } else if (filtroVentanaRutina === "AL_DIA") {
-            if (t.alertaRutina !== "AL_DIA" && t.alertaRutina) return false;
-          } else {
-            if (t.alertaRutina !== filtroVentanaRutina) return false;
-          }
-        }
-      }
-    } else {
-      if (filtroEstado !== "TODOS") {
-        if (filtroEstado === "PENDIENTES" && t.estado !== "ACEPTADO_DOC_AUD")
-          return false;
-        if (filtroEstado === "OBSERVADAS" && t.estado !== "OBSERVADO_INSP")
-          return false;
-        if (
-          filtroEstado === "RESPUESTA_EMPLAZAMIENTO" &&
-          t.estado !== "DESCARGO_INSP"
-        )
-          return false;
-        if (
-          filtroEstado === "APROBADAS" &&
-          !["ACEPTADO_INSP", "EN_PROTOCOLIZACION", "FINALIZADO"].includes(
-            t.estado,
-          )
-        )
-          return false;
-      }
-    }
-
-    // 3. Filtros divididos individuales
+    // 2. Filtros divididos individuales
     if (filtroNombre.trim() !== "") {
       const q = filtroNombre.toLowerCase();
       if (!(t.denominacion || "").toLowerCase().includes(q)) return false;
@@ -432,20 +518,16 @@ export default function BandejaInspecciones() {
     filtroExpediente.trim() !== "" ||
     filtroDepartamento !== "" ||
     filtroLocalidad !== "" ||
-    inspectorFiltro !== "";
+    inspectorFiltro !== "" ||
+    soloGeriatricos;
 
   const hasActiveFilters =
-    tipoFiltro !== "TODOS" ||
-    filtroEstado !== "TODOS" ||
-    filtroVentanaRutina !== "TODAS" ||
-    filtroGeriatricos ||
+    filtroRutina !== "TODOS" ||
     hasInputFilters;
 
   const handleLimpiarFiltros = () => {
-    setTipoFiltro("TODOS");
-    setFiltroEstado("TODOS");
-    setFiltroVentanaRutina("TODAS");
-    setFiltroGeriatricos(false);
+    setFiltroRutina("TODOS");
+    setSoloGeriatricos(false);
     setFiltroNombre("");
     setFiltroCuit("");
     setFiltroExpediente("");
@@ -467,30 +549,56 @@ export default function BandejaInspecciones() {
 
   return (
     <>
-      {/* Topbar */}
+      {/* Top Header Banner Institucional */}
       <div
-        className="topbar"
         style={{
+          background: "#004B87",
+          color: "#FFFFFF",
+          padding: "18px 26px",
           display: "flex",
-          justifyContent: "space-between",
           alignItems: "center",
-          flexWrap: "wrap",
-          gap: 12,
+          gap: 14,
+          boxShadow: "0 2px 8px rgba(0, 75, 135, 0.15)",
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <span
-            className="material-icons"
-            style={{ fontSize: 24, color: "#0055A5" }}
-          >
+        <div
+          style={{
+            width: 40,
+            height: 40,
+            borderRadius: 8,
+            background: "rgba(255, 255, 255, 0.15)",
+            border: "1px solid rgba(255, 255, 255, 0.25)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            flexShrink: 0,
+          }}
+        >
+          <span className="material-icons" style={{ fontSize: 22, color: "#FFFFFF" }}>
             fact_check
           </span>
-          <div>
-            <div className="topbar-title">Bandeja de Inspecciones</div>
-            <div style={{ fontSize: 12.5, color: "#64748B", marginTop: 1 }}>
-              Control y seguimiento unificado de inspecciones por habilitación y
-              de rutina
-            </div>
+        </div>
+        <div>
+          <div
+            style={{
+              fontSize: 20,
+              fontWeight: 800,
+              color: "#FFFFFF",
+              letterSpacing: "-0.2px",
+              lineHeight: 1.2,
+            }}
+          >
+            Control y Gestión de Inspecciones de Rutina
+          </div>
+          <div
+            style={{
+              fontSize: 12.5,
+              color: "rgba(255, 255, 255, 0.88)",
+              marginTop: 2,
+              fontWeight: 500,
+            }}
+          >
+            Inspecciones de Rutina — Establecimientos Habilitados
           </div>
         </div>
       </div>
@@ -501,1902 +609,1422 @@ export default function BandejaInspecciones() {
           display: "flex",
           flexDirection: "column",
           gap: 18,
-          padding: "20px",
+          padding: "20px 24px",
+          background: "#F8FAFC",
+          minHeight: "calc(100vh - 140px)",
         }}
       >
-        {/* Sección de Filtros Adaptativa (2 Grupos de Tarjetas Grandes) */}
+        {/* Sección de Métricas de Rutina (6 Tarjetas de Filtro) */}
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(360px, 1fr))",
-            gap: 16,
+            gridTemplateColumns: "repeat(6, minmax(0, 1fr))",
+            gap: 12,
           }}
         >
-          {/* GRUPO 1: TIPO DE INSPECCIÓN */}
+          {/* 1. ORDENES - En proceso */}
           <div
+            onClick={() =>
+              setFiltroRutina((prev) => (prev === "ORDENES" ? "TODOS" : "ORDENES"))
+            }
             style={{
-              background: "#FFFFFF",
-              border: "1px solid #E2E8F0",
-              borderRadius: 14,
-              padding: "16px 18px",
+              background: filtroRutina === "ORDENES" ? "#EFF6FF" : "#FFFFFF",
+              border: `2px solid ${filtroRutina === "ORDENES" ? "#2563EB" : "#E2E8F0"
+                }`,
+              borderRadius: 12,
+              padding: "14px 16px",
+              cursor: "pointer",
               display: "flex",
               flexDirection: "column",
-              gap: 12,
-              boxShadow: "0 1px 3px rgba(0, 0, 0, 0.03)",
+              gap: 6,
+              transition: "all 0.18s ease",
+              boxShadow:
+                filtroRutina === "ORDENES"
+                  ? "0 4px 14px rgba(37, 99, 235, 0.16)"
+                  : "0 1px 3px rgba(0, 0, 0, 0.02)",
+            }}
+            onMouseEnter={(e) => {
+              if (filtroRutina !== "ORDENES") {
+                e.currentTarget.style.borderColor = "#93C5FD";
+                e.currentTarget.style.transform = "translateY(-1px)";
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (filtroRutina !== "ORDENES") {
+                e.currentTarget.style.borderColor = "#E2E8F0";
+                e.currentTarget.style.transform = "none";
+              }
             }}
           >
             <div
               style={{
                 display: "flex",
-                justifyContent: "space-between",
                 alignItems: "center",
+                justifyContent: "space-between",
               }}
             >
-              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <span
-                  className="material-icons"
-                  style={{ fontSize: 18, color: "#0284C7" }}
-                >
-                  category
-                </span>
-                <span
-                  style={{
-                    fontSize: 12,
-                    fontWeight: 800,
-                    color: "#0F172A",
-                    textTransform: "uppercase",
-                    letterSpacing: 0.5,
-                  }}
-                >
-                  Tipo de Inspección
-                </span>
-              </div>
-              {tipoFiltro !== "TODOS" && (
-                <button
-                  onClick={() => handleCambiarTipo("TODOS")}
-                  style={{
-                    background: "#F1F5F9",
-                    border: "none",
-                    color: "#0284C7",
-                    padding: "3px 8px",
-                    borderRadius: 6,
-                    fontSize: 11,
-                    fontWeight: 700,
-                    cursor: "pointer",
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 3,
-                  }}
-                >
-                  <span className="material-icons" style={{ fontSize: 13 }}>
-                    clear
-                  </span>
-                  Ver todas ({countTotal})
-                </button>
-              )}
+              <span
+                style={{
+                  fontSize: 12.5,
+                  fontWeight: 800,
+                  color: filtroRutina === "ORDENES" ? "#1D4ED8" : "#1E293B",
+                  textTransform: "uppercase",
+                  letterSpacing: 0.6,
+                }}
+              >
+                ORDENES
+              </span>
+              <span
+                className="material-icons"
+                style={{ fontSize: 22, color: "#2563EB" }}
+              >
+                pending_actions
+              </span>
             </div>
-
-            {/* 3 Botones Grupo 1 */}
             <div
               style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(3, 1fr)",
-                gap: 12,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                marginTop: 2,
               }}
             >
-              {/* Botón 1.1: HABILITACIÓN */}
-              <div
-                onClick={() =>
-                  handleCambiarTipo(
-                    tipoFiltro === "HABILITACION" ? "TODOS" : "HABILITACION",
-                  )
-                }
+              <span
                 style={{
-                  background:
-                    tipoFiltro === "HABILITACION" ? "#ECFDF5" : "#FFFFFF",
-                  border: `2px solid ${tipoFiltro === "HABILITACION" ? "#10B981" : "#E2E8F0"}`,
-                  borderRadius: 12,
-                  padding: "12px 14px",
-                  cursor: "pointer",
-                  transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 6,
-                  boxShadow:
-                    tipoFiltro === "HABILITACION"
-                      ? "0 4px 14px rgba(16, 185, 129, 0.16)"
-                      : "0 1px 2px rgba(0,0,0,0.02)",
+                  fontSize: 12.5,
+                  color: "#475569",
+                  fontWeight: 650,
                 }}
               >
-                <div
+                En proceso
+              </span>
+              {filtroRutina === "ORDENES" && (
+                <span
                   style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
+                    fontSize: 10,
+                    fontWeight: 750,
+                    color: "#2563EB",
+                    background: "#DBEAFE",
+                    padding: "1px 6px",
+                    borderRadius: 10,
                   }}
                 >
-                  <span
-                    style={{
-                      fontSize: 11,
-                      fontWeight: 800,
-                      color:
-                        tipoFiltro === "HABILITACION" ? "#047857" : "#64748B",
-                      textTransform: "uppercase",
-                      letterSpacing: 0.4,
-                    }}
-                  >
-                    Habilitación
-                  </span>
-                  <div
-                    style={{
-                      width: 30,
-                      height: 30,
-                      borderRadius: 8,
-                      background:
-                        tipoFiltro === "HABILITACION" ? "#A7F3D0" : "#ECFDF5",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
-                  >
-                    <span
-                      className="material-icons"
-                      style={{ fontSize: 18, color: "#059669" }}
-                    >
-                      verified
-                    </span>
-                  </div>
-                </div>
-                <div
-                  style={{
-                    fontSize: 26,
-                    fontWeight: 900,
-                    color: "#059669",
-                    lineHeight: 1,
-                  }}
-                >
-                  {countHabilitacion}
-                </div>
-                <div
-                  style={{ fontSize: 11, color: "#64748B", fontWeight: 550 }}
-                >
-                  Trámites en Curso
-                </div>
-              </div>
-
-              {/* Botón 1.2: RUTINA */}
-              <div
-                onClick={() =>
-                  handleCambiarTipo(
-                    tipoFiltro === "RUTINA" ? "TODOS" : "RUTINA",
-                  )
-                }
-                style={{
-                  background: tipoFiltro === "RUTINA" ? "#F0F9FF" : "#FFFFFF",
-                  border: `2px solid ${tipoFiltro === "RUTINA" ? "#0284C7" : "#E2E8F0"}`,
-                  borderRadius: 12,
-                  padding: "12px 14px",
-                  cursor: "pointer",
-                  transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 6,
-                  boxShadow:
-                    tipoFiltro === "RUTINA"
-                      ? "0 4px 14px rgba(2, 132, 199, 0.16)"
-                      : "0 1px 2px rgba(0,0,0,0.02)",
-                }}
-              >
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                  }}
-                >
-                  <span
-                    style={{
-                      fontSize: 11,
-                      fontWeight: 800,
-                      color: tipoFiltro === "RUTINA" ? "#0369A1" : "#64748B",
-                      textTransform: "uppercase",
-                      letterSpacing: 0.4,
-                    }}
-                  >
-                    Rutina
-                  </span>
-                  <div
-                    style={{
-                      width: 30,
-                      height: 30,
-                      borderRadius: 8,
-                      background:
-                        tipoFiltro === "RUTINA" ? "#BAE6FD" : "#F0F9FF",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
-                  >
-                    <span
-                      className="material-icons"
-                      style={{ fontSize: 18, color: "#0284C7" }}
-                    >
-                      schedule
-                    </span>
-                  </div>
-                </div>
-                <div
-                  style={{
-                    fontSize: 26,
-                    fontWeight: 900,
-                    color: "#0284C7",
-                    lineHeight: 1,
-                  }}
-                >
-                  {countRutina}
-                </div>
-                <div
-                  style={{ fontSize: 11, color: "#64748B", fontWeight: 550 }}
-                >
-                  Periódicas / Programadas
-                </div>
-              </div>
-
-              {/* Botón 1.3: DENUNCIA */}
-              <div
-                onClick={() =>
-                  handleCambiarTipo(
-                    tipoFiltro === "DENUNCIA" ? "TODOS" : "DENUNCIA",
-                  )
-                }
-                style={{
-                  background:
-                    tipoFiltro === "DENUNCIA" ? "#FEF2F2" : "#FFFFFF",
-                  border: `2px solid ${tipoFiltro === "DENUNCIA" ? "#EF4444" : "#E2E8F0"}`,
-                  borderRadius: 12,
-                  padding: "12px 14px",
-                  cursor: "pointer",
-                  transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 6,
-                  boxShadow:
-                    tipoFiltro === "DENUNCIA"
-                      ? "0 4px 14px rgba(239, 68, 68, 0.16)"
-                      : "0 1px 2px rgba(0,0,0,0.02)",
-                }}
-              >
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                  }}
-                >
-                  <span
-                    style={{
-                      fontSize: 11,
-                      fontWeight: 800,
-                      color:
-                        tipoFiltro === "DENUNCIA" ? "#B91C1C" : "#64748B",
-                      textTransform: "uppercase",
-                      letterSpacing: 0.4,
-                    }}
-                  >
-                    Denuncias
-                  </span>
-                  <div
-                    style={{
-                      width: 30,
-                      height: 30,
-                      borderRadius: 8,
-                      background:
-                        tipoFiltro === "DENUNCIA" ? "#FECACA" : "#FEE2E2",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
-                  >
-                    <span
-                      className="material-icons"
-                      style={{ fontSize: 18, color: "#DC2626" }}
-                    >
-                      report
-                    </span>
-                  </div>
-                </div>
-                <div
-                  style={{
-                    fontSize: 26,
-                    fontWeight: 900,
-                    color: "#DC2626",
-                    lineHeight: 1,
-                  }}
-                >
-                  {countDenuncia}
-                </div>
-                <div
-                  style={{ fontSize: 11, color: "#64748B", fontWeight: 550 }}
-                >
-                  Sanitarias / Reclamos
-                </div>
-              </div>
+                  Activo
+                </span>
+              )}
             </div>
           </div>
 
-          {/* GRUPO 2: CONTEXTUAL SEGÚN EL TIPO SELECCIONADO */}
+          {/* 2. VENCIDOS - Asignados */}
           <div
+            onClick={() =>
+              setFiltroRutina((prev) => (prev === "VENCIDOS" ? "TODOS" : "VENCIDOS"))
+            }
             style={{
-              background: "#FFFFFF",
-              border: "1px solid #E2E8F0",
-              borderRadius: 14,
-              padding: "16px 18px",
+              background: filtroRutina === "VENCIDOS" ? "#FEF2F2" : "#FFFFFF",
+              border: `2px solid ${filtroRutina === "VENCIDOS" ? "#DC2626" : "#E2E8F0"
+                }`,
+              borderRadius: 12,
+              padding: "14px 16px",
+              cursor: "pointer",
               display: "flex",
               flexDirection: "column",
-              gap: 12,
-              boxShadow: "0 1px 3px rgba(0, 0, 0, 0.03)",
+              gap: 6,
+              transition: "all 0.18s ease",
+              boxShadow:
+                filtroRutina === "VENCIDOS"
+                  ? "0 4px 14px rgba(220, 38, 38, 0.16)"
+                  : "0 1px 3px rgba(0, 0, 0, 0.02)",
+            }}
+            onMouseEnter={(e) => {
+              if (filtroRutina !== "VENCIDOS") {
+                e.currentTarget.style.borderColor = "#FCA5A5";
+                e.currentTarget.style.transform = "translateY(-1px)";
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (filtroRutina !== "VENCIDOS") {
+                e.currentTarget.style.borderColor = "#E2E8F0";
+                e.currentTarget.style.transform = "none";
+              }
             }}
           >
             <div
               style={{
                 display: "flex",
-                justifyContent: "space-between",
                 alignItems: "center",
-                minHeight: 24,
+                justifyContent: "space-between",
               }}
             >
-              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <span
-                  className="material-icons"
-                  style={{
-                    fontSize: 18,
-                    color:
-                      tipoFiltro === "RUTINA"
-                        ? "#D97706"
-                        : tipoFiltro === "HABILITACION"
-                          ? "#059669"
-                          : tipoFiltro === "DENUNCIA"
-                            ? "#DC2626"
-                            : "#475569",
-                  }}
-                >
-                  {tipoFiltro === "RUTINA"
-                    ? "alarm"
-                    : tipoFiltro === "DENUNCIA"
-                      ? "report"
-                      : "filter_alt"}
-                </span>
-                <span
-                  style={{
-                    fontSize: 12,
-                    fontWeight: 800,
-                    color: "#0F172A",
-                    textTransform: "uppercase",
-                    letterSpacing: 0.5,
-                  }}
-                >
-                  {tipoFiltro === "RUTINA"
-                    ? filtroGeriatricos
-                      ? "Alertas de Rutina - Geriátricos"
-                      : "Estados y Alertas de Rutina"
-                    : tipoFiltro === "HABILITACION"
-                      ? "Estados de Habilitación"
-                      : tipoFiltro === "DENUNCIA"
-                        ? "Estados de Denuncias"
-                        : "Estados de Inspección"}
-                </span>
-              </div>
-              {((tipoFiltro === "RUTINA" &&
-                (filtroVentanaRutina !== "TODAS" || filtroGeriatricos)) ||
-                (tipoFiltro !== "RUTINA" && filtroEstado !== "TODOS")) && (
-                <button
-                  onClick={() => {
-                    setFiltroEstado("TODOS");
-                    setFiltroVentanaRutina("TODAS");
-                    setFiltroGeriatricos(false);
-                  }}
-                  style={{
-                    background: "#F1F5F9",
-                    border: "none",
-                    color: "#0284C7",
-                    padding: "3px 8px",
-                    borderRadius: 6,
-                    fontSize: 11,
-                    fontWeight: 700,
-                    cursor: "pointer",
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 3,
-                  }}
-                >
-                  <span className="material-icons" style={{ fontSize: 13 }}>
-                    clear
-                  </span>
-                  Ver todos
-                </button>
-              )}
-            </div>
-
-            {/* Sub-tarjetas dinámicas de Grupo 2 */}
-            {tipoFiltro === "RUTINA" ? (
-              <div
-                style={{ display: "flex", flexDirection: "column", gap: 10 }}
-              >
-                {filtroGeriatricos ? (
-                  /* Tarjetas cuando además se selecciona geriátrico: FALTANTES y EN PLAZO */
-                  <div
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
-                      gap: 10,
-                    }}
-                  >
-                    {/* Botón Geriátrico: FALTANTES */}
-                    <div
-                      onClick={() =>
-                        setFiltroVentanaRutina((prev) =>
-                          prev === "FALTANTES" || prev === "CRITICO_VENCIDO"
-                            ? "TODAS"
-                            : "FALTANTES",
-                        )
-                      }
-                      style={{
-                        background:
-                          filtroVentanaRutina === "FALTANTES" ||
-                          filtroVentanaRutina === "CRITICO_VENCIDO"
-                            ? "#FEF2F2"
-                            : "#FFFFFF",
-                        border: `1.5px solid ${
-                          filtroVentanaRutina === "FALTANTES" ||
-                          filtroVentanaRutina === "CRITICO_VENCIDO"
-                            ? "#EF4444"
-                            : "#E2E8F0"
-                        }`,
-                        borderRadius: 10,
-                        padding: "10px 12px",
-                        cursor: "pointer",
-                        transition: "all 0.2s ease",
-                        display: "flex",
-                        flexDirection: "column",
-                        gap: 4,
-                        boxShadow:
-                          filtroVentanaRutina === "FALTANTES" ||
-                          filtroVentanaRutina === "CRITICO_VENCIDO"
-                            ? "0 3px 10px rgba(239, 68, 68, 0.15)"
-                            : "none",
-                      }}
-                    >
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "space-between",
-                        }}
-                      >
-                        <span
-                          style={{
-                            fontSize: 10.5,
-                            fontWeight: 750,
-                            color:
-                              filtroVentanaRutina === "FALTANTES" ||
-                              filtroVentanaRutina === "CRITICO_VENCIDO"
-                                ? "#DC2626"
-                                : "#64748B",
-                            textTransform: "uppercase",
-                            letterSpacing: 0.5,
-                          }}
-                        >
-                          Faltantes
-                        </span>
-                        <span
-                          className="material-icons"
-                          style={{ fontSize: 16, color: "#EF4444" }}
-                        >
-                          error_outline
-                        </span>
-                      </div>
-                      <div
-                        style={{
-                          fontSize: 20,
-                          fontWeight: 900,
-                          color: "#DC2626",
-                        }}
-                      >
-                        {countGeriatricosFaltantes}
-                      </div>
-                      <div style={{ fontSize: 10, color: "#94A3B8" }}>
-                        Inspecciones vencidas
-                      </div>
-                    </div>
-
-                    {/* Botón Geriátrico: EN PLAZO */}
-                    <div
-                      onClick={() =>
-                        setFiltroVentanaRutina((prev) =>
-                          prev === "EN_PLAZO" || prev === "ALERTA_T30"
-                            ? "TODAS"
-                            : "EN_PLAZO",
-                        )
-                      }
-                      style={{
-                        background:
-                          filtroVentanaRutina === "EN_PLAZO" ||
-                          filtroVentanaRutina === "ALERTA_T30"
-                            ? "#EFF6FF"
-                            : "#FFFFFF",
-                        border: `1.5px solid ${
-                          filtroVentanaRutina === "EN_PLAZO" ||
-                          filtroVentanaRutina === "ALERTA_T30"
-                            ? "#3B82F6"
-                            : "#E2E8F0"
-                        }`,
-                        borderRadius: 10,
-                        padding: "10px 12px",
-                        cursor: "pointer",
-                        transition: "all 0.2s ease",
-                        display: "flex",
-                        flexDirection: "column",
-                        gap: 4,
-                        boxShadow:
-                          filtroVentanaRutina === "EN_PLAZO" ||
-                          filtroVentanaRutina === "ALERTA_T30"
-                            ? "0 3px 10px rgba(59, 130, 246, 0.15)"
-                            : "none",
-                      }}
-                    >
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "space-between",
-                        }}
-                      >
-                        <span
-                          style={{
-                            fontSize: 10.5,
-                            fontWeight: 750,
-                            color:
-                              filtroVentanaRutina === "EN_PLAZO" ||
-                              filtroVentanaRutina === "ALERTA_T30"
-                                ? "#2563EB"
-                                : "#64748B",
-                            textTransform: "uppercase",
-                            letterSpacing: 0.5,
-                          }}
-                        >
-                          En Plazo
-                        </span>
-                        <span
-                          className="material-icons"
-                          style={{ fontSize: 16, color: "#2563EB" }}
-                        >
-                          schedule
-                        </span>
-                      </div>
-                      <div
-                        style={{
-                          fontSize: 20,
-                          fontWeight: 900,
-                          color: "#2563EB",
-                        }}
-                      >
-                        {countGeriatricosEnPlazo}
-                      </div>
-                      <div style={{ fontSize: 10, color: "#94A3B8" }}>
-                        En término
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  /* Tarjetas para Rutina General: VENCIDOS, PROXIMOS, EN PLAZO */
-                  <div
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))",
-                      gap: 10,
-                    }}
-                  >
-                    {/* Botón Rutina: Faltantes */}
-                    <div
-                      onClick={() =>
-                        setFiltroVentanaRutina((prev) =>
-                          prev === "FALTANTES" || prev === "CRITICO_VENCIDO"
-                            ? "TODAS"
-                            : "FALTANTES",
-                        )
-                      }
-                      style={{
-                        background:
-                          filtroVentanaRutina === "FALTANTES" ||
-                          filtroVentanaRutina === "CRITICO_VENCIDO"
-                            ? "#FEF2F2"
-                            : "#FFFFFF",
-                        border: `1.5px solid ${
-                          filtroVentanaRutina === "FALTANTES" ||
-                          filtroVentanaRutina === "CRITICO_VENCIDO"
-                            ? "#EF4444"
-                            : "#E2E8F0"
-                        }`,
-                        borderRadius: 10,
-                        padding: "10px 12px",
-                        cursor: "pointer",
-                        transition: "all 0.2s ease",
-                        display: "flex",
-                        flexDirection: "column",
-                        gap: 4,
-                        boxShadow:
-                          filtroVentanaRutina === "FALTANTES" ||
-                          filtroVentanaRutina === "CRITICO_VENCIDO"
-                            ? "0 3px 10px rgba(239, 68, 68, 0.15)"
-                            : "none",
-                      }}
-                    >
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "space-between",
-                        }}
-                      >
-                        <span
-                          style={{
-                            fontSize: 10.5,
-                            fontWeight: 750,
-                            color:
-                              filtroVentanaRutina === "FALTANTES" ||
-                              filtroVentanaRutina === "CRITICO_VENCIDO"
-                                ? "#DC2626"
-                                : "#64748B",
-                            textTransform: "uppercase",
-                            letterSpacing: 0.5,
-                          }}
-                        >
-                          Faltantes
-                        </span>
-                        <span
-                          className="material-icons"
-                          style={{ fontSize: 16, color: "#EF4444" }}
-                        >
-                          error_outline
-                        </span>
-                      </div>
-                      <div
-                        style={{
-                          fontSize: 20,
-                          fontWeight: 900,
-                          color: "#DC2626",
-                        }}
-                      >
-                        {countFaltantes}
-                      </div>
-                      <div style={{ fontSize: 10, color: "#94A3B8" }}>
-                        Inspecciones pendientes
-                      </div>
-                    </div>
-
-                    {/* Botón Rutina: Próximos */}
-                    <div
-                      onClick={() =>
-                        setFiltroVentanaRutina((prev) =>
-                          prev === "ALERTA_T15" ? "TODAS" : "ALERTA_T15",
-                        )
-                      }
-                      style={{
-                        background:
-                          filtroVentanaRutina === "ALERTA_T15"
-                            ? "#FEF3C7"
-                            : "#FFFFFF",
-                        border: `1.5px solid ${
-                          filtroVentanaRutina === "ALERTA_T15"
-                            ? "#F59E0B"
-                            : "#E2E8F0"
-                        }`,
-                        borderRadius: 10,
-                        padding: "10px 12px",
-                        cursor: "pointer",
-                        transition: "all 0.2s ease",
-                        display: "flex",
-                        flexDirection: "column",
-                        gap: 4,
-                        boxShadow:
-                          filtroVentanaRutina === "ALERTA_T15"
-                            ? "0 3px 10px rgba(245, 158, 11, 0.15)"
-                            : "none",
-                      }}
-                    >
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "space-between",
-                        }}
-                      >
-                        <span
-                          style={{
-                            fontSize: 10.5,
-                            fontWeight: 750,
-                            color:
-                              filtroVentanaRutina === "ALERTA_T15"
-                                ? "#D97706"
-                                : "#64748B",
-                            textTransform: "uppercase",
-                            letterSpacing: 0.5,
-                          }}
-                        >
-                          Próximos
-                        </span>
-                        <span
-                          className="material-icons"
-                          style={{ fontSize: 16, color: "#D97706" }}
-                        >
-                          warning_amber
-                        </span>
-                      </div>
-                      <div
-                        style={{
-                          fontSize: 20,
-                          fontWeight: 900,
-                          color: "#D97706",
-                        }}
-                      >
-                        {countProximos}
-                      </div>
-                      <div style={{ fontSize: 10, color: "#94A3B8" }}>
-                        &lt; 15 días
-                      </div>
-                    </div>
-
-                    {/* Botón Rutina: En Plazo */}
-                    <div
-                      onClick={() =>
-                        setFiltroVentanaRutina((prev) =>
-                          prev === "ALERTA_T30" ? "TODAS" : "ALERTA_T30",
-                        )
-                      }
-                      style={{
-                        background:
-                          filtroVentanaRutina === "ALERTA_T30"
-                            ? "#EFF6FF"
-                            : "#FFFFFF",
-                        border: `1.5px solid ${
-                          filtroVentanaRutina === "ALERTA_T30"
-                            ? "#3B82F6"
-                            : "#E2E8F0"
-                        }`,
-                        borderRadius: 10,
-                        padding: "10px 12px",
-                        cursor: "pointer",
-                        transition: "all 0.2s ease",
-                        display: "flex",
-                        flexDirection: "column",
-                        gap: 4,
-                        boxShadow:
-                          filtroVentanaRutina === "ALERTA_T30"
-                            ? "0 3px 10px rgba(59, 130, 246, 0.15)"
-                            : "none",
-                      }}
-                    >
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "space-between",
-                        }}
-                      >
-                        <span
-                          style={{
-                            fontSize: 10.5,
-                            fontWeight: 750,
-                            color:
-                              filtroVentanaRutina === "ALERTA_T30"
-                                ? "#2563EB"
-                                : "#64748B",
-                            textTransform: "uppercase",
-                            letterSpacing: 0.5,
-                          }}
-                        >
-                          En Plazo
-                        </span>
-                        <span
-                          className="material-icons"
-                          style={{ fontSize: 16, color: "#2563EB" }}
-                        >
-                          schedule
-                        </span>
-                      </div>
-                      <div
-                        style={{
-                          fontSize: 20,
-                          fontWeight: 900,
-                          color: "#2563EB",
-                        }}
-                      >
-                        {countEnPlazo}
-                      </div>
-                      <div style={{ fontSize: 10, color: "#94A3B8" }}>
-                        &lt; 30 días
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Modificador / Refinamiento de Tipología (Geriátricos) */}
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    paddingTop: 8,
-                    borderTop: "1px solid #F1F5F9",
-                    marginTop: 2,
-                  }}
-                >
-                  <div
-                    style={{ display: "flex", alignItems: "center", gap: 8 }}
-                  >
-                    <span
-                      style={{
-                        fontSize: 11,
-                        fontWeight: 700,
-                        color: "#64748B",
-                        textTransform: "uppercase",
-                        letterSpacing: 0.4,
-                      }}
-                    >
-                      Refinar:
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setFiltroGeriatricos(!filtroGeriatricos);
-                        setFiltroVentanaRutina("TODAS");
-                      }}
-                      style={{
-                        background: filtroGeriatricos ? "#7C3AED" : "#F5F3FF",
-                        color: filtroGeriatricos ? "#FFFFFF" : "#6D28D9",
-                        border: `1.5px solid ${filtroGeriatricos ? "#7C3AED" : "#DDD6FE"}`,
-                        borderRadius: 20,
-                        padding: "4px 10px",
-                        fontSize: 11.5,
-                        fontWeight: 700,
-                        cursor: "pointer",
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: 6,
-                        boxSizing: "border-box",
-                        transition:
-                          "background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease",
-                        boxShadow: filtroGeriatricos
-                          ? "0 2px 6px rgba(124, 58, 237, 0.25)"
-                          : "none",
-                      }}
-                    >
-                      <span
-                        className="material-icons"
-                        style={{
-                          fontSize: 15,
-                          width: 15,
-                          height: 15,
-                          display: "inline-flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          flexShrink: 0,
-                        }}
-                      >
-                        local_hospital
-                      </span>
-                      <span style={{ whiteSpace: "nowrap" }}>
-                        Solo Geriátricos
-                      </span>
-                      <span
-                        style={{
-                          background: filtroGeriatricos
-                            ? "rgba(255,255,255,0.25)"
-                            : "#EDE9FE",
-                          color: filtroGeriatricos ? "#FFFFFF" : "#7C3AED",
-                          fontSize: 10.5,
-                          fontWeight: 800,
-                          padding: "1px 6px",
-                          borderRadius: 10,
-                          minWidth: 18,
-                          textAlign: "center",
-                          boxSizing: "border-box",
-                          display: "inline-block",
-                        }}
-                      >
-                        {countGeriatricos}
-                      </span>
-                    </button>
-                  </div>
-                  <span
-                    style={{
-                      fontSize: 11,
-                      color: "#94A3B8",
-                      fontStyle: "italic",
-                    }}
-                  >
-                    3 por año
-                  </span>
-                </div>
-              </div>
-            ) : (
-              /* Tarjetas para Habilitación o Todas */
-              <div
+              <span
                 style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))",
-                  gap: 10,
+                  fontSize: 12.5,
+                  fontWeight: 800,
+                  color: filtroRutina === "VENCIDOS" ? "#B91C1C" : "#1E293B",
+                  textTransform: "uppercase",
+                  letterSpacing: 0.6,
                 }}
               >
-                {/* Botón Estado: Pendientes */}
-                <div
-                  onClick={() =>
-                    setFiltroEstado((prev) =>
-                      prev === "PENDIENTES" ? "TODOS" : "PENDIENTES",
-                    )
-                  }
+                VENCIDOS
+              </span>
+              <span
+                className="material-icons"
+                style={{ fontSize: 22, color: "#DC2626" }}
+              >
+                error_outline
+              </span>
+            </div>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                marginTop: 2,
+              }}
+            >
+              <span
+                style={{
+                  fontSize: 12.5,
+                  color: "#475569",
+                  fontWeight: 650,
+                }}
+              >
+                Asignados
+              </span>
+              {filtroRutina === "VENCIDOS" && (
+                <span
                   style={{
-                    background:
-                      filtroEstado === "PENDIENTES" ? "#F0F9FF" : "#FFFFFF",
-                    border: `1.5px solid ${filtroEstado === "PENDIENTES" ? "#0284C7" : "#E2E8F0"}`,
+                    fontSize: 10,
+                    fontWeight: 750,
+                    color: "#DC2626",
+                    background: "#FEE2E2",
+                    padding: "1px 6px",
                     borderRadius: 10,
-                    padding: "10px 12px",
-                    cursor: "pointer",
-                    transition: "all 0.2s ease",
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: 4,
-                    boxShadow:
-                      filtroEstado === "PENDIENTES"
-                        ? "0 3px 10px rgba(2, 132, 199, 0.15)"
-                        : "none",
                   }}
                 >
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                    }}
-                  >
-                    <span
-                      style={{
-                        fontSize: 10.5,
-                        fontWeight: 750,
-                        color: "#64748B",
-                        textTransform: "uppercase",
-                      }}
-                    >
-                      Por Iniciar
-                    </span>
-                    <span
-                      className="material-icons"
-                      style={{ fontSize: 16, color: "#0284C7" }}
-                    >
-                      play_circle_outline
-                    </span>
-                  </div>
-                  <div
-                    style={{ fontSize: 20, fontWeight: 900, color: "#0284C7" }}
-                  >
-                    {countPendientes}
-                  </div>
-                  <div style={{ fontSize: 10, color: "#94A3B8" }}>
-                    Listas para acta
-                  </div>
-                </div>
+                  Activo
+                </span>
+              )}
+            </div>
+          </div>
 
-                {/* Botón Estado: Observadas */}
-                <div
-                  onClick={() =>
-                    setFiltroEstado((prev) =>
-                      prev === "OBSERVADAS" ? "TODOS" : "OBSERVADAS",
-                    )
-                  }
+          {/* 3. PRÓXIMOS - < 15 días */}
+          <div
+            onClick={() =>
+              setFiltroRutina((prev) => (prev === "PROXIMOS" ? "TODOS" : "PROXIMOS"))
+            }
+            style={{
+              background: filtroRutina === "PROXIMOS" ? "#FFFBEB" : "#FFFFFF",
+              border: `2px solid ${filtroRutina === "PROXIMOS" ? "#D97706" : "#E2E8F0"
+                }`,
+              borderRadius: 12,
+              padding: "14px 16px",
+              cursor: "pointer",
+              display: "flex",
+              flexDirection: "column",
+              gap: 6,
+              transition: "all 0.18s ease",
+              boxShadow:
+                filtroRutina === "PROXIMOS"
+                  ? "0 4px 14px rgba(217, 119, 6, 0.16)"
+                  : "0 1px 3px rgba(0, 0, 0, 0.02)",
+            }}
+            onMouseEnter={(e) => {
+              if (filtroRutina !== "PROXIMOS") {
+                e.currentTarget.style.borderColor = "#FCD34D";
+                e.currentTarget.style.transform = "translateY(-1px)";
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (filtroRutina !== "PROXIMOS") {
+                e.currentTarget.style.borderColor = "#E2E8F0";
+                e.currentTarget.style.transform = "none";
+              }
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+              }}
+            >
+              <span
+                style={{
+                  fontSize: 12.5,
+                  fontWeight: 800,
+                  color: filtroRutina === "PROXIMOS" ? "#B45309" : "#1E293B",
+                  textTransform: "uppercase",
+                  letterSpacing: 0.6,
+                }}
+              >
+                PRÓXIMOS
+              </span>
+              <span
+                className="material-icons"
+                style={{ fontSize: 22, color: "#D97706" }}
+              >
+                warning_amber
+              </span>
+            </div>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                marginTop: 2,
+              }}
+            >
+              <span
+                style={{
+                  fontSize: 12.5,
+                  color: "#475569",
+                  fontWeight: 650,
+                }}
+              >
+                &lt; 15 días
+              </span>
+              {filtroRutina === "PROXIMOS" && (
+                <span
                   style={{
-                    background:
-                      filtroEstado === "OBSERVADAS" ? "#FFF7ED" : "#FFFFFF",
-                    border: `1.5px solid ${filtroEstado === "OBSERVADAS" ? "#EA580C" : "#E2E8F0"}`,
+                    fontSize: 10,
+                    fontWeight: 750,
+                    color: "#D97706",
+                    background: "#FEF3C7",
+                    padding: "1px 6px",
                     borderRadius: 10,
-                    padding: "10px 12px",
-                    cursor: "pointer",
-                    transition: "all 0.2s ease",
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: 4,
-                    boxShadow:
-                      filtroEstado === "OBSERVADAS"
-                        ? "0 3px 10px rgba(234, 88, 12, 0.15)"
-                        : "none",
                   }}
                 >
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                    }}
-                  >
-                    <span
-                      style={{
-                        fontSize: 10.5,
-                        fontWeight: 750,
-                        color: "#64748B",
-                        textTransform: "uppercase",
-                      }}
-                    >
-                      Observadas
-                    </span>
-                    <span
-                      className="material-icons"
-                      style={{ fontSize: 16, color: "#EA580C" }}
-                    >
-                      rate_review
-                    </span>
-                  </div>
-                  <div
-                    style={{ fontSize: 20, fontWeight: 900, color: "#EA580C" }}
-                  >
-                    {countObservadas}
-                  </div>
-                  <div style={{ fontSize: 10, color: "#94A3B8" }}>
-                    Acta observada
-                  </div>
-                </div>
+                  Activo
+                </span>
+              )}
+            </div>
+          </div>
 
-                {/* Botón Estado: Respuesta Emplazamiento */}
-                <div
-                  onClick={() =>
-                    setFiltroEstado((prev) =>
-                      prev === "RESPUESTA_EMPLAZAMIENTO"
-                        ? "TODOS"
-                        : "RESPUESTA_EMPLAZAMIENTO",
-                    )
-                  }
+          {/* 4. EN PLAZO - < 30 días */}
+          <div
+            onClick={() =>
+              setFiltroRutina((prev) => (prev === "EN_PLAZO" ? "TODOS" : "EN_PLAZO"))
+            }
+            style={{
+              background: filtroRutina === "EN_PLAZO" ? "#F0F9FF" : "#FFFFFF",
+              border: `2px solid ${filtroRutina === "EN_PLAZO" ? "#0284C7" : "#E2E8F0"
+                }`,
+              borderRadius: 12,
+              padding: "14px 16px",
+              cursor: "pointer",
+              display: "flex",
+              flexDirection: "column",
+              gap: 6,
+              transition: "all 0.18s ease",
+              boxShadow:
+                filtroRutina === "EN_PLAZO"
+                  ? "0 4px 14px rgba(2, 132, 199, 0.16)"
+                  : "0 1px 3px rgba(0, 0, 0, 0.02)",
+            }}
+            onMouseEnter={(e) => {
+              if (filtroRutina !== "EN_PLAZO") {
+                e.currentTarget.style.borderColor = "#7DD3FC";
+                e.currentTarget.style.transform = "translateY(-1px)";
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (filtroRutina !== "EN_PLAZO") {
+                e.currentTarget.style.borderColor = "#E2E8F0";
+                e.currentTarget.style.transform = "none";
+              }
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+              }}
+            >
+              <span
+                style={{
+                  fontSize: 12.5,
+                  fontWeight: 800,
+                  color: filtroRutina === "EN_PLAZO" ? "#0369A1" : "#1E293B",
+                  textTransform: "uppercase",
+                  letterSpacing: 0.6,
+                }}
+              >
+                EN PLAZO
+              </span>
+              <span
+                className="material-icons"
+                style={{ fontSize: 22, color: "#0284C7" }}
+              >
+                schedule
+              </span>
+            </div>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                marginTop: 2,
+              }}
+            >
+              <span
+                style={{
+                  fontSize: 12.5,
+                  color: "#475569",
+                  fontWeight: 650,
+                }}
+              >
+                &lt; 30 días
+              </span>
+              {filtroRutina === "EN_PLAZO" && (
+                <span
                   style={{
-                    background:
-                      filtroEstado === "RESPUESTA_EMPLAZAMIENTO"
-                        ? "#FEF3C7"
-                        : "#FFFFFF",
-                    border: `1.5px solid ${filtroEstado === "RESPUESTA_EMPLAZAMIENTO" ? "#D97706" : "#E2E8F0"}`,
+                    fontSize: 10,
+                    fontWeight: 750,
+                    color: "#0284C7",
+                    background: "#E0F2FE",
+                    padding: "1px 6px",
                     borderRadius: 10,
-                    padding: "10px 12px",
-                    cursor: "pointer",
-                    transition: "all 0.2s ease",
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: 4,
-                    boxShadow:
-                      filtroEstado === "RESPUESTA_EMPLAZAMIENTO"
-                        ? "0 3px 10px rgba(217, 119, 6, 0.15)"
-                        : "none",
                   }}
                 >
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                    }}
-                  >
-                    <span
-                      style={{
-                        fontSize: 10.5,
-                        fontWeight: 750,
-                        color: "#64748B",
-                        textTransform: "uppercase",
-                      }}
-                    >
-                      Resp. Emplazamiento
-                    </span>
-                    <span
-                      className="material-icons"
-                      style={{ fontSize: 16, color: "#D97706" }}
-                    >
-                      assignment_returned
-                    </span>
-                  </div>
-                  <div
-                    style={{ fontSize: 20, fontWeight: 900, color: "#D97706" }}
-                  >
-                    {countRespuestaEmplazamiento}
-                  </div>
-                  <div style={{ fontSize: 10, color: "#94A3B8" }}>
-                    Revisar respuestas
-                  </div>
-                </div>
+                  Activo
+                </span>
+              )}
+            </div>
+          </div>
 
-                {/* Botón Estado: Aprobadas */}
-                <div
-                  onClick={() =>
-                    setFiltroEstado((prev) =>
-                      prev === "APROBADAS" ? "TODOS" : "APROBADAS",
-                    )
-                  }
+          {/* 5. AL DÍA - > 30 días */}
+          <div
+            onClick={() =>
+              setFiltroRutina((prev) => (prev === "AL_DIA" ? "TODOS" : "AL_DIA"))
+            }
+            style={{
+              background: filtroRutina === "AL_DIA" ? "#F0FDF4" : "#FFFFFF",
+              border: `2px solid ${filtroRutina === "AL_DIA" ? "#16A34A" : "#E2E8F0"
+                }`,
+              borderRadius: 12,
+              padding: "14px 16px",
+              cursor: "pointer",
+              display: "flex",
+              flexDirection: "column",
+              gap: 6,
+              transition: "all 0.18s ease",
+              boxShadow:
+                filtroRutina === "AL_DIA"
+                  ? "0 4px 14px rgba(22, 163, 74, 0.16)"
+                  : "0 1px 3px rgba(0, 0, 0, 0.02)",
+            }}
+            onMouseEnter={(e) => {
+              if (filtroRutina !== "AL_DIA") {
+                e.currentTarget.style.borderColor = "#86EFAC";
+                e.currentTarget.style.transform = "translateY(-1px)";
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (filtroRutina !== "AL_DIA") {
+                e.currentTarget.style.borderColor = "#E2E8F0";
+                e.currentTarget.style.transform = "none";
+              }
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+              }}
+            >
+              <span
+                style={{
+                  fontSize: 12.5,
+                  fontWeight: 800,
+                  color: filtroRutina === "AL_DIA" ? "#15803D" : "#1E293B",
+                  textTransform: "uppercase",
+                  letterSpacing: 0.6,
+                }}
+              >
+                AL DÍA
+              </span>
+              <span
+                className="material-icons"
+                style={{ fontSize: 22, color: "#16A34A" }}
+              >
+                check_circle
+              </span>
+            </div>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                marginTop: 2,
+              }}
+            >
+              <span
+                style={{
+                  fontSize: 12.5,
+                  color: "#475569",
+                  fontWeight: 650,
+                }}
+              >
+                &gt; 30 días
+              </span>
+              {filtroRutina === "AL_DIA" && (
+                <span
                   style={{
-                    background:
-                      filtroEstado === "APROBADAS" ? "#ECFDF5" : "#FFFFFF",
-                    border: `1.5px solid ${filtroEstado === "APROBADAS" ? "#10B981" : "#E2E8F0"}`,
+                    fontSize: 10,
+                    fontWeight: 750,
+                    color: "#16A34A",
+                    background: "#DCFCE7",
+                    padding: "1px 6px",
                     borderRadius: 10,
-                    padding: "10px 12px",
-                    cursor: "pointer",
-                    transition: "all 0.2s ease",
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: 4,
-                    boxShadow:
-                      filtroEstado === "APROBADAS"
-                        ? "0 3px 10px rgba(16, 185, 129, 0.15)"
-                        : "none",
                   }}
                 >
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                    }}
-                  >
-                    <span
-                      style={{
-                        fontSize: 10.5,
-                        fontWeight: 750,
-                        color: "#64748B",
-                        textTransform: "uppercase",
-                      }}
-                    >
-                      Aprobadas
-                    </span>
-                    <span
-                      className="material-icons"
-                      style={{ fontSize: 16, color: "#059669" }}
-                    >
-                      verified
-                    </span>
-                  </div>
-                  <div
-                    style={{ fontSize: 20, fontWeight: 900, color: "#059669" }}
-                  >
-                    {countAprobadas}
-                  </div>
-                  <div style={{ fontSize: 10, color: "#94A3B8" }}>
-                    Favorables
-                  </div>
-                </div>
-              </div>
-            )}
+                  Activo
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* 6. SIN FECHA - Sin fecha habilitación */}
+          <div
+            onClick={() =>
+              setFiltroRutina((prev) => (prev === "SIN_FECHA" ? "TODOS" : "SIN_FECHA"))
+            }
+            style={{
+              background: filtroRutina === "SIN_FECHA" ? "#F8FAFC" : "#FFFFFF",
+              border: `2px solid ${filtroRutina === "SIN_FECHA" ? "#64748B" : "#E2E8F0"
+                }`,
+              borderRadius: 12,
+              padding: "14px 16px",
+              cursor: "pointer",
+              display: "flex",
+              flexDirection: "column",
+              gap: 6,
+              transition: "all 0.18s ease",
+              boxShadow:
+                filtroRutina === "SIN_FECHA"
+                  ? "0 4px 14px rgba(100, 116, 139, 0.18)"
+                  : "0 1px 3px rgba(0, 0, 0, 0.02)",
+            }}
+            onMouseEnter={(e) => {
+              if (filtroRutina !== "SIN_FECHA") {
+                e.currentTarget.style.borderColor = "#94A3B8";
+                e.currentTarget.style.transform = "translateY(-1px)";
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (filtroRutina !== "SIN_FECHA") {
+                e.currentTarget.style.borderColor = "#E2E8F0";
+                e.currentTarget.style.transform = "none";
+              }
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+              }}
+            >
+              <span
+                style={{
+                  fontSize: 12.5,
+                  fontWeight: 800,
+                  color: filtroRutina === "SIN_FECHA" ? "#334155" : "#1E293B",
+                  textTransform: "uppercase",
+                  letterSpacing: 0.6,
+                }}
+              >
+                SIN FECHA
+              </span>
+              <span
+                className="material-icons"
+                style={{ fontSize: 22, color: "#64748B" }}
+              >
+                event_busy
+              </span>
+            </div>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                marginTop: 2,
+              }}
+            >
+              <span
+                style={{
+                  fontSize: 12,
+                  color: "#475569",
+                  fontWeight: 650,
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                }}
+                title="Sin fecha habilitación"
+              >
+                Sin fecha habilitación
+              </span>
+              {filtroRutina === "SIN_FECHA" && (
+                <span
+                  style={{
+                    fontSize: 10,
+                    fontWeight: 750,
+                    color: "#475569",
+                    background: "#E2E8F0",
+                    padding: "1px 6px",
+                    borderRadius: 10,
+                    flexShrink: 0,
+                  }}
+                >
+                  Activo
+                </span>
+              )}
+            </div>
           </div>
         </div>
 
-        {/* Barra de Filtros Dividida */}
+        {/* Filtros de búsqueda avanzados */}
         <div
           style={{
             background: "#FFFFFF",
             border: "1px solid #E2E8F0",
             borderRadius: 14,
-            padding: "16px",
-            boxShadow: "0 1px 3px rgba(0, 0, 0, 0.03)",
+            padding: "18px 24px",
+            boxShadow: "0 1px 3px rgba(0, 0, 0, 0.02)",
             display: "flex",
             flexDirection: "column",
-            gap: 12,
+            gap: 16,
           }}
         >
           <div
+            onClick={() => setIsFiltrosOpen(!isFiltrosOpen)}
             style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-              gap: 12,
+              display: "flex",
+              justifyContent: "space-between",
               alignItems: "center",
+              cursor: "pointer",
+              userSelect: "none",
             }}
           >
-            {/* 1. Nombre Establecimiento */}
-            <div style={{ position: "relative" }}>
-              <span
-                className="material-icons"
-                style={{
-                  position: "absolute",
-                  left: 12,
-                  top: 10,
-                  color: filtroNombre ? "#0284c7" : "#94A3B8",
-                  fontSize: 18,
-                }}
-              >
-                business
-              </span>
-              <input
-                type="text"
-                placeholder="Establecimiento..."
-                value={filtroNombre}
-                onChange={(e) => setFiltroNombre(e.target.value)}
-                style={{
-                  width: "100%",
-                  padding: "9px 34px 9px 38px",
-                  borderRadius: 8,
-                  border: `1.5px solid ${filtroNombre ? "#0284c7" : "#CBD5E1"}`,
-                  fontSize: 13,
-                  outline: "none",
-                  background: filtroNombre ? "#F0F9FF" : "#F8FAFC",
-                  transition: "all 0.2s ease",
-                  boxSizing: "border-box",
-                }}
-              />
-              {filtroNombre && (
-                <button
-                  onClick={() => setFiltroNombre("")}
-                  style={{
-                    position: "absolute",
-                    right: 8,
-                    top: 8,
-                    background: "transparent",
-                    border: "none",
-                    color: "#94A3B8",
-                    cursor: "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    padding: 2,
-                  }}
-                  title="Borrar"
-                >
-                  <span className="material-icons" style={{ fontSize: 18 }}>
-                    cancel
-                  </span>
-                </button>
-              )}
-            </div>
-
-            {/* 2. CUIT */}
-            <div style={{ position: "relative" }}>
-              <span
-                className="material-icons"
-                style={{
-                  position: "absolute",
-                  left: 12,
-                  top: 10,
-                  color: filtroCuit ? "#0284c7" : "#94A3B8",
-                  fontSize: 18,
-                }}
-              >
-                badge
-              </span>
-              <input
-                type="text"
-                placeholder="CUIT..."
-                value={filtroCuit}
-                onChange={(e) => setFiltroCuit(e.target.value)}
-                style={{
-                  width: "100%",
-                  padding: "9px 34px 9px 38px",
-                  borderRadius: 8,
-                  border: `1.5px solid ${filtroCuit ? "#0284c7" : "#CBD5E1"}`,
-                  fontSize: 13,
-                  outline: "none",
-                  background: filtroCuit ? "#F0F9FF" : "#F8FAFC",
-                  transition: "all 0.2s ease",
-                  boxSizing: "border-box",
-                }}
-              />
-              {filtroCuit && (
-                <button
-                  onClick={() => setFiltroCuit("")}
-                  style={{
-                    position: "absolute",
-                    right: 8,
-                    top: 8,
-                    background: "transparent",
-                    border: "none",
-                    color: "#94A3B8",
-                    cursor: "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    padding: 2,
-                  }}
-                  title="Borrar"
-                >
-                  <span className="material-icons" style={{ fontSize: 18 }}>
-                    cancel
-                  </span>
-                </button>
-              )}
-            </div>
-
-            {/* 3. Nro. Expediente / Trámite */}
-            <div style={{ position: "relative" }}>
-              <span
-                className="material-icons"
-                style={{
-                  position: "absolute",
-                  left: 12,
-                  top: 10,
-                  color: filtroExpediente ? "#0284c7" : "#94A3B8",
-                  fontSize: 18,
-                }}
-              >
-                description
-              </span>
-              <input
-                type="text"
-                placeholder="N° Expediente o Trámite..."
-                value={filtroExpediente}
-                onChange={(e) => setFiltroExpediente(e.target.value)}
-                style={{
-                  width: "100%",
-                  padding: "9px 34px 9px 38px",
-                  borderRadius: 8,
-                  border: `1.5px solid ${filtroExpediente ? "#0284c7" : "#CBD5E1"}`,
-                  fontSize: 13,
-                  outline: "none",
-                  background: filtroExpediente ? "#F0F9FF" : "#F8FAFC",
-                  transition: "all 0.2s ease",
-                  boxSizing: "border-box",
-                }}
-              />
-              {filtroExpediente && (
-                <button
-                  onClick={() => setFiltroExpediente("")}
-                  style={{
-                    position: "absolute",
-                    right: 8,
-                    top: 8,
-                    background: "transparent",
-                    border: "none",
-                    color: "#94A3B8",
-                    cursor: "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    padding: 2,
-                  }}
-                  title="Borrar"
-                >
-                  <span className="material-icons" style={{ fontSize: 18 }}>
-                    cancel
-                  </span>
-                </button>
-              )}
-            </div>
-
-            {/* 4. Select Departamento */}
-            <div style={{ position: "relative" }}>
-              <span
-                className="material-icons"
-                style={{
-                  position: "absolute",
-                  left: 12,
-                  top: 10,
-                  color: filtroDepartamento ? "#0284c7" : "#94A3B8",
-                  fontSize: 18,
-                  pointerEvents: "none",
-                }}
-              >
-                place
-              </span>
-              <select
-                value={filtroDepartamento}
-                onChange={(e) => {
-                  setFiltroDepartamento(e.target.value);
-                  setFiltroLocalidad("");
-                }}
-                style={{
-                  width: "100%",
-                  padding: "9px 30px 9px 38px",
-                  borderRadius: 8,
-                  border: `1.5px solid ${filtroDepartamento ? "#0284c7" : "#CBD5E1"}`,
-                  fontSize: 13,
-                  fontWeight: filtroDepartamento ? 650 : 400,
-                  outline: "none",
-                  background: filtroDepartamento ? "#F0F9FF" : "#F8FAFC",
-                  color: filtroDepartamento ? "#0369A1" : "#0F172A",
-                  cursor: "pointer",
-                  boxSizing: "border-box",
-                }}
-              >
-                <option value="">Todos los Departamentos</option>
-                {departamentosDisponibles.map((dep) => (
-                  <option key={dep} value={dep}>
-                    {dep}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* 5. Select Localidad */}
-            <div style={{ position: "relative" }}>
-              <span
-                className="material-icons"
-                style={{
-                  position: "absolute",
-                  left: 12,
-                  top: 10,
-                  color: filtroLocalidad ? "#0284c7" : "#94A3B8",
-                  fontSize: 18,
-                  pointerEvents: "none",
-                }}
-              >
-                location_on
-              </span>
-              <select
-                value={filtroLocalidad}
-                onChange={(e) => setFiltroLocalidad(e.target.value)}
-                style={{
-                  width: "100%",
-                  padding: "9px 30px 9px 38px",
-                  borderRadius: 8,
-                  border: `1.5px solid ${filtroLocalidad ? "#0284c7" : "#CBD5E1"}`,
-                  fontSize: 13,
-                  fontWeight: filtroLocalidad ? 650 : 400,
-                  outline: "none",
-                  background: filtroLocalidad ? "#F0F9FF" : "#F8FAFC",
-                  color: filtroLocalidad ? "#0369A1" : "#0F172A",
-                  cursor: "pointer",
-                  boxSizing: "border-box",
-                }}
-              >
-                <option value="">Todas las Localidades</option>
-                {localidadesDisponibles.map((loc) => (
-                  <option key={loc} value={loc}>
-                    {loc}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-          {/* Autocomplete de Inspector */}
-          <div ref={autocompleteRef} style={{ position: "relative" }}>
-            <div style={{ position: "relative" }}>
-              <span
-                className="material-icons"
-                style={{
-                  position: "absolute",
-                  left: 12,
-                  top: 10,
-                  color: inspectorFiltro ? "#0055A5" : "#94A3B8",
-                  fontSize: 18,
-                }}
-              >
-                person_search
-              </span>
-              <input
-                type="text"
-                placeholder="Filtrar por inspector..."
-                value={
-                  isInspectorMenuOpen
-                    ? inspectorSearchText
-                    : inspectorFiltro
-                      ? inspectorFiltro
-                      : ""
-                }
-                onChange={(e) => {
-                  setInspectorSearchText(e.target.value);
-                  if (!isInspectorMenuOpen) setIsInspectorMenuOpen(true);
-                }}
-                onFocus={() => {
-                  setIsInspectorMenuOpen(true);
-                  setInspectorSearchText("");
-                }}
-                style={{
-                  width: "100%",
-                  padding: "9px 34px 9px 38px",
-                  borderRadius: 8,
-                  border: `1.5px solid ${inspectorFiltro ? "#0055A5" : "#CBD5E1"}`,
-                  fontSize: 13,
-                  fontWeight: inspectorFiltro ? 650 : 400,
-                  outline: "none",
-                  background: inspectorFiltro ? "#F0F9FF" : "#F8FAFC",
-                  color: inspectorFiltro ? "#0055A5" : "#0F172A",
-                  transition: "all 0.2s ease",
-                  boxSizing: "border-box",
-                  cursor: "pointer",
-                }}
-              />
-              {inspectorFiltro ? (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setInspectorFiltro("");
-                    setInspectorSearchText("");
-                  }}
-                  style={{
-                    position: "absolute",
-                    right: 8,
-                    top: 8,
-                    background: "transparent",
-                    border: "none",
-                    color: "#64748B",
-                    cursor: "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    padding: 2,
-                  }}
-                  title="Ver todos los inspectores"
-                >
-                  <span className="material-icons" style={{ fontSize: 18 }}>
-                    cancel
-                  </span>
-                </button>
-              ) : (
-                <span
-                  className="material-icons"
-                  style={{
-                    position: "absolute",
-                    right: 10,
-                    top: 10,
-                    color: "#94A3B8",
-                    fontSize: 18,
-                    pointerEvents: "none",
-                    transform: isInspectorMenuOpen ? "rotate(180deg)" : "none",
-                    transition: "transform 0.2s ease",
-                  }}
-                >
-                  expand_more
-                </span>
-              )}
-            </div>
-
-            {/* Dropdown Menu Autocomplete */}
-            {isInspectorMenuOpen && (
-              <div
-                style={{
-                  position: "absolute",
-                  top: "calc(100% + 6px)",
-                  left: 0,
-                  right: 0,
-                  background: "#FFFFFF",
-                  border: "1px solid #E2E8F0",
-                  borderRadius: 12,
-                  boxShadow:
-                    "0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05)",
-                  zIndex: 50,
-                  maxHeight: 280,
-                  overflowY: "auto",
-                  padding: "6px",
-                }}
-              >
-                {/* Opción 0: Todos los Inspectores */}
-                <div
-                  onClick={() => {
-                    setInspectorFiltro("");
-                    setInspectorSearchText("");
-                    setIsInspectorMenuOpen(false);
-                  }}
-                  style={{
-                    padding: "8px 12px",
-                    borderRadius: 8,
-                    cursor: "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    background:
-                      inspectorFiltro === "" ? "#F1F5F9" : "transparent",
-                    transition: "background 0.15s ease",
-                  }}
-                  onMouseEnter={(e) =>
-                    (e.currentTarget.style.background = "#F8FAFC")
-                  }
-                  onMouseLeave={(e) =>
-                    (e.currentTarget.style.background =
-                      inspectorFiltro === "" ? "#F1F5F9" : "transparent")
-                  }
-                >
-                  <div
-                    style={{ display: "flex", alignItems: "center", gap: 8 }}
-                  >
-                    <span
-                      className="material-icons"
-                      style={{ fontSize: 18, color: "#64748B" }}
-                    >
-                      groups
-                    </span>
-                    <span
-                      style={{
-                        fontSize: 13,
-                        fontWeight: inspectorFiltro === "" ? 700 : 500,
-                        color: "#1E293B",
-                      }}
-                    >
-                      Todos los Inspectores
-                    </span>
-                  </div>
-                  <span
-                    style={{
-                      background: "#E2E8F0",
-                      color: "#475569",
-                      fontSize: 11,
-                      fontWeight: 750,
-                      padding: "2px 7px",
-                      borderRadius: 10,
-                    }}
-                  >
-                    {inspeccionesBase.length}
-                  </span>
-                </div>
-
-                {/* Opción 1: Usuario Logueado (Primera opción destacada) */}
-                {miNombreInspector &&
-                  (!inspectorSearchText ||
-                    miNombreInspector
-                      .toLowerCase()
-                      .includes(inspectorSearchText.toLowerCase())) && (
-                    <div
-                      onClick={() => {
-                        setInspectorFiltro(miNombreInspector);
-                        setInspectorSearchText(miNombreInspector);
-                        setIsInspectorMenuOpen(false);
-                      }}
-                      style={{
-                        padding: "8px 12px",
-                        borderRadius: 8,
-                        cursor: "pointer",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        background:
-                          inspectorFiltro === miNombreInspector
-                            ? "#E0F2FE"
-                            : "#F0F9FF",
-                        border: "1px solid #BAE6FD",
-                        margin: "3px 0",
-                        transition: "all 0.15s ease",
-                      }}
-                      onMouseEnter={(e) =>
-                        (e.currentTarget.style.background = "#E0F2FE")
-                      }
-                      onMouseLeave={(e) =>
-                        (e.currentTarget.style.background =
-                          inspectorFiltro === miNombreInspector
-                            ? "#E0F2FE"
-                            : "#F0F9FF")
-                      }
-                    >
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 8,
-                        }}
-                      >
-                        <div
-                          style={{
-                            width: 26,
-                            height: 26,
-                            borderRadius: "50%",
-                            background: "#0284C7",
-                            color: "white",
-                            fontSize: 11,
-                            fontWeight: 800,
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                          }}
-                        >
-                          {user?.avatar ||
-                            (user
-                              ? `${user.nombre?.[0] || ""}${user.apellido?.[0] || ""}`
-                              : "YO")}
-                        </div>
-                        <div>
-                          <div
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: 6,
-                            }}
-                          >
-                            <span
-                              style={{
-                                fontSize: 13,
-                                fontWeight: 750,
-                                color: "#0369A1",
-                              }}
-                            >
-                              {miNombreInspector}
-                            </span>
-                            <span
-                              style={{
-                                background: "#0284C7",
-                                color: "#FFFFFF",
-                                fontSize: 9.5,
-                                fontWeight: 800,
-                                padding: "1px 6px",
-                                borderRadius: 6,
-                                textTransform: "uppercase",
-                                letterSpacing: 0.3,
-                              }}
-                            >
-                              Mi usuario
-                            </span>
-                          </div>
-                          <div style={{ fontSize: 11, color: "#0284C7" }}>
-                            Tus inspecciones asignadas
-                          </div>
-                        </div>
-                      </div>
-                      <span
-                        style={{
-                          background: "#BAE6FD",
-                          color: "#0369A1",
-                          fontSize: 11,
-                          fontWeight: 800,
-                          padding: "2px 7px",
-                          borderRadius: 10,
-                        }}
-                      >
-                        {getInspectorCount(miNombreInspector)}
-                      </span>
-                    </div>
-                  )}
-
-                {/* Línea divisoria que separa al usuario logueado del resto */}
-                <div
-                  style={{
-                    height: 1,
-                    background: "#E2E8F0",
-                    margin: "6px 4px 4px 4px",
-                  }}
-                />
-
-                {/* Resto de inspectores */}
-                {restoInspectores
-                  .filter(
-                    (n) =>
-                      !inspectorSearchText ||
-                      n
-                        .toLowerCase()
-                        .includes(inspectorSearchText.toLowerCase()),
-                  )
-                  .map((nombre) => {
-                    const count = getInspectorCount(nombre);
-                    const isSelected = inspectorFiltro === nombre;
-                    return (
-                      <div
-                        key={nombre}
-                        onClick={() => {
-                          setInspectorFiltro(nombre);
-                          setInspectorSearchText(nombre);
-                          setIsInspectorMenuOpen(false);
-                        }}
-                        style={{
-                          padding: "8px 12px",
-                          borderRadius: 8,
-                          cursor: "pointer",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "space-between",
-                          background: isSelected ? "#F1F5F9" : "transparent",
-                          transition: "background 0.15s ease",
-                        }}
-                        onMouseEnter={(e) =>
-                          (e.currentTarget.style.background = "#F8FAFC")
-                        }
-                        onMouseLeave={(e) =>
-                          (e.currentTarget.style.background = isSelected
-                            ? "#F1F5F9"
-                            : "transparent")
-                        }
-                      >
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 8,
-                          }}
-                        >
-                          <div
-                            style={{
-                              width: 24,
-                              height: 24,
-                              borderRadius: "50%",
-                              background: "#F1F5F9",
-                              color: "#64748B",
-                              fontSize: 10.5,
-                              fontWeight: 700,
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                            }}
-                          >
-                            {nombre.slice(0, 2).toUpperCase()}
-                          </div>
-                          <span
-                            style={{
-                              fontSize: 13,
-                              fontWeight: isSelected ? 700 : 500,
-                              color: "#334155",
-                            }}
-                          >
-                            {nombre}
-                          </span>
-                        </div>
-                        <span
-                          style={{
-                            background: "#F1F5F9",
-                            color: "#64748B",
-                            fontSize: 11,
-                            fontWeight: 700,
-                            padding: "2px 7px",
-                            borderRadius: 10,
-                          }}
-                        >
-                          {count}
-                        </span>
-                      </div>
-                    );
-                  })}
-
-                {/* Mensaje de no coincidencias */}
-                {inspectorSearchText &&
-                  !miNombreInspector
-                    .toLowerCase()
-                    .includes(inspectorSearchText.toLowerCase()) &&
-                  restoInspectores.filter((n) =>
-                    n.toLowerCase().includes(inspectorSearchText.toLowerCase()),
-                  ).length === 0 && (
-                    <div
-                      style={{
-                        padding: "14px",
-                        textAlign: "center",
-                        color: "#94A3B8",
-                        fontSize: 12.5,
-                      }}
-                    >
-                      No se encontraron inspectores con "{inspectorSearchText}"
-                    </div>
-                  )}
-              </div>
-            )}
+            <span
+              style={{
+                fontSize: 15,
+                fontWeight: 750,
+                color: "#0284C7",
+              }}
+            >
+              Filtros de búsqueda avanzados
+            </span>
+            <span
+              className="material-icons"
+              style={{ fontSize: 22, color: "#64748B" }}
+            >
+              {isFiltrosOpen ? "keyboard_arrow_up" : "keyboard_arrow_down"}
+            </span>
           </div>
-        </div>
 
-        {/* Botón de limpiar filtros activos si hay alguno */}
-          {hasInputFilters && (
+          {isFiltrosOpen && (
             <div
               style={{
                 display: "flex",
-                justifyContent: "flex-end",
-                paddingTop: 2,
+                flexDirection: "column",
+                gap: 16,
+                paddingTop: 4,
               }}
             >
-              <button
-                onClick={() => {
-                  setFiltroNombre("");
-                  setFiltroCuit("");
-                  setFiltroExpediente("");
-                  setFiltroDepartamento("");
-                  setFiltroLocalidad("");
-                  setInspectorFiltro("");
-                  setInspectorSearchText("");
-                }}
+              {/* Fila 1: 4 columnas */}
+              <div
                 style={{
-                  background: "transparent",
-                  border: "none",
-                  color: "#0284c7",
-                  fontSize: 12,
-                  fontWeight: 700,
-                  cursor: "pointer",
-                  display: "inline-flex",
+                  display: "grid",
+                  gridTemplateColumns: "repeat(4, 1fr)",
+                  gap: 24,
                   alignItems: "center",
-                  gap: 4,
-                  padding: "2px 6px",
-                  textDecoration: "underline",
                 }}
               >
-                <span className="material-icons" style={{ fontSize: 15 }}>
-                  restart_alt
-                </span>
-                Limpiar búsqueda y filtros
-              </button>
+                {/* 1. Nombre de establecimiento */}
+                <div>
+                  <input
+                    type="text"
+                    placeholder="Nombre de establecimiento"
+                    value={filtroNombre}
+                    onChange={(e) => setFiltroNombre(e.target.value)}
+                    style={{
+                      width: "100%",
+                      background: "transparent",
+                      border: "none",
+                      borderBottom: `1.5px solid ${filtroNombre ? "#0284C7" : "#CBD5E1"
+                        }`,
+                      padding: "8px 2px",
+                      fontSize: 13.5,
+                      color: "#0F172A",
+                      outline: "none",
+                      boxSizing: "border-box",
+                    }}
+                  />
+                </div>
+
+                {/* 2. N° Expediente */}
+                <div>
+                  <input
+                    type="text"
+                    placeholder="N° Expediente"
+                    value={filtroExpediente}
+                    onChange={(e) => setFiltroExpediente(e.target.value)}
+                    style={{
+                      width: "100%",
+                      background: "transparent",
+                      border: "none",
+                      borderBottom: `1.5px solid ${filtroExpediente ? "#0284C7" : "#CBD5E1"
+                        }`,
+                      padding: "8px 2px",
+                      fontSize: 13.5,
+                      color: "#0F172A",
+                      outline: "none",
+                      boxSizing: "border-box",
+                    }}
+                  />
+                </div>
+
+                {/* 3. CUIT */}
+                <div>
+                  <input
+                    type="text"
+                    placeholder="CUIT"
+                    value={filtroCuit}
+                    onChange={(e) => setFiltroCuit(e.target.value)}
+                    style={{
+                      width: "100%",
+                      background: "transparent",
+                      border: "none",
+                      borderBottom: `1.5px solid ${filtroCuit ? "#0284C7" : "#CBD5E1"
+                        }`,
+                      padding: "8px 2px",
+                      fontSize: 13.5,
+                      color: "#0F172A",
+                      outline: "none",
+                      boxSizing: "border-box",
+                    }}
+                  />
+                </div>
+
+                {/* 4. Departamento */}
+                <div style={{ position: "relative" }}>
+                  <select
+                    value={filtroDepartamento}
+                    onChange={(e) => {
+                      setFiltroDepartamento(e.target.value);
+                      setFiltroLocalidad("");
+                    }}
+                    style={{
+                      width: "100%",
+                      background: "transparent",
+                      border: "none",
+                      borderBottom: `1.5px solid ${filtroDepartamento ? "#0284C7" : "#CBD5E1"
+                        }`,
+                      padding: "8px 26px 8px 2px",
+                      fontSize: 13.5,
+                      color: filtroDepartamento ? "#0F172A" : "#64748B",
+                      outline: "none",
+                      cursor: "pointer",
+                      appearance: "none",
+                      boxSizing: "border-box",
+                    }}
+                  >
+                    <option value="">Departamento</option>
+                    {departamentosDisponibles.map((dep) => (
+                      <option key={dep} value={dep}>
+                        {dep}
+                      </option>
+                    ))}
+                  </select>
+                  <span
+                    className="material-icons"
+                    style={{
+                      position: "absolute",
+                      right: 2,
+                      top: 8,
+                      fontSize: 20,
+                      color: "#64748B",
+                      pointerEvents: "none",
+                    }}
+                  >
+                    expand_more
+                  </span>
+                </div>
+              </div>
+
+              {/* Fila 2: 4 columnas (Localidad, Inspector Asignado) */}
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(4, 1fr)",
+                  gap: 24,
+                  alignItems: "center",
+                }}
+              >
+                {/* 1. Localidad */}
+                <div style={{ position: "relative" }}>
+                  <select
+                    value={filtroLocalidad}
+                    onChange={(e) => setFiltroLocalidad(e.target.value)}
+                    style={{
+                      width: "100%",
+                      background: "transparent",
+                      border: "none",
+                      borderBottom: `1.5px solid ${filtroLocalidad ? "#0284C7" : "#CBD5E1"
+                        }`,
+                      padding: "8px 26px 8px 2px",
+                      fontSize: 13.5,
+                      color: filtroLocalidad ? "#0F172A" : "#64748B",
+                      outline: "none",
+                      cursor: "pointer",
+                      appearance: "none",
+                      boxSizing: "border-box",
+                    }}
+                  >
+                    <option value="">Localidad</option>
+                    {localidadesDisponibles.map((loc) => (
+                      <option key={loc} value={loc}>
+                        {loc}
+                      </option>
+                    ))}
+                  </select>
+                  <span
+                    className="material-icons"
+                    style={{
+                      position: "absolute",
+                      right: 2,
+                      top: 8,
+                      fontSize: 20,
+                      color: "#64748B",
+                      pointerEvents: "none",
+                    }}
+                  >
+                    expand_more
+                  </span>
+                </div>
+
+                {/* 2. Inspector Asignado (Solo Coordinador) */}
+                {isCoordinador && (
+                  <div style={{ position: "relative" }}>
+                    <select
+                      value={inspectorFiltro}
+                      onChange={(e) => setInspectorFiltro(e.target.value)}
+                      style={{
+                        width: "100%",
+                        background: "transparent",
+                        border: "none",
+                        borderBottom: `1.5px solid ${inspectorFiltro ? "#0284C7" : "#CBD5E1"
+                          }`,
+                        padding: "8px 26px 8px 2px",
+                        fontSize: 13.5,
+                        color: inspectorFiltro ? "#0F172A" : "#64748B",
+                        outline: "none",
+                        cursor: "pointer",
+                        appearance: "none",
+                        boxSizing: "border-box",
+                      }}
+                    >
+                      <option value="">Inspector Asignado</option>
+                      {listaInspectores.map((insp) => (
+                        <option key={insp} value={insp}>
+                          {insp}
+                        </option>
+                      ))}
+                    </select>
+                    <span
+                      className="material-icons"
+                      style={{
+                        position: "absolute",
+                        right: 2,
+                        top: 8,
+                        fontSize: 20,
+                        color: "#64748B",
+                        pointerEvents: "none",
+                      }}
+                    >
+                      expand_more
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {/* Botones de acción */}
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  gap: 12,
+                  marginTop: 6,
+                  flexWrap: "wrap",
+                }}
+              >
+                {/* Botón Solo Geriátricos */}
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSoloGeriatricos((prev) => !prev);
+                      setPaginaSeleccionada(1);
+                    }}
+                    style={{
+                      background: soloGeriatricos ? "#EFF6FF" : "#FFFFFF",
+                      border: `1.5px solid ${soloGeriatricos ? "#0284C7" : "#CBD5E1"}`,
+                      borderRadius: 8,
+                      padding: "7px 16px",
+                      fontSize: 12.5,
+                      fontWeight: 700,
+                      color: soloGeriatricos ? "#0369A1" : "#334155",
+                      cursor: "pointer",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 7,
+                      boxShadow: soloGeriatricos
+                        ? "0 2px 8px rgba(2, 132, 199, 0.22)"
+                        : "0 1px 2px rgba(0, 0, 0, 0.04)",
+                      transition: "all 0.15s ease",
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!soloGeriatricos) e.currentTarget.style.background = "#F8FAFC";
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!soloGeriatricos) e.currentTarget.style.background = "#FFFFFF";
+                    }}
+                  >
+                    <span
+                      className="material-icons"
+                      style={{
+                        fontSize: 18,
+                        color: soloGeriatricos ? "#0284C7" : "#64748B",
+                      }}
+                    >
+                      {soloGeriatricos ? "check_circle" : "elderly"}
+                    </span>
+                    Solo geriátricos
+                    {soloGeriatricos && (
+                      <span
+                        style={{
+                          background: "#0284C7",
+                          color: "#FFFFFF",
+                          fontSize: 10,
+                          fontWeight: 800,
+                          padding: "1px 7px",
+                          borderRadius: 10,
+                          marginLeft: 2,
+                        }}
+                      >
+                        Activo
+                      </span>
+                    )}
+                  </button>
+                </div>
+
+                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  <button
+                    type="button"
+                    onClick={handleLimpiarFiltros}
+                    style={{
+                      background: "#FFFFFF",
+                      border: "1px solid #475569",
+                      borderRadius: 8,
+                      padding: "7px 16px",
+                      fontSize: 12.5,
+                      fontWeight: 650,
+                      color: "#1E293B",
+                      cursor: "pointer",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 6,
+                      transition: "all 0.15s ease",
+                    }}
+                    onMouseEnter={(e) =>
+                      (e.currentTarget.style.background = "#F1F5F9")
+                    }
+                    onMouseLeave={(e) =>
+                      (e.currentTarget.style.background = "#FFFFFF")
+                    }
+                  >
+                    <span
+                      className="material-icons"
+                      style={{ fontSize: 16, color: "#1E293B" }}
+                    >
+                      restart_alt
+                    </span>
+                    Limpiar Filtros
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setPaginaSeleccionada(1)}
+                    style={{
+                      background: "#0284C7",
+                      border: "none",
+                      borderRadius: 8,
+                      padding: "7px 20px",
+                      fontSize: 12.5,
+                      fontWeight: 700,
+                      color: "#FFFFFF",
+                      cursor: "pointer",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 6,
+                      boxShadow: "0 2px 6px rgba(2, 132, 199, 0.25)",
+                      transition: "all 0.15s ease",
+                    }}
+                    onMouseEnter={(e) =>
+                      (e.currentTarget.style.background = "#0369A1")
+                    }
+                    onMouseLeave={(e) =>
+                      (e.currentTarget.style.background = "#0284C7")
+                    }
+                  >
+                    <span
+                      className="material-icons"
+                      style={{ fontSize: 16, color: "#FFFFFF" }}
+                    >
+                      search
+                    </span>
+                    Buscar
+                  </button>
+                </div>
+              </div>
             </div>
           )}
         </div>
 
-        {/* Tabla Unificada de Inspecciones */}
+        {/* Tabla de Establecimientos Habilitados */}
         <div
           style={{
             background: "#FFFFFF",
             border: "1px solid #E2E8F0",
             borderRadius: 14,
             overflow: "hidden",
-            boxShadow: "0 1px 3px rgba(0, 0, 0, 0.02)",
+            boxShadow: "0 1px 4px rgba(0, 0, 0, 0.03)",
           }}
         >
+          {/* Cabecera superior de la grilla */}
+          <div
+            style={{
+              padding: "16px 22px",
+              borderBottom: "1px solid #E2E8F0",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              background: "#FAFAFA",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <span
+                className="material-icons"
+                style={{ fontSize: 22, color: "#004B87" }}
+              >
+                apartment
+              </span>
+              <div>
+
+                <div
+                  style={{
+                    fontSize: 12,
+                    color: "#64748B",
+                    fontWeight: 500,
+                    marginTop: 1,
+                  }}
+                >
+                  Inspección Periódica por Rutina • Total:{" "}
+                  <strong>{filtradas.length}</strong> establecimientos
+                  {soloGeriatricos && (
+                    <span
+                      style={{
+                        marginLeft: 8,
+                        background: "#EFF6FF",
+                        border: "1px solid #BFDBFE",
+                        color: "#1D4ED8",
+                        fontSize: 11,
+                        fontWeight: 750,
+                        padding: "2px 8px",
+                        borderRadius: 10,
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 3.5,
+                      }}
+                    >
+                      <span className="material-icons" style={{ fontSize: 13, color: "#2563EB" }}>
+                        elderly
+                      </span>
+                      Solo geriátricos
+                    </span>
+                  )}
+                  {filtroRutina !== "TODOS" && (
+                    <span
+                      style={{
+                        marginLeft: 8,
+                        background: "#E0F2FE",
+                        color: "#0369A1",
+                        fontSize: 11,
+                        fontWeight: 750,
+                        padding: "2px 8px",
+                        borderRadius: 10,
+                      }}
+                    >
+                      Filtro activo:{" "}
+                      {filtroRutina === "ORDENES"
+                        ? "ORDENES (En proceso)"
+                        : filtroRutina === "VENCIDOS"
+                          ? "VENCIDOS (Asignados)"
+                          : filtroRutina === "PROXIMOS"
+                            ? "PRÓXIMOS (< 15 días)"
+                            : filtroRutina === "EN_PLAZO"
+                              ? "EN PLAZO (< 30 días)"
+                              : filtroRutina === "AL_DIA"
+                                ? "AL DÍA (> 30 días)"
+                                : "Sin fecha habilitación"}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <button
+                type="button"
+                onClick={() => {
+                  setSoloGeriatricos(!soloGeriatricos);
+                  setPaginaSeleccionada(1);
+                }}
+                style={{
+                  background: soloGeriatricos ? "#EFF6FF" : "#FFFFFF",
+                  border: `1.5px solid ${soloGeriatricos ? "#0284C7" : "#CBD5E1"}`,
+                  borderRadius: 8,
+                  padding: "6px 13px",
+                  fontSize: 12,
+                  fontWeight: 700,
+                  color: soloGeriatricos ? "#0369A1" : "#475569",
+                  cursor: "pointer",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
+                  transition: "all 0.15s ease",
+                }}
+                title="Filtrar solo establecimientos geriátricos"
+              >
+                <span
+                  className="material-icons"
+                  style={{
+                    fontSize: 16,
+                    color: soloGeriatricos ? "#0284C7" : "#64748B",
+                  }}
+                >
+                  {soloGeriatricos ? "check_circle" : "elderly"}
+                </span>
+                Solo geriátricos
+                {soloGeriatricos && (
+                  <span
+                    style={{
+                      background: "#0284C7",
+                      color: "#FFFFFF",
+                      fontSize: 10,
+                      fontWeight: 800,
+                      padding: "1px 6px",
+                      borderRadius: 10,
+                    }}
+                  >
+                    Activo
+                  </span>
+                )}
+              </button>
+
+              {filtroRutina !== "TODOS" && (
+                <button
+                  type="button"
+                  onClick={() => setFiltroRutina("TODOS")}
+                  style={{
+                    background: "#F1F5F9",
+                    border: "1px solid #CBD5E1",
+                    borderRadius: 6,
+                    padding: "6px 12px",
+                    fontSize: 12,
+                    fontWeight: 650,
+                    color: "#475569",
+                    cursor: "pointer",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 5,
+                  }}
+                >
+                  <span className="material-icons" style={{ fontSize: 14 }}>
+                    close
+                  </span>
+                  Ver todos
+                </button>
+              )}
+
+              {establecimientosRutina.length > 0 && (
+                <button
+                  type="button"
+                  onClick={handleVaciarGrilla}
+                  title="Vaciar la grilla completa de establecimientos"
+                  style={{
+                    background: "#FFF1F2",
+                    border: "1px solid #FECDD3",
+                    color: "#BE123C",
+                    borderRadius: 8,
+                    padding: "7px 12px",
+                    fontSize: 12,
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 5,
+                  }}
+                >
+                  <span className="material-icons" style={{ fontSize: 16 }}>
+                    delete_sweep
+                  </span>
+                  Vaciar grilla
+                </button>
+              )}
+
+              <div ref={menuAgregarRef} style={{ position: "relative" }}>
+                <button
+                  type="button"
+                  onClick={() => setMenuAgregarOpen((prev) => !prev)}
+                  style={{
+                    background: "#004B87",
+                    color: "#FFFFFF",
+                    border: "none",
+                    borderRadius: 8,
+                    padding: "8px 14px",
+                    fontSize: 13,
+                    fontWeight: 750,
+                    cursor: "pointer",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 7,
+                    boxShadow: "0 2px 4px rgba(0, 75, 135, 0.25)",
+                    transition: "background 0.15s ease",
+                  }}
+                  onMouseEnter={(e) =>
+                    (e.currentTarget.style.background = "#003865")
+                  }
+                  onMouseLeave={(e) =>
+                    (e.currentTarget.style.background = "#004B87")
+                  }
+                >
+                  <span className="material-icons" style={{ fontSize: 18 }}>
+                    add_business
+                  </span>
+                  <span>Agregar Establecimiento</span>
+                  <span
+                    className="material-icons"
+                    style={{
+                      fontSize: 18,
+                      transition: "transform 0.2s ease",
+                      transform: menuAgregarOpen ? "rotate(180deg)" : "none",
+                    }}
+                  >
+                    arrow_drop_down
+                  </span>
+                </button>
+
+                {/* Menú Desplegable del Combo */}
+                {menuAgregarOpen && (
+                  <div
+                    style={{
+                      position: "absolute",
+                      top: "calc(100% + 6px)",
+                      right: 0,
+                      background: "#FFFFFF",
+                      borderRadius: 10,
+                      boxShadow:
+                        "0 10px 25px -5px rgba(0, 0, 0, 0.2), 0 8px 10px -6px rgba(0, 0, 0, 0.1)",
+                      border: "1px solid #E2E8F0",
+                      minWidth: 320,
+                      zIndex: 1000,
+                      overflow: "hidden",
+                    }}
+                  >
+                    <div
+                      style={{
+                        padding: "10px 14px 8px 14px",
+                        background: "#F8FAFC",
+                        borderBottom: "1px solid #E2E8F0",
+                        fontSize: 11,
+                        fontWeight: 800,
+                        color: "#64748B",
+                        textTransform: "uppercase",
+                        letterSpacing: 0.5,
+                      }}
+                    >
+                      Seleccione Modalidad de Registro
+                    </div>
+
+                    {/* Opción 1: Establecimiento de Salud */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setTipoModalNuevo("ESTABLECIMIENTO");
+                        setModalNuevoEstablecimientoOpen(true);
+                        setMenuAgregarOpen(false);
+                      }}
+                      style={{
+                        width: "100%",
+                        padding: "12px 14px",
+                        border: "none",
+                        background: "transparent",
+                        display: "flex",
+                        alignItems: "flex-start",
+                        gap: 12,
+                        textAlign: "left",
+                        cursor: "pointer",
+                        transition: "background 0.15s",
+                      }}
+                      onMouseEnter={(e) =>
+                        (e.currentTarget.style.background = "#F1F5F9")
+                      }
+                      onMouseLeave={(e) =>
+                        (e.currentTarget.style.background = "transparent")
+                      }
+                    >
+                      <div
+                        style={{
+                          width: 34,
+                          height: 34,
+                          borderRadius: 8,
+                          background: "#E0F2FE",
+                          color: "#0284C7",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          flexShrink: 0,
+                        }}
+                      >
+                        <span className="material-icons" style={{ fontSize: 20 }}>
+                          local_hospital
+                        </span>
+                      </div>
+                      <div>
+                        <div
+                          style={{
+                            fontSize: 13,
+                            fontWeight: 750,
+                            color: "#0F172A",
+                          }}
+                        >
+                          Establecimiento de Salud
+                        </div>
+                        <div
+                          style={{
+                            fontSize: 11.5,
+                            color: "#64748B",
+                            marginTop: 2,
+                            lineHeight: 1.35,
+                          }}
+                        >
+                          Clínicas, sanatorios, centros médicos, geriátricos y laboratorios.
+                        </div>
+                      </div>
+                    </button>
+
+                    <div
+                      style={{
+                        height: 1,
+                        background: "#E2E8F0",
+                        margin: "0 10px",
+                      }}
+                    />
+
+                    {/* Opción 2: Trámite de Servicios Diferenciados (RADIOFÍSICA) */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setTipoModalNuevo("SERVICIO_DIFERENCIADO");
+                        setModalNuevoEstablecimientoOpen(true);
+                        setMenuAgregarOpen(false);
+                      }}
+                      style={{
+                        width: "100%",
+                        padding: "12px 14px",
+                        border: "none",
+                        background: "transparent",
+                        display: "flex",
+                        alignItems: "flex-start",
+                        gap: 12,
+                        textAlign: "left",
+                        cursor: "pointer",
+                        transition: "background 0.15s",
+                      }}
+                      onMouseEnter={(e) =>
+                        (e.currentTarget.style.background = "#EFF6FF")
+                      }
+                      onMouseLeave={(e) =>
+                        (e.currentTarget.style.background = "transparent")
+                      }
+                    >
+                      <div
+                        style={{
+                          width: 34,
+                          height: 34,
+                          borderRadius: 8,
+                          background: "#FEF3C7",
+                          color: "#D97706",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          flexShrink: 0,
+                        }}
+                      >
+                        <span className="material-icons" style={{ fontSize: 20 }}>
+                          sensors
+                        </span>
+                      </div>
+                      <div>
+                        <div
+                          style={{
+                            fontSize: 13,
+                            fontWeight: 750,
+                            color: "#0F172A",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 6,
+                          }}
+                        >
+                          Servicios Diferenciados
+                          <span
+                            style={{
+                              fontSize: 9.5,
+                              fontWeight: 800,
+                              color: "#B45309",
+                              background: "#FEF3C7",
+                              border: "1px solid #FCD34D",
+                              padding: "1px 5px",
+                              borderRadius: 4,
+                            }}
+                          >
+                            RADIOFÍSICA
+                          </span>
+                        </div>
+                        <div
+                          style={{
+                            fontSize: 11.5,
+                            color: "#64748B",
+                            marginTop: 2,
+                            lineHeight: 1.35,
+                          }}
+                        >
+                          Trámite de Radiofísica Sanitaria y equipamientos emisores de radiación.
+                        </div>
+                      </div>
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
           <table
             className="table"
             style={{
@@ -2407,30 +2035,29 @@ export default function BandejaInspecciones() {
             }}
           >
             <thead>
-              <tr
-                style={{
-                  background: "#F8FAFC",
-                  borderBottom: "1px solid #E2E8F0",
-                }}
-              >
+              <tr style={{ background: "#004B87" }}>
                 <th
                   style={{
-                    padding: "14px 18px",
+                    background: "#004B87",
+                    borderBottom: "none",
+                    padding: "13px 20px",
                     fontSize: 11,
-                    fontWeight: 750,
-                    color: "#475569",
+                    fontWeight: 800,
+                    color: "#FFFFFF",
                     textTransform: "uppercase",
                     letterSpacing: 0.5,
                   }}
                 >
-                  Establecimiento / CUIT
+                  Establecimientos Habilitados / CUIT / Tipología
                 </th>
                 <th
                   style={{
-                    padding: "14px 18px",
+                    background: "#004B87",
+                    borderBottom: "none",
+                    padding: "13px 20px",
                     fontSize: 11,
-                    fontWeight: 750,
-                    color: "#475569",
+                    fontWeight: 800,
+                    color: "#FFFFFF",
                     textTransform: "uppercase",
                     letterSpacing: 0.5,
                   }}
@@ -2439,58 +2066,60 @@ export default function BandejaInspecciones() {
                 </th>
                 <th
                   style={{
-                    padding: "14px 18px",
+                    background: "#004B87",
+                    borderBottom: "none",
+                    padding: "13px 20px",
                     fontSize: 11,
-                    fontWeight: 750,
-                    color: "#475569",
+                    fontWeight: 800,
+                    color: "#FFFFFF",
                     textTransform: "uppercase",
                     letterSpacing: 0.5,
                   }}
                 >
-                  Tipo / Formato
+                  {soloGeriatricos ? "Fecha de Habilitación / Ciclo" : "Última Inspección / Ciclo"}
                 </th>
+                {soloGeriatricos && (
+                  <th
+                    style={{
+                      background: "#004B87",
+                      borderBottom: "none",
+                      padding: "13px 20px",
+                      fontSize: 11,
+                      fontWeight: 800,
+                      color: "#FFFFFF",
+                      textTransform: "uppercase",
+                      letterSpacing: 0.5,
+                      textAlign: "center",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    Cantidad de Inspecciones
+                  </th>
+                )}
+                {isCoordinador && (
+                  <th
+                    style={{
+                      background: "#004B87",
+                      borderBottom: "none",
+                      padding: "13px 20px",
+                      fontSize: 11,
+                      fontWeight: 800,
+                      color: "#FFFFFF",
+                      textTransform: "uppercase",
+                      letterSpacing: 0.5,
+                    }}
+                  >
+                    Inspector Responsable
+                  </th>
+                )}
                 <th
                   style={{
-                    padding: "14px 18px",
+                    background: "#004B87",
+                    borderBottom: "none",
+                    padding: "13px 20px",
                     fontSize: 11,
-                    fontWeight: 750,
-                    color: "#475569",
-                    textTransform: "uppercase",
-                    letterSpacing: 0.5,
-                  }}
-                >
-                  Fecha última inspección
-                </th>
-                <th
-                  style={{
-                    padding: "14px 18px",
-                    fontSize: 11,
-                    fontWeight: 750,
-                    color: "#475569",
-                    textTransform: "uppercase",
-                    letterSpacing: 0.5,
-                  }}
-                >
-                  Inspector
-                </th>
-                <th
-                  style={{
-                    padding: "14px 18px",
-                    fontSize: 11,
-                    fontWeight: 750,
-                    color: "#475569",
-                    textTransform: "uppercase",
-                    letterSpacing: 0.5,
-                  }}
-                >
-                  Estado
-                </th>
-                <th
-                  style={{
-                    padding: "14px 18px",
-                    fontSize: 11,
-                    fontWeight: 750,
-                    color: "#475569",
+                    fontWeight: 800,
+                    color: "#FFFFFF",
                     textTransform: "uppercase",
                     letterSpacing: 0.5,
                     textAlign: "center",
@@ -2501,10 +2130,120 @@ export default function BandejaInspecciones() {
               </tr>
             </thead>
             <tbody>
-              {filtradas.length === 0 ? (
+              {inspeccionesBase.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={7}
+                    colSpan={(isCoordinador ? 5 : 4) + (soloGeriatricos ? 1 : 0)}
+                    style={{
+                      textAlign: "center",
+                      padding: "56px 20px",
+                      background: "#F8FAFC",
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: 60,
+                        height: 60,
+                        borderRadius: "50%",
+                        background: "#E0F2FE",
+                        color: "#004B87",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        marginBottom: 14,
+                      }}
+                    >
+                      <span className="material-icons" style={{ fontSize: 32 }}>
+                        domain_add
+                      </span>
+                    </div>
+                    <div
+                      style={{
+                        fontWeight: 800,
+                        fontSize: 16,
+                        color: "#0F172A",
+                        marginBottom: 6,
+                      }}
+                    >
+                      La grilla de establecimientos habilitados está vacía
+                    </div>
+                    <div
+                      style={{
+                        fontSize: 13,
+                        color: "#64748B",
+                        maxWidth: 480,
+                        margin: "0 auto 18px auto",
+                        lineHeight: 1.5,
+                      }}
+                    >
+                      Podés incorporar establecimientos habilitados de forma manual con todos sus datos técnicos. El sistema generará automáticamente el número de trámite, expediente e inspector responsable asignado.
+                    </div>
+                    <div
+                      style={{
+                        display: "flex",
+                        gap: 10,
+                        justifyContent: "center",
+                        flexWrap: "wrap",
+                      }}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setTipoModalNuevo("ESTABLECIMIENTO");
+                          setModalNuevoEstablecimientoOpen(true);
+                        }}
+                        style={{
+                          background: "#004B87",
+                          border: "none",
+                          color: "#FFFFFF",
+                          padding: "10px 20px",
+                          borderRadius: 8,
+                          fontSize: 13.5,
+                          fontWeight: 750,
+                          cursor: "pointer",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 8,
+                          boxShadow: "0 2px 6px rgba(0, 75, 135, 0.25)",
+                        }}
+                      >
+                        <span className="material-icons" style={{ fontSize: 18 }}>
+                          add_business
+                        </span>
+                        Agregar Establecimiento de Salud
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setTipoModalNuevo("SERVICIO_DIFERENCIADO");
+                          setModalNuevoEstablecimientoOpen(true);
+                        }}
+                        style={{
+                          background: "#EFF6FF",
+                          border: "1.5px solid #93C5FD",
+                          color: "#1D4ED8",
+                          padding: "10px 20px",
+                          borderRadius: 8,
+                          fontSize: 13.5,
+                          fontWeight: 750,
+                          cursor: "pointer",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 8,
+                        }}
+                      >
+                        <span className="material-icons" style={{ fontSize: 18, color: "#2563EB" }}>
+                          sensors
+                        </span>
+                        Agregar Servicio Diferenciado (Radiofísica)
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ) : filtradas.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan={(isCoordinador ? 5 : 4) + (soloGeriatricos ? 1 : 0)}
                     style={{
                       textAlign: "center",
                       padding: 48,
@@ -2520,7 +2259,7 @@ export default function BandejaInspecciones() {
                         display: "block",
                       }}
                     >
-                      {hasActiveFilters ? "filter_list_off" : "fact_check"}
+                      fact_check
                     </span>
                     <div
                       style={{
@@ -2529,586 +2268,899 @@ export default function BandejaInspecciones() {
                         color: "#0F172A",
                       }}
                     >
-                      {hasActiveFilters
-                        ? "No se encontraron inspecciones con los filtros aplicados"
-                        : "No hay inspecciones registradas"}
+                      No se encontraron inspecciones con los filtros aplicados
                     </div>
                     <div
                       style={{
                         fontSize: 12.5,
                         color: "#94A3B8",
                         marginTop: 4,
-                        marginBottom: hasActiveFilters ? 14 : 0,
+                        marginBottom: 14,
                       }}
                     >
-                      {hasActiveFilters
-                        ? "Probá modificando el término de búsqueda o restableciendo los filtros."
-                        : "Todas las inspecciones se encuentran completas."}
+                      Probá modificando el término de búsqueda o restableciendo
+                      los filtros.
                     </div>
-                    {hasActiveFilters && (
-                      <button
-                        onClick={handleLimpiarFiltros}
-                        style={{
-                          background: "#0284c7",
-                          border: "none",
-                          color: "white",
-                          padding: "7px 16px",
-                          borderRadius: 8,
-                          fontSize: 12.5,
-                          fontWeight: 700,
-                          cursor: "pointer",
-                          display: "inline-flex",
-                          alignItems: "center",
-                          gap: 6,
-                          boxShadow: "0 2px 6px rgba(2, 132, 199, 0.25)",
-                        }}
+                    <button
+                      onClick={handleLimpiarFiltros}
+                      style={{
+                        background: "#0284C7",
+                        border: "none",
+                        color: "white",
+                        padding: "7px 16px",
+                        borderRadius: 8,
+                        fontSize: 12.5,
+                        fontWeight: 700,
+                        cursor: "pointer",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 6,
+                      }}
+                    >
+                      <span
+                        className="material-icons"
+                        style={{ fontSize: 16 }}
                       >
-                        <span
-                          className="material-icons"
-                          style={{ fontSize: 16 }}
-                        >
-                          restart_alt
-                        </span>
-                        Restablecer todos los filtros
-                      </button>
-                    )}
+                        restart_alt
+                      </span>
+                      Restablecer filtros
+                    </button>
                   </td>
                 </tr>
               ) : (
                 inspeccionesPaginadas.map((t) => {
                   const conf = ESTADO_CONFIG[t.estado];
-                  const esRutina = t.tipoInspeccion === "RUTINA";
-                  const assignedName =
-                    t.inspectorAsignado || t.agenteAsignado || "Sin asignar";
-                  const esMiAsignacion =
-                    (user?.apellido &&
-                      assignedName
-                        .toLowerCase()
-                        .includes(user.apellido.toLowerCase())) ||
-                    (user?.nombre &&
-                      assignedName
-                        .toLowerCase()
-                        .includes(user.nombre.toLowerCase()));
+                  const ordenEmitida = Boolean(
+                    t.ordenEmitida ||
+                    ["ACEPTADO_DOC_AUD", "EN_ANALISIS_AUD", "OBSERVADO_INSP", "DESCARGO_INSP", "RE_INSP_SOLICITADA"].includes(t.estado)
+                  );
+                  const emitirOrdenHabilitado = !ordenEmitida || !t.inspectorAsignado;
+                  const rawAssigned = t.inspectorAsignado || "";
+                  const isUnassigned =
+                    !rawAssigned || rawAssigned.toLowerCase() === "sin asignar";
+                  const cleanName = rawAssigned.replace(
+                    /^Dra\.\s*|^Dr\.\s*|^Lic\.\s*/i,
+                    "",
+                  );
+                  const initials = cleanName
+                    .split(" ")
+                    .map((w: string) => w[0])
+                    .join("")
+                    .slice(0, 2)
+                    .toUpperCase();
+                  const isGer = isGeriatrico(t);
+                  const esSinFecha =
+                    t.alertaRutina === "SIN_FECHA" ||
+                    (!isGer && (!t.fechaUltimaInspeccion || t.fechaUltimaInspeccion === "" || t.fechaUltimaInspeccion === "-")) ||
+                    (isGer && !t.fechaHabilitacion && (!t.fechaUltimaInspeccion || t.fechaUltimaInspeccion === "" || t.fechaUltimaInspeccion === "-"));
+                  const fechaRaw = esSinFecha
+                    ? ""
+                    : isGer
+                      ? (t.fechaHabilitacion || t.fechaUltimaInspeccion || t.ultimaInspeccionFecha)
+                      : (t.fechaUltimaInspeccion || t.ultimaInspeccionFecha);
+                  const fechaFormatted = esSinFecha ? "Sin registrar" : formatFecha(fechaRaw);
 
                   return (
                     <tr
                       key={t.id}
-                      style={{ borderBottom: "1px solid #F1F5F9" }}
+                      style={{
+                        borderBottom: "1px solid #F1F5F9",
+                        transition: "background 0.15s ease",
+                      }}
+                      onMouseEnter={(e) =>
+                        (e.currentTarget.style.background = "#F8FAFC")
+                      }
+                      onMouseLeave={(e) =>
+                        (e.currentTarget.style.background = "#FFFFFF")
+                      }
                     >
-                      {/* Establecimiento */}
+                      {/* 1. Establecimiento Habilitado / CUIT / Tipología */}
                       <td
-                        style={{ padding: "14px 18px", verticalAlign: "top" }}
+                        style={{
+                          padding: "16px 20px",
+                          verticalAlign: "top",
+                        }}
                       >
                         <div
                           style={{
-                            fontWeight: 700,
-                            color: "#0F172A",
-                            fontSize: 13.5,
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 8,
+                            flexWrap: "wrap",
                           }}
                         >
-                          {t.denominacion}
+                          <span
+                            style={{
+                              fontWeight: 750,
+                              color: "#0F172A",
+                              fontSize: 13.5,
+                            }}
+                          >
+                            {t.denominacion}
+                          </span>
                         </div>
                         <div
                           style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 5,
                             fontSize: 11.5,
                             color: "#64748B",
                             fontFamily: "monospace",
-                            marginTop: 2,
+                            marginTop: 3,
                           }}
                         >
-                          CUIT: {t.cuit}
+                          <span>CUIT: {t.cuit}</span>
+                          <button
+                            type="button"
+                            onClick={() => handleCopy(t.cuit, `cuit-${t.id}`)}
+                            style={{
+                              background: "none",
+                              border: "none",
+                              padding: 0,
+                              cursor: "pointer",
+                              display: "inline-flex",
+                              alignItems: "center",
+                            }}
+                            title="Copiar CUIT"
+                          >
+                            <span
+                              className="material-icons"
+                              style={{
+                                fontSize: 13,
+                                color:
+                                  copiedId === `cuit-${t.id}`
+                                    ? "#10B981"
+                                    : "#94A3B8",
+                              }}
+                            >
+                              {copiedId === `cuit-${t.id}`
+                                ? "check"
+                                : "content_copy"}
+                            </span>
+                          </button>
                         </div>
                         {t.tipologia && (
+                          t.tipologia.toUpperCase().includes("RADIOF") ? (
+                            <div
+                              style={{
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: 4,
+                                background: "#EFF6FF",
+                                border: "1px solid #BFDBFE",
+                                color: "#1D4ED8",
+                                fontSize: 10.5,
+                                fontWeight: 800,
+                                padding: "2px 7px",
+                                borderRadius: 5,
+                                letterSpacing: 0.3,
+                                textTransform: "uppercase",
+                                marginTop: 4,
+                              }}
+                            >
+                              <span className="material-icons" style={{ fontSize: 12 }}>
+                                sensors
+                              </span>
+                              Servicio Diferenciado: Radiofísica
+                              {t.subservicio && (
+                                <span
+                                  style={{
+                                    color: "#475569",
+                                    fontWeight: 650,
+                                    textTransform: "none",
+                                    marginLeft: 2,
+                                  }}
+                                >
+                                  ({t.subservicio})
+                                </span>
+                              )}
+                            </div>
+                          ) : (
+                            <div
+                              style={{
+                                fontSize: 10.5,
+                                fontWeight: 800,
+                                color: "#0284C7",
+                                textTransform: "uppercase",
+                                letterSpacing: 0.3,
+                                marginTop: 3,
+                              }}
+                            >
+                              {t.tipologia}
+                            </div>
+                          )
+                        )}
+                        {(t.estadoActa === "RESPUESTA EMPLAZAMIENTO" || t.estado === "DESCARGO_INSP") && (
                           <div
                             style={{
-                              fontSize: 11,
-                              color: "#94A3B8",
-                              marginTop: 2,
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: 4,
+                              background: "#FFEDD5",
+                              border: "1px solid #FDBA74",
+                              color: "#C2410C",
+                              fontSize: 10.5,
+                              fontWeight: 800,
+                              padding: "2px 7px",
+                              borderRadius: 5,
+                              letterSpacing: 0.3,
+                              textTransform: "uppercase",
+                              marginTop: 4,
                             }}
                           >
-                            {t.tipologia}
+                            <span className="material-icons" style={{ fontSize: 12 }}>
+                              rate_review
+                            </span>
+                            Respuesta Emplazamiento
                           </div>
                         )}
                       </td>
 
-                      {/* Trámite / Expediente */}
+                      {/* 2. Trámite / Expediente */}
                       <td
-                        style={{ padding: "14px 18px", verticalAlign: "top" }}
+                        style={{
+                          padding: "16px 20px",
+                          verticalAlign: "top",
+                        }}
                       >
-                        <div
-                          style={{
-                            fontWeight: 700,
-                            color: "#0055A5",
-                            fontSize: 13,
-                          }}
-                        >
-                          {t.nroTramite}
-                        </div>
+                        {t.nroTramite && t.nroTramite.trim() !== "" ? (
+                          <div
+                            style={{
+                              fontWeight: 750,
+                              color: "#0F172A",
+                              fontSize: 13,
+                            }}
+                          >
+                            Trámite #
+                            {t.nroTramite?.startsWith("2024-") ||
+                              t.nroTramite?.startsWith("2026-")
+                              ? t.nroTramite.split("-").pop()
+                              : t.nroTramite}
+                          </div>
+                        ) : (
+                          <div
+                            style={{
+                              fontSize: 12,
+                              color: "#94A3B8",
+                              fontStyle: "italic",
+                              fontWeight: 500,
+                            }}
+                          >
+                            Sin número de trámite
+                          </div>
+                        )}
                         {t.nroExpediente && (
                           <div
                             style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 5,
                               fontSize: 11.5,
                               color: "#64748B",
                               fontFamily: "monospace",
                               marginTop: 2,
                             }}
                           >
-                            {t.nroExpediente}
+                            <span>Exp: {t.nroExpediente}</span>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                handleCopy(t.nroExpediente!, `exp-${t.id}`)
+                              }
+                              style={{
+                                background: "none",
+                                border: "none",
+                                padding: 0,
+                                cursor: "pointer",
+                                display: "inline-flex",
+                                alignItems: "center",
+                              }}
+                              title="Copiar Expediente"
+                            >
+                              <span
+                                className="material-icons"
+                                style={{
+                                  fontSize: 13,
+                                  color:
+                                    copiedId === `exp-${t.id}`
+                                      ? "#10B981"
+                                      : "#94A3B8",
+                                }}
+                              >
+                                {copiedId === `exp-${t.id}`
+                                  ? "check"
+                                  : "content_copy"}
+                              </span>
+                            </button>
                           </div>
                         )}
                       </td>
 
-                      {/* Tipo y Formato Unificados */}
+                      {/* 3. Última Inspección / Ciclo */}
                       <td
-                        style={{ padding: "14px 18px", verticalAlign: "top" }}
+                        style={{
+                          padding: "16px 20px",
+                          verticalAlign: "top",
+                        }}
                       >
-                        {(() => {
-                          const esDenuncia = t.tipoInspeccion === "DENUNCIA";
-                          const tipoBadgeBg = esRutina
-                            ? "#E0F2FE"
-                            : esDenuncia
-                              ? "#FEE2E2"
-                              : "#ECFDF5";
-                          const tipoBadgeColor = esRutina
-                            ? "#0369A1"
-                            : esDenuncia
-                              ? "#B91C1C"
-                              : "#047857";
-                          const tipoBadgeIcon = esRutina
-                            ? "schedule"
-                            : esDenuncia
-                              ? "report"
-                              : "verified";
-                          const tipoBadgeText = esRutina
-                            ? "Rutina"
-                            : esDenuncia
-                              ? "Denuncia"
-                              : "Habilitación";
-
-                          return (
-                            <>
-                              <div>
-                                <span
-                                  style={{
-                                    background: tipoBadgeBg,
-                                    color: tipoBadgeColor,
-                                    fontWeight: 800,
-                                    fontSize: 11,
-                                    padding: "3px 8px",
-                                    borderRadius: 7,
-                                    display: "inline-flex",
-                                    alignItems: "center",
-                                    gap: 4,
-                                  }}
-                                >
-                                  <span
-                                    className="material-icons"
-                                    style={{ fontSize: 13 }}
-                                  >
-                                    {tipoBadgeIcon}
-                                  </span>
-                                  {tipoBadgeText}
-                                </span>
-                              </div>
-                              <div
+                        <div
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 5,
+                            fontSize: 12,
+                            fontWeight: 700,
+                            color: esSinFecha ? "#64748B" : "#334155",
+                          }}
+                        >
+                          <span
+                            className="material-icons"
+                            style={{
+                              fontSize: 14,
+                              color: esSinFecha ? "#94A3B8" : isGer ? "#0284C7" : "#64748B",
+                            }}
+                          >
+                            {esSinFecha ? "event_busy" : isGer ? "verified" : "calendar_today"}
+                          </span>
+                          <span>{fechaFormatted}</span>
+                        </div>
+                        {isGer && !esSinFecha && (
+                          <div
+                            style={{
+                              fontSize: 10,
+                              color: "#0284C7",
+                              fontWeight: 700,
+                              marginTop: 2,
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 3,
+                            }}
+                          >
+                            <span className="material-icons" style={{ fontSize: 11 }}>
+                              verified
+                            </span>
+                            Fecha Habilitación
+                          </div>
+                        )}
+                        {!isGer && !esSinFecha && (
+                          <div
+                            style={{
+                              fontSize: 10,
+                              color: "#64748B",
+                              fontWeight: 600,
+                              marginTop: 2,
+                            }}
+                          >
+                            Última inspección
+                          </div>
+                        )}
+                        <div style={{ marginTop: 4 }}>
+                          {(() => {
+                            const badge = (() => {
+                              if (esSinFecha || t.alertaRutina === "SIN_FECHA") {
+                                return {
+                                  label: "Sin fecha",
+                                  bg: "#F1F5F9",
+                                  border: "#CBD5E1",
+                                  color: "#475569",
+                                  icon: "event_busy",
+                                };
+                              }
+                              if (t.alertaRutina === "CRITICO_VENCIDO") {
+                                return {
+                                  label: "Vencido",
+                                  bg: "#FEE2E2",
+                                  border: "#FCA5A5",
+                                  color: "#DC2626",
+                                  icon: "error_outline",
+                                };
+                              }
+                              if (t.alertaRutina === "ALERTA_T15") {
+                                return {
+                                  label: "< 15 días",
+                                  bg: "#FEF3C7",
+                                  border: "#FCD34D",
+                                  color: "#B45309",
+                                  icon: "warning_amber",
+                                };
+                              }
+                              if (t.alertaRutina === "ALERTA_T30") {
+                                return {
+                                  label: "< 30 días",
+                                  bg: "#EFF6FF",
+                                  border: "#93C5FD",
+                                  color: "#1D4ED8",
+                                  icon: "schedule",
+                                };
+                              }
+                              return {
+                                label: "> 30 días",
+                                bg: "#DCFCE7",
+                                border: "#86EFAC",
+                                color: "#15803D",
+                                icon: "check_circle",
+                              };
+                            })();
+                            return (
+                              <span
                                 style={{
-                                  fontSize: 11.5,
-                                  color: "#64748B",
-                                  fontWeight: 550,
+                                  background: badge.bg,
+                                  border: `1px solid ${badge.border}`,
+                                  color: badge.color,
+                                  fontWeight: 750,
+                                  fontSize: 10.5,
+                                  padding: "2px 8px",
+                                  borderRadius: 12,
                                   display: "inline-flex",
                                   alignItems: "center",
-                                  gap: 4,
-                                  marginTop: 6,
+                                  gap: 3.5,
                                 }}
                               >
                                 <span
                                   className="material-icons"
-                                  style={{ fontSize: 15, color: "#94A3B8" }}
+                                  style={{ fontSize: 12 }}
                                 >
-                                  {t.formatoInspeccion === "VIRTUAL"
-                                    ? "devices"
-                                    : "business"}
+                                  {badge.icon}
                                 </span>
-                                {t.formatoInspeccion === "VIRTUAL"
-                                  ? "Virtual"
-                                  : "Presencial"}
-                              </div>
-                            </>
-                          );
-                        })()}
-                      </td>
-
-                      {/* Fecha última inspección */}
-                      <td
-                        style={{ padding: "14px 18px", verticalAlign: "top" }}
-                      >
-                        {(() => {
-                          const fecha =
-                            t.fechaUltimaInspeccion ||
-                            t.ultimaInspeccionFecha ||
-                            (t.tipoInspeccion === "RUTINA"
-                              ? t.fechaIngreso
-                              : undefined);
-
-                          if (!fecha) {
-                            return (
-                              <span
-                                style={{
-                                  fontSize: 12,
-                                  color: "#94A3B8",
-                                  fontStyle: "italic",
-                                }}
-                              >
-                                Sin registro previo
+                                {badge.label}
                               </span>
                             );
-                          }
+                          })()}
+                        </div>
+                      </td>
 
-                          const formatted = fecha.includes("-")
-                            ? fecha.split("-").reverse().join("/")
-                            : fecha;
-
-                          return (
-                            <div
+                      {/* Cantidad de Inspecciones (Solo visible con filtro Solo Geriátricos) */}
+                      {soloGeriatricos && (
+                        <td
+                          style={{
+                            padding: "16px 20px",
+                            verticalAlign: "top",
+                            textAlign: "center",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          <div
+                            style={{
+                              display: "inline-flex",
+                              flexDirection: "column",
+                              alignItems: "center",
+                              gap: 3,
+                            }}
+                          >
+                            <span
                               style={{
                                 display: "inline-flex",
                                 alignItems: "center",
-                                gap: 6,
-                                background: "#F8FAFC",
-                                border: "1px solid #E2E8F0",
-                                padding: "4px 8px",
-                                borderRadius: 6,
-                                fontSize: 12.5,
-                                fontWeight: 650,
-                                color: "#334155",
+                                gap: 4.5,
+                                background: "#EFF6FF",
+                                border: "1px solid #BFDBFE",
+                                color: "#1D4ED8",
+                                fontSize: 13,
+                                fontWeight: 800,
+                                padding: "4px 10px",
+                                borderRadius: 14,
+                                fontFamily: "monospace",
+                                letterSpacing: 0.5,
                               }}
                             >
                               <span
                                 className="material-icons"
-                                style={{ fontSize: 15, color: "#64748B" }}
+                                style={{ fontSize: 14, color: "#2563EB" }}
                               >
-                                event
+                                event_repeat
                               </span>
-                              <span>{formatted}</span>
-                            </div>
-                          );
-                        })()}
-                      </td>
+                              {getCantidadInspeccionesStr(t)}
+                            </span>
+                            <span
+                              style={{
+                                fontSize: 10,
+                                color: "#64748B",
+                                fontWeight: 600,
+                                textTransform: "uppercase",
+                                letterSpacing: 0.3,
+                              }}
+                            >
+                              anuales
+                            </span>
+                          </div>
+                        </td>
+                      )}
 
-                      {/* Inspector (Soporte Multi-Inspector) */}
-                      <td
-                        style={{ padding: "14px 18px", verticalAlign: "top" }}
-                      >
-                        {(() => {
-                          const inspectores = getInspectoresTramite(t);
-                          if (inspectores.length === 0) {
-                            return (
-                              <span
-                                style={{
-                                  fontSize: 12,
-                                  color: "#94A3B8",
-                                  fontStyle: "italic",
-                                }}
-                              >
-                                Sin asignar
-                              </span>
-                            );
-                          }
-
-                          return (
+                      {/* 4. Inspector Responsable (Solo Coordinador) */}
+                      {isCoordinador && (
+                        <td
+                          style={{
+                            padding: "16px 20px",
+                            verticalAlign: "top",
+                          }}
+                        >
+                          {emitirOrdenHabilitado || isUnassigned ? (
+                            <span
+                              style={{
+                                color: "#94A3B8",
+                                fontSize: 14,
+                                fontWeight: 600,
+                              }}
+                            >
+                              —
+                            </span>
+                          ) : (
                             <div
                               style={{
                                 display: "flex",
-                                flexDirection: "column",
-                                gap: 6,
+                                alignItems: "center",
+                                gap: 8,
                               }}
                             >
-                              {inspectores.map((nombre, idx) => {
-                                const esMiAsig =
-                                  (user?.apellido &&
-                                    nombre
-                                      .toLowerCase()
-                                      .includes(user.apellido.toLowerCase())) ||
-                                  (user?.nombre &&
-                                    nombre
-                                      .toLowerCase()
-                                      .includes(user.nombre.toLowerCase()));
-
-                                return (
-                                  <div
-                                    key={idx}
-                                    style={{
-                                      display: "flex",
-                                      alignItems: "center",
-                                      gap: 7,
-                                      fontSize: 12.5,
-                                      fontWeight: 650,
-                                      color: "#334155",
-                                    }}
-                                  >
-                                    <div
-                                      style={{
-                                        width: 24,
-                                        height: 24,
-                                        borderRadius: "50%",
-                                        background: esMiAsig
-                                          ? "#E0F2FE"
-                                          : "#F1F5F9",
-                                        color: esMiAsig ? "#0284C7" : "#64748B",
-                                        border: `1px solid ${esMiAsig ? "#BAE6FD" : "#E2E8F0"}`,
-                                        fontSize: 9.5,
-                                        fontWeight: 800,
-                                        display: "inline-flex",
-                                        alignItems: "center",
-                                        justifyContent: "center",
-                                        flexShrink: 0,
-                                      }}
-                                    >
-                                      {nombre.slice(0, 2).toUpperCase()}
-                                    </div>
-                                    <span style={{ lineHeight: 1.2 }}>
-                                      {nombre}
-                                    </span>
-                                  </div>
-                                );
-                              })}
+                              <div
+                                style={{
+                                  width: 26,
+                                  height: 26,
+                                  borderRadius: "50%",
+                                  background: "#E0F2FE",
+                                  color: "#0284C7",
+                                  fontSize: 10,
+                                  fontWeight: 800,
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  flexShrink: 0,
+                                }}
+                              >
+                                {initials}
+                              </div>
+                              <div>
+                                <div
+                                  style={{
+                                    fontWeight: 700,
+                                    fontSize: 12.5,
+                                    color: "#0F172A",
+                                    lineHeight: 1.2,
+                                  }}
+                                >
+                                  {cleanName}
+                                </div>
+                                <div
+                                  style={{
+                                    fontSize: 11,
+                                    color: "#64748B",
+                                    marginTop: 2,
+                                  }}
+                                >
+                                  Inspector de Salud
+                                </div>
+                              </div>
                             </div>
-                          );
-                        })()}
-                      </td>
+                          )}
+                        </td>
+                      )}
 
-                      {/* Estado */}
-                      <td
-                        style={{ padding: "14px 18px", verticalAlign: "top" }}
-                      >
-                        <span
-                          className={`badge ${conf?.badge || "badge-neutral"}`}
-                          style={{
-                            fontWeight: 750,
-                            fontSize: 11,
-                            padding: "3px 8px",
-                            borderRadius: 12,
-                            display: "inline-block",
-                          }}
-                        >
-                          {conf?.label || t.estado}
-                        </span>
-                      </td>
-
-                      {/* Acciones */}
+                      {/* 5. Acciones */}
                       <td
                         style={{
-                          padding: "14px 18px",
-                          verticalAlign: "top",
+                          padding: "16px 20px",
+                          verticalAlign: "middle",
                           textAlign: "center",
                         }}
                       >
-                        {isCoordinador ? (
-                          <div
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              gap: 6,
-                            }}
-                          >
-                            {/* Botón 1 Coordinador: Ver Acta */}
-                            <button
-                              onClick={() => {}}
-                              title="Ver Acta de Inspección Completa"
-                              style={{
-                                background: "#EFF6FF",
-                                color: "#0055A5",
-                                border: "1.5px solid #BAE6FD",
-                                borderRadius: 7,
-                                padding: "6px 12px",
-                                fontSize: 12,
-                                fontWeight: 750,
-                                cursor: "pointer",
-                                display: "inline-flex",
-                                alignItems: "center",
-                                gap: 4,
-                                transition: "all 0.15s ease",
-                              }}
-                              onMouseEnter={(e) => {
-                                e.currentTarget.style.background = "#0055A5";
-                                e.currentTarget.style.color = "#FFFFFF";
-                              }}
-                              onMouseLeave={(e) => {
-                                e.currentTarget.style.background = "#EFF6FF";
-                                e.currentTarget.style.color = "#0055A5";
-                              }}
-                            >
-                              <span
-                                className="material-icons"
-                                style={{ fontSize: 15 }}
-                              >
-                                article
-                              </span>
-                              Ver Acta
-                            </button>
-
-                            {/* Botón 2 Coordinador: Emitir orden de inspección por rutina */}
-                            <button
-                              onClick={() => setTramiteEmitirOrden(t)}
-                              title="Emitir orden de inspección por rutina"
-                              style={{
-                                background: "#10B981",
-                                color: "#FFFFFF",
-                                border: "none",
-                                borderRadius: 7,
-                                padding: "6px 12px",
-                                fontSize: 12,
-                                fontWeight: 750,
-                                cursor: "pointer",
-                                display: "inline-flex",
-                                alignItems: "center",
-                                gap: 4,
-                                boxShadow: "0 2px 4px rgba(16, 185, 129, 0.25)",
-                                transition: "all 0.15s ease",
-                              }}
-                              onMouseEnter={(e) =>
-                                (e.currentTarget.style.background = "#059669")
-                              }
-                              onMouseLeave={(e) =>
-                                (e.currentTarget.style.background = "#10B981")
-                              }
-                            >
-                              <span
-                                className="material-icons"
-                                style={{ fontSize: 15 }}
-                              >
-                                schedule_send
-                              </span>
-                              Emitir Orden Rutina
-                            </button>
-
-                            <TableActionsMenu
-                              options={[
-                                {
-                                  label: "Descargar Acta",
-                                  icon: "download",
-                                  onClick: () =>
-                                    alert(
-                                      `Descargando Acta de Inspección de ${t.denominacion}...`,
-                                    ),
-                                },
-                              ]}
-                            />
-                          </div>
-                        ) : (
-                          <div
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              gap: 6,
-                            }}
-                          >
-                            {t.estado === "ACEPTADO_DOC_AUD" ? (
+                        <div
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            gap: 6,
+                          }}
+                        >
+                          {isCoordinador ? (
+                            emitirOrdenHabilitado ? (
                               <button
-                                onClick={() =>
-                                  handleAbrirInspeccion(t.id, t.estado)
+                                type="button"
+                                onClick={() => handleSolicitarEmitirOrden(t)}
+                                style={{
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  gap: 5,
+                                  background: "#004B87",
+                                  color: "#FFFFFF",
+                                  border: "none",
+                                  borderRadius: 6,
+                                  padding: "6px 12px",
+                                  fontSize: 12,
+                                  fontWeight: 750,
+                                  cursor: "pointer",
+                                  boxShadow: "0 1px 3px rgba(0, 75, 135, 0.25)",
+                                  transition: "all 0.15s ease",
+                                  whiteSpace: "nowrap",
+                                }}
+                                onMouseEnter={(e) =>
+                                  (e.currentTarget.style.transform = "translateY(-1px)")
                                 }
-                                style={{
-                                  background: "#0055A5",
-                                  color: "white",
-                                  border: "none",
-                                  borderRadius: 7,
-                                  padding: "6px 12px",
-                                  fontSize: 12,
-                                  fontWeight: 700,
-                                  cursor: "pointer",
-                                  display: "inline-flex",
-                                  alignItems: "center",
-                                  gap: 4,
-                                  boxShadow: "0 2px 4px rgba(0, 85, 165, 0.2)",
-                                }}
+                                onMouseLeave={(e) =>
+                                  (e.currentTarget.style.transform = "translateY(0)")
+                                }
+                                title="Emitir Orden de Inspección"
                               >
                                 <span
                                   className="material-icons"
-                                  style={{ fontSize: 15 }}
+                                  style={{ fontSize: 16 }}
                                 >
-                                  play_arrow
+                                  schedule_send
                                 </span>
-                                Iniciar
-                              </button>
-                            ) : t.estado === "DESCARGO_INSP" ? (
-                              <button
-                                onClick={() => handleVerValidacion(t.id)}
-                                style={{
-                                  background: "#D97706",
-                                  color: "white",
-                                  border: "none",
-                                  borderRadius: 7,
-                                  padding: "6px 12px",
-                                  fontSize: 12,
-                                  fontWeight: 700,
-                                  cursor: "pointer",
-                                  display: "inline-flex",
-                                  alignItems: "center",
-                                  gap: 4,
-                                  boxShadow:
-                                    "0 2px 4px rgba(217, 119, 6, 0.25)",
-                                }}
-                              >
-                                <span
-                                  className="material-icons"
-                                  style={{ fontSize: 15 }}
-                                >
-                                  fact_check
-                                </span>
-                                Revisar
+                                Emitir Orden
                               </button>
                             ) : (
                               <button
-                                onClick={() =>
-                                  handleAbrirInspeccion(t.id, t.estado)
-                                }
+                                type="button"
+                                disabled
                                 style={{
-                                  background: "#F8FAFC",
-                                  color: "#0055A5",
-                                  border: "1px solid #CBD5E1",
-                                  borderRadius: 7,
-                                  padding: "6px 12px",
-                                  fontSize: 12,
-                                  fontWeight: 700,
-                                  cursor: "pointer",
                                   display: "inline-flex",
                                   alignItems: "center",
-                                  gap: 4,
+                                  gap: 5,
+                                  background: "#F1F5F9",
+                                  color: "#94A3B8",
+                                  border: "1px solid #CBD5E1",
+                                  borderRadius: 6,
+                                  padding: "6px 12px",
+                                  fontSize: 12,
+                                  fontWeight: 750,
+                                  cursor: "not-allowed",
+                                  boxShadow: "none",
+                                  whiteSpace: "nowrap",
+                                  opacity: 0.75,
                                 }}
+                                title="La orden de inspección ya se encuentra emitida"
                               >
                                 <span
                                   className="material-icons"
-                                  style={{ fontSize: 15 }}
+                                  style={{ fontSize: 16, color: "#94A3B8" }}
                                 >
-                                  visibility
+                                  schedule_send
                                 </span>
-                                Ver
+                                Emitir Orden
                               </button>
-                            )}
+                            )
+                          ) : (
+                            (() => {
+                              // ROL INSPECTOR: Los botones son Iniciar, Continuar, Revisar, Visualizar
+                              if (
+                                t.estado === "ACEPTADO_DOC_AUD" ||
+                                (t.ordenEmitida &&
+                                  t.estado !== "EN_ANALISIS_AUD" &&
+                                  t.estado !== "RE_INSP_SOLICITADA" &&
+                                  t.estado !== "OBSERVADO_INSP" &&
+                                  t.estado !== "DESCARGO_INSP")
+                              ) {
+                                return (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleIniciar(t)}
+                                    style={{
+                                      display: "inline-flex",
+                                      alignItems: "center",
+                                      gap: 5,
+                                      background: "#10B981",
+                                      color: "#FFFFFF",
+                                      border: "none",
+                                      borderRadius: 6,
+                                      padding: "6px 14px",
+                                      fontSize: 12,
+                                      fontWeight: 750,
+                                      cursor: "pointer",
+                                      boxShadow:
+                                        "0 1px 3px rgba(16, 185, 129, 0.25)",
+                                      transition: "all 0.15s ease",
+                                      whiteSpace: "nowrap",
+                                    }}
+                                    onMouseEnter={(e) =>
+                                      (e.currentTarget.style.transform =
+                                        "translateY(-1px)")
+                                    }
+                                    onMouseLeave={(e) =>
+                                      (e.currentTarget.style.transform =
+                                        "translateY(0)")
+                                    }
+                                    title="Iniciar Inspección"
+                                  >
+                                    <span
+                                      className="material-icons"
+                                      style={{ fontSize: 16 }}
+                                    >
+                                      play_arrow
+                                    </span>
+                                    Iniciar
+                                  </button>
+                                );
+                              }
 
-                            <TableActionsMenu
-                              options={[
-                                {
-                                  label:
-                                    t.estado === "DESCARGO_INSP"
-                                      ? "Revisar Respuestas"
-                                      : "Ver Validación",
-                                  icon: "fact_check",
-                                  onClick: () => handleVerValidacion(t.id),
-                                },
-                                {
-                                  label: "Ir a Inspección",
-                                  icon: "edit_note",
-                                  onClick: () =>
-                                    handleAbrirInspeccion(t.id, t.estado),
-                                },
-                              ]}
-                            />
-                          </div>
-                        )}
+                              if (
+                                t.estado === "EN_ANALISIS_AUD" ||
+                                t.estado === "RE_INSP_SOLICITADA" ||
+                                t.estado === "OBSERVADO_INSP" ||
+                                t.estado === "EN_INSPECCION"
+                              ) {
+                                return (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleContinuar(t)}
+                                    style={{
+                                      display: "inline-flex",
+                                      alignItems: "center",
+                                      gap: 5,
+                                      background: "#004B87",
+                                      color: "#FFFFFF",
+                                      border: "none",
+                                      borderRadius: 6,
+                                      padding: "6px 14px",
+                                      fontSize: 12,
+                                      fontWeight: 750,
+                                      cursor: "pointer",
+                                      boxShadow:
+                                        "0 1px 3px rgba(0, 75, 135, 0.25)",
+                                      transition: "all 0.15s ease",
+                                      whiteSpace: "nowrap",
+                                    }}
+                                    onMouseEnter={(e) =>
+                                      (e.currentTarget.style.transform =
+                                        "translateY(-1px)")
+                                    }
+                                    onMouseLeave={(e) =>
+                                      (e.currentTarget.style.transform =
+                                        "translateY(0)")
+                                    }
+                                    title="Continuar Inspección"
+                                  >
+                                    <span
+                                      className="material-icons"
+                                      style={{ fontSize: 16 }}
+                                    >
+                                      edit
+                                    </span>
+                                    Continuar
+                                  </button>
+                                );
+                              }
+
+                              if (t.estado === "DESCARGO_INSP" || t.estadoActa === "RESPUESTA EMPLAZAMIENTO") {
+                                return (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleRevisar(t)}
+                                    style={{
+                                      display: "inline-flex",
+                                      alignItems: "center",
+                                      gap: 5,
+                                      background: "#EA580C",
+                                      color: "#FFFFFF",
+                                      border: "none",
+                                      borderRadius: 6,
+                                      padding: "6px 14px",
+                                      fontSize: 12,
+                                      fontWeight: 750,
+                                      cursor: "pointer",
+                                      boxShadow:
+                                        "0 1px 3px rgba(234, 88, 12, 0.25)",
+                                      transition: "all 0.15s ease",
+                                      whiteSpace: "nowrap",
+                                    }}
+                                    onMouseEnter={(e) =>
+                                      (e.currentTarget.style.transform =
+                                        "translateY(-1px)")
+                                    }
+                                    onMouseLeave={(e) =>
+                                      (e.currentTarget.style.transform =
+                                        "translateY(0)")
+                                    }
+                                    title="Revisar Respuestas / Descargo"
+                                  >
+                                    <span
+                                      className="material-icons"
+                                      style={{ fontSize: 16 }}
+                                    >
+                                      rate_review
+                                    </span>
+                                    Revisar
+                                  </button>
+                                );
+                              }
+
+                              return (
+                                <button
+                                  type="button"
+                                  onClick={() => handleVisualizar(t)}
+                                  style={{
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    gap: 5,
+                                    background: "#F8FAFC",
+                                    color: "#334155",
+                                    border: "1px solid #CBD5E1",
+                                    borderRadius: 6,
+                                    padding: "6px 14px",
+                                    fontSize: 12,
+                                    fontWeight: 750,
+                                    cursor: "pointer",
+                                    transition: "all 0.15s ease",
+                                    whiteSpace: "nowrap",
+                                  }}
+                                  onMouseEnter={(e) =>
+                                    (e.currentTarget.style.background =
+                                      "#F1F5F9")
+                                  }
+                                  onMouseLeave={(e) =>
+                                    (e.currentTarget.style.background =
+                                      "#F8FAFC")
+                                  }
+                                  title="Visualizar Trámite / Acta"
+                                >
+                                  <span
+                                    className="material-icons"
+                                    style={{ fontSize: 16, color: "#64748B" }}
+                                  >
+                                    visibility
+                                  </span>
+                                  Visualizar
+                                </button>
+                              );
+                            })()
+                          )}
+
+                          <TableActionsMenu
+                            options={[
+                              {
+                                label: "Ver trámite",
+                                icon: "visibility",
+                                onClick: () => handleVisualizar(t),
+                              },
+                              ...(t.estado === "DESCARGO_INSP" || t.estadoActa === "RESPUESTA EMPLAZAMIENTO"
+                                ? [
+                                    {
+                                      label: "Revisar Respuestas a Emplazamiento",
+                                      icon: "rate_review",
+                                      onClick: () => handleRevisar(t),
+                                    },
+                                  ]
+                                : []),
+                              ...(!isCoordinador &&
+                              t.estado !== "EN_ANALISIS_AUD" &&
+                              t.estado !== "DESCARGO_INSP" &&
+                              t.estadoActa !== "RESPUESTA EMPLAZAMIENTO"
+                                ? [
+                                    {
+                                      label: "Iniciar inspección",
+                                      icon: "play_arrow",
+                                      onClick: () => handleIniciar(t),
+                                    },
+                                  ]
+                                : []),
+                              ...(isCoordinador && emitirOrdenHabilitado
+                                ? [
+                                    {
+                                      label: "Emitir Orden de Rutina",
+                                      icon: "schedule_send",
+                                      onClick: () =>
+                                        handleSolicitarEmitirOrden(t),
+                                    },
+                                  ]
+                                : []),
+                              {
+                                label: "Descargar Acta (PDF)",
+                                icon: "download",
+                                onClick: () =>
+                                  alert(
+                                    `Descargando Acta del Trámite ${t.nroTramite || t.id}...`,
+                                  ),
+                              },
+                              {
+                                label: "Eliminar de la grilla",
+                                icon: "delete",
+                                danger: true,
+                                onClick: () =>
+                                  handleEliminarEstablecimiento(t.id, t.denominacion),
+                              },
+                            ]}
+                          />
+                        </div>
                       </td>
                     </tr>
                   );
@@ -3166,16 +3218,64 @@ export default function BandejaInspecciones() {
         </div>
       </div>
 
+      {/* Modal Trámite en Curso Detectado (Anti-Collision Guard) */}
+      {tramiteSolapamientoDetectado && (
+        <ModalTramiteEnCursoDetectado
+          tramite={tramiteSolapamientoDetectado}
+          onClose={() => setTramiteSolapamientoDetectado(null)}
+          onEmitirDeTodasFormas={() => {
+            const target = tramiteSolapamientoDetectado;
+            setTramiteSolapamientoDetectado(null);
+            setTramiteEmitirOrden(target);
+          }}
+        />
+      )}
+
       {/* Modal Emitir Orden Rutina */}
       {tramiteEmitirOrden && (
         <ModalEmitirOrdenRutina
           tramite={tramiteEmitirOrden}
+          listaInspectoresDisponibles={listaInspectores}
           onClose={() => setTramiteEmitirOrden(null)}
-          onSuccess={(nuevo) => {
-            setLocalTramites((prev) => [nuevo, ...prev]);
+          onSuccess={(actualizado) => {
+            const exists = establecimientosRutina.some((t) => t.id === actualizado.id);
+            const finalLista = exists
+              ? establecimientosRutina.map((t) => (t.id === actualizado.id ? actualizado : t))
+              : [actualizado, ...establecimientosRutina];
+            guardarEstablecimientos(finalLista);
+            if (actualizarTramite) {
+              actualizarTramite(actualizado);
+            }
+            setLocalTramites((prev) =>
+              prev.map((t) => (t.id === actualizado.id ? actualizado : t))
+            );
+            setTramiteEmitirOrden(null);
           }}
         />
       )}
+
+      {/* Modal Selección Radiofísica */}
+      <ModalRadiofisicaServicios
+        open={modalRadiofisicaOpen}
+        onClose={() => {
+          setModalRadiofisicaOpen(false);
+          setTramiteRadiofisica(null);
+        }}
+        tramite={tramiteRadiofisica}
+        initialTipo={tramiteRadiofisica?.tipoServicio}
+        initialSubservicio={tramiteRadiofisica?.subservicio}
+        onConfirm={handleConfirmRadiofisica}
+      />
+
+      {/* Modal Nuevo Establecimiento Habilitado (Rutina) */}
+      <ModalNuevoEstablecimientoRutina
+        isOpen={modalNuevoEstablecimientoOpen}
+        onClose={() => setModalNuevoEstablecimientoOpen(false)}
+        onGuardar={handleGuardarNuevoEstablecimiento}
+        inspectorLogueado={miNombreInspector}
+        listaInspectoresDisponibles={listaInspectores}
+        modoInicial={tipoModalNuevo}
+      />
     </>
   );
 }

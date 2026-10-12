@@ -32,6 +32,7 @@ import { Close as CloseIcon } from "@mui/icons-material";
 import { Cancel as CancelIcon } from "@mui/icons-material";
 import { Check as CheckIcon } from "@mui/icons-material";
 import { Search as SearchIcon } from "@mui/icons-material";
+import { useSearchParams, useLocation } from "react-router-dom";
 import Layout from "../ui/Layout";
 
 const styleModal = {
@@ -122,14 +123,20 @@ const EquipamientosConfig = () => {
   const opcionesRegla = ["UNICO", "LINEAL", "PROPORCIONAL"];
 
   // FILTROS
-  const [filtroTipologia, setFiltroTipologia] = useState(null);
+  const [searchParams] = useSearchParams();
+  const location = useLocation();
+  const paramTipologia = searchParams.get("tipologia") || location.state?.tipologia;
+
+  const [filtroTipologia, setFiltroTipologia] = useState(paramTipologia || null);
   const [filtroTipoOrigen, setFiltroTipoOrigen] = useState(null);
   const [filtroOrigen, setFiltroOrigen] = useState(null);
   const [filtroEquipamiento, setFiltroEquipamiento] = useState(null);
   const [filtroRegla, setFiltroRegla] = useState(null);
   const [serviciosMaster, setServiciosMaster] = useState([]);
   const [mostrarResultados, setMostrarResultados] = useState(true);
-  const [filtrosAplicados, setFiltrosAplicados] = useState({});
+  const [filtrosAplicados, setFiltrosAplicados] = useState(
+    paramTipologia ? { tipologia: paramTipologia } : {}
+  );
 
   const [currentItem, setCurrentItem] = useState({
     tipologia: "",
@@ -166,6 +173,14 @@ const EquipamientosConfig = () => {
   useEffect(() => {
     cargarDatos();
   }, []);
+
+  useEffect(() => {
+    if (paramTipologia) {
+      setFiltroTipologia(paramTipologia);
+      setFiltrosAplicados((prev) => ({ ...prev, tipologia: paramTipologia }));
+      setMostrarResultados(true);
+    }
+  }, [paramTipologia]);
 
   const dataFiltrada = useMemo(() => {
     if (!mostrarResultados) return [];

@@ -4,7 +4,7 @@ export interface MasterConfigSectionField {
   id: string;
   label: string;
   name?: string;
-  type: 'text' | 'textarea' | 'number' | 'boolean' | 'checkbox' | 'date' | 'select' | 'toggle' | 'radio';
+  type: 'text' | 'textarea' | 'number' | 'boolean' | 'checkbox' | 'date' | 'select' | 'toggle' | 'radio' | 'sino_na' | 'chip' | 'button_group';
   options?: string;
   origin?: string;
   tramiteField?: string;
@@ -15,6 +15,8 @@ export interface MasterConfigSectionField {
   especialidad?: string;
   tipoPlantel?: string;
   isExtra?: boolean;
+  dependsOn?: { fieldId: string; value: string | boolean; label?: string; action?: 'disable' | 'hide' };
+  disabledWhen?: { fieldId: string; value: string | boolean; label?: string };
   _srvName?: string;
   _type?: string;
   _originalSrv?: string;
@@ -39,7 +41,16 @@ export interface MasterConfig {
   servicios: MasterConfigService[];
 }
 
-export function getMasterConfig(tipologia?: string): MasterConfig {
+import { getRadiofisicaConfig } from './radiofisicaConfig';
+
+export function getMasterConfig(tipologia?: string, tipoServicio?: string, subservicio?: string): MasterConfig {
+  if (tipologia) {
+    const norm = tipologia.trim().toUpperCase();
+    if (norm.includes('RADIOFÍSICA') || norm.includes('RADIOFISICA')) {
+      return getRadiofisicaConfig(tipoServicio, subservicio);
+    }
+  }
+
   const configs = masterDb.configuraciones_maestras as unknown as MasterConfig[];
   if (!configs || configs.length === 0) {
     throw new Error('No master configurations found');

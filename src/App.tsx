@@ -44,6 +44,7 @@ import JefeServicioConfig from './components/backoffice/JefeServicioConfig'
 import ServiciosConfig from './components/backoffice/ServiciosConfig'
 import TiposEquiposConfig from './components/backoffice/TiposEquiposConfig'
 import CatalogoTiposEquipos from './components/backoffice/CatalogoTiposEquipos'
+import EquipamientosRadiofisicaConfig from './components/backoffice/EquipamientosRadiofisicaConfig'
 
 function AppRoutes() {
   const { user } = useAuth()
@@ -221,6 +222,7 @@ function AppRoutes() {
             <Route path="gestion-recursos/matriz-equipos" element={<TiposEquiposConfig />} />
             <Route path="gestion-recursos/infraestructura" element={<Infraestructura />} />
             <Route path="gestion-recursos/equipamientos" element={<EquipamientosConfig />} />
+            <Route path="gestion-recursos/equipamientos-radiofisica" element={<EquipamientosRadiofisicaConfig />} />
             <Route path="gestion-recursos/recursos-humanos" element={<RecursosHumanosConfig />} />
             <Route path="gestion-recursos/jefe-servicio" element={<JefeServicioConfig />} />
             <Route path="gestion-recursos/servicios" element={<ServiciosConfig />} />
@@ -237,6 +239,7 @@ function AppRoutes() {
             <Route path="gestion-recursos/matriz-equipos" element={<TiposEquiposConfig />} />
             <Route path="gestion-recursos/infraestructura" element={<Infraestructura />} />
             <Route path="gestion-recursos/equipamientos" element={<EquipamientosConfig />} />
+            <Route path="gestion-recursos/equipamientos-radiofisica" element={<EquipamientosRadiofisicaConfig />} />
             <Route path="gestion-recursos/recursos-humanos" element={<RecursosHumanosConfig />} />
             <Route path="gestion-recursos/jefe-servicio" element={<JefeServicioConfig />} />
             <Route path="gestion-recursos/servicios" element={<ServiciosConfig />} />
