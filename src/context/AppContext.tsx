@@ -61,7 +61,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
         console.error(e)
       }
     }
-    return [...rutinas, ...TRAMITES]
+    const tramitesPorId = new Map<string, Tramite>()
+    const tramitesIniciales = [...rutinas, ...TRAMITES]
+    tramitesIniciales.forEach((tramite) => {
+      if (!tramitesPorId.has(tramite.id)) tramitesPorId.set(tramite.id, tramite)
+    })
+    return [...tramitesPorId.values()]
   })
   const [hallazgos] = useState<Hallazgo[]>(HALLAZGOS)
   const [ordenesDenuncia, setOrdenesDenuncia] = useState<OrdenDenuncia[]>(() => {
@@ -387,4 +392,3 @@ export function useApp() {
   if (!ctx) throw new Error('useApp must be used inside AppProvider')
   return ctx
 }
-

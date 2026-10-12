@@ -4,6 +4,7 @@ import { useAuth } from "../context/AuthContext";
 import { useApp } from "../context/AppContext";
 import {
   TRAMITES,
+  INSPECCIONES_RUTINA_DEMO,
   USUARIOS,
   type Tramite,
   type EstadoTramite,
@@ -23,48 +24,10 @@ export default function BandejaInspecciones() {
   const location = useLocation();
 
   const STORAGE_KEY_RUTINA = "clicsalud_establecimientos_rutina";
+  const STORAGE_KEY_RUTINA_SEED_VERSION = "clicsalud_establecimientos_rutina_seed_version";
+  const RUTINA_SEED_VERSION = "2026-10-12-v1";
 
-  // Trámite de Radiofísica con respuesta de emplazamiento para revisión por parte del inspector
-  const TRAMITE_RADIOFISICA_DESCARGO_DEFAULT: Tramite = {
-    id: "TRM-RAD-002",
-    nroTramite: "2026-HAB-009102",
-    nroExpediente: "EX-2026-0091020-APN-MS#CBA",
-    denominacion: "Centro Radiológico San Francisco - Radiofísica",
-    cuit: "30-71829340-5",
-    tipologia: "RADIOFÍSICA",
-    tipoServicio: "Rayos X",
-    subservicio: "Radiología Convencional Simple",
-    domicilio: "Av. Vélez Sarsfield 1450",
-    localidad: "Córdoba",
-    departamento: "Capital",
-    estado: "DESCARGO_INSP",
-    estadoActa: "RESPUESTA EMPLAZAMIENTO",
-    fechaIngreso: "2026-06-15",
-    fechaUltimaInspeccion: "15/07/2026",
-    inspectorAsignado: "Valeria Romero",
-    agenteAsignado: "Valeria Romero",
-    inspectoresAsignados: ["Valeria Romero"],
-    tipoInspeccion: "RUTINA",
-    formatoInspeccion: "PRESENCIAL",
-    tipoTramite: "HABILITACION",
-    nroActa: 105,
-    alertaRutina: "CRITICO_VENCIDO",
-    emplazamiento: {
-      actaNumero: "105/2026",
-      diasRestantes: 5,
-      fechaVencimiento: "21/07/2026",
-      faltasCriticasCount: 4,
-      observaciones: [
-        "Dosimetría: Empresa",
-        "Materialidad de la sala: Búnker NO CUMPLE",
-        "Responsable de uso: documento de autorizacion individual no es correcto",
-        "Equipamiento: no corresponden Marca: SIEMENS, Condición: Propio, Año fabricación: 2000, Tipo revelado: DIGITAL",
-      ],
-      respuestaEmplazamientoRealizada: true,
-    },
-  };
-
-  // Grilla de rutina: incluye el trámite de radiofísica con descargo para revisión del inspector
+  // Seed shared grid data once per browser, while preserving existing local edits.
   const [establecimientosRutina, setEstablecimientosRutina] = useState<Tramite[]>(() => {
     const saved = localStorage.getItem(STORAGE_KEY_RUTINA);
     let list: Tramite[] = [];
@@ -77,19 +40,16 @@ export default function BandejaInspecciones() {
       }
     }
 
-    const tieneRadiofisicaDescargo = list.some(
-      (t) =>
-        t.id === "TRM-RAD-002" ||
-        ((t.tipologia?.toUpperCase().includes("RADIOFÍSICA") ||
-          t.tipologia?.toUpperCase().includes("RADIOFISICA") ||
-          t.denominacion?.toUpperCase().includes("RADIOFÍSICA") ||
-          t.denominacion?.toUpperCase().includes("RADIOFISICA")) &&
-          (t.estado === "DESCARGO_INSP" || t.estadoActa === "RESPUESTA EMPLAZAMIENTO"))
-    );
-
-    if (!tieneRadiofisicaDescargo) {
-      list = [...list, TRAMITE_RADIOFISICA_DESCARGO_DEFAULT];
+    if (localStorage.getItem(STORAGE_KEY_RUTINA_SEED_VERSION) !== RUTINA_SEED_VERSION) {
+      const seedIds = new Set(INSPECCIONES_RUTINA_DEMO.map((tramite) => tramite.id));
+      list = [
+        ...INSPECCIONES_RUTINA_DEMO.map(
+          (tramite) => list.find((savedTramite) => savedTramite.id === tramite.id) ?? tramite,
+        ),
+        ...list.filter((tramite) => !seedIds.has(tramite.id)),
+      ];
       localStorage.setItem(STORAGE_KEY_RUTINA, JSON.stringify(list));
+      localStorage.setItem(STORAGE_KEY_RUTINA_SEED_VERSION, RUTINA_SEED_VERSION);
     }
 
     return list;
