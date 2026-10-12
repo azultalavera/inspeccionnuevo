@@ -88,6 +88,7 @@ export interface Tramite {
   fechaHabilitacion?: string;
   ordenEmitida?: boolean;
   nroOrden?: string;
+  motivoRechazoActa?: string;
 }
 
 export interface Establecimiento {
