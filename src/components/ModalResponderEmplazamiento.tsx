@@ -6,14 +6,28 @@ interface Props {
   tramite: Tramite
   onClose: () => void
   onOpenIniciarModificacion: (actaPadreId: string) => void
+  mode?: 'respuesta' | 'emision'
+  isRadiofisica?: boolean
+  observacionesIniciales?: string[]
+  onEmitirFinalizado?: () => void
 }
 
-export default function ModalResponderEmplazamiento({ tramite, onClose, onOpenIniciarModificacion }: Props) {
-  const { responderEmplazamiento } = useApp()
+export default function ModalResponderEmplazamiento({
+  tramite,
+  onClose,
+  onOpenIniciarModificacion,
+  mode = 'respuesta',
+  isRadiofisica = false,
+  observacionesIniciales = [],
+  onEmitirFinalizado,
+}: Props) {
+  const { responderEmplazamiento, emplazarTramite, actualizarTramite } = useApp()
   const [opcion, setOpcion] = useState<'DOCUMENTAL' | 'MODIFICACION' | null>(null)
-  const [observacion, setObservacion] = useState('')
+  const [observacion, setObservacion] = useState(() => mode === 'emision' ? observacionesIniciales.join('\n') : '')
   const [archivos, setArchivos] = useState<string[]>([])
   const [completado, setCompletado] = useState(false)
+  const [accionEmision, setAccionEmision] = useState<'EMPLAZAMIENTO' | 'RECHAZO'>('EMPLAZAMIENTO')
+  const [plazoEmision, setPlazoEmision] = useState('10')
 
   const emplazamiento = tramite.emplazamiento || {
     diasRestantes: 8,
@@ -42,6 +56,29 @@ export default function ModalResponderEmplazamiento({ tramite, onClose, onOpenIn
     }, 1500)
   }
 
+  const handleConfirmarEmision = () => {
+    if (accionEmision === 'RECHAZO') {
+      actualizarTramite({
+        ...tramite,
+        estado: 'RECHAZADO_INSP',
+        motivoRechazoActa: observacion.trim(),
+      })
+    } else {
+      const observaciones = observacion.split('\n').map(line => line.trim()).filter(Boolean)
+      emplazarTramite(
+        tramite.id,
+        `${plazoEmision} días`,
+        observaciones.length > 0 ? observaciones : ['Observaciones registradas en el acta de inspección'],
+      )
+    }
+
+    setCompletado(true)
+    window.setTimeout(() => {
+      onClose()
+      onEmitirFinalizado?.()
+    }, 1200)
+  }
+
   return (
     <div style={{
       position: 'fixed',
@@ -66,10 +103,12 @@ export default function ModalResponderEmplazamiento({ tramite, onClose, onOpenIn
           <div>
             <div style={{ fontSize: 11, fontWeight: 750, color: '#475569', textTransform: 'uppercase', letterSpacing: 0.5, display: 'flex', alignItems: 'center', gap: 4 }}>
               <span className="material-icons" style={{ fontSize: 16, color: '#DC2626' }}>warning</span>
-              Emplazamiento de Inspección
+              {mode === 'emision' ? 'Resultado de Inspección' : 'Emplazamiento de Inspección'}
             </div>
             <h3 style={{ fontSize: 18, fontWeight: 800, color: '#0F172A', marginTop: 4 }}>
-              Responder Emplazamiento {emplazamiento.actaNumero || `Acta N° ${tramite.nroActa || '102'}`}
+              {mode === 'emision'
+                ? isRadiofisica ? 'Emplazamiento o rechazo de acta' : 'Emitir emplazamiento'
+                : `Responder Emplazamiento ${emplazamiento.actaNumero || `Acta N° ${tramite.nroActa || '102'}`}`}
             </h3>
             <div style={{ fontSize: 13, color: '#64748B', marginTop: 2 }}>
               Establecimiento: <strong>{tramite.denominacion}</strong>
@@ -80,8 +119,7 @@ export default function ModalResponderEmplazamiento({ tramite, onClose, onOpenIn
           </button>
         </div>
 
-        {/* Timer Bar - Simple neutral border */}
-        <div style={{
+        {mode === 'respuesta' && <div style={{
           background: '#F8FAFC',
           border: '1px solid #CBD5E1',
           borderRadius: 6,
@@ -100,15 +138,122 @@ export default function ModalResponderEmplazamiento({ tramite, onClose, onOpenIn
             </div>
           </div>
           <span className="material-icons" style={{ fontSize: 22, color: '#475569' }}>timer</span>
-        </div>
+        </div>}
 
         {completado ? (
           <div style={{ textAlign: 'center', padding: '24px 0' }}>
             <span className="material-icons" style={{ fontSize: 40, color: '#16A34A', marginBottom: 8 }}>check_circle</span>
-            <h4 style={{ fontSize: 16, fontWeight: 700, color: '#0F172A' }}>Respuesta Emplazamiento Registrada Exitosamente</h4>
+            <h4 style={{ fontSize: 16, fontWeight: 700, color: '#0F172A' }}>
+              {mode === 'emision'
+                ? accionEmision === 'RECHAZO' ? 'Acta rechazada' : 'Emplazamiento emitido'
+                : 'Respuesta Emplazamiento Registrada Exitosamente'}
+            </h4>
             <p style={{ fontSize: 12.5, color: '#64748B', marginTop: 4 }}>
-              Las evidencias han sido notificadas al equipo auditor para su revisión.
+              {mode === 'emision'
+                ? accionEmision === 'RECHAZO'
+                  ? 'El trámite quedó registrado como rechazado.'
+                  : 'El efector podrá consultar las observaciones y el plazo otorgado.'
+                : 'Las evidencias han sido notificadas al equipo auditor para su revisión.'}
             </p>
+          </div>
+        ) : mode === 'emision' ? (
+          <div>
+            {isRadiofisica && (
+              <>
+                <label style={{ fontSize: 12.5, fontWeight: 700, color: '#334155', display: 'block', marginBottom: 10 }}>
+                  Seleccioná el resultado para el acta:
+                </label>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
+                  {([
+                    { id: 'EMPLAZAMIENTO' as const, label: 'Emplazamiento', icon: 'warning_amber' },
+                    { id: 'RECHAZO' as const, label: 'Rechazo', icon: 'cancel' },
+                  ]).map((accion) => (
+                    <button
+                      key={accion.id}
+                      type="button"
+                      onClick={() => setAccionEmision(accion.id)}
+                      style={{
+                        padding: 14,
+                        borderRadius: 6,
+                        border: `1.5px solid ${accionEmision === accion.id ? '#0055A5' : '#CBD5E1'}`,
+                        background: accionEmision === accion.id ? '#F8FAFC' : 'white',
+                        textAlign: 'left',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      <span className="material-icons" style={{ fontSize: 24, color: '#0055A5', marginBottom: 4, display: 'block' }}>{accion.icon}</span>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: '#0F172A' }}>{accion.label}</div>
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+
+            {accionEmision === 'EMPLAZAMIENTO' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 16 }}>
+                <label style={{ fontSize: 12.5, fontWeight: 700, color: '#334155' }}>
+                  Plazo para subsanar
+                  <select
+                    value={plazoEmision}
+                    onChange={event => setPlazoEmision(event.target.value)}
+                    style={{ display: 'block', width: '100%', marginTop: 6, padding: 9, border: '1px solid #CBD5E1', borderRadius: 6, background: 'white' }}
+                  >
+                    {['5', '10', '15'].map(dias => <option key={dias} value={dias}>{dias} días</option>)}
+                  </select>
+                </label>
+                <label style={{ fontSize: 12.5, fontWeight: 700, color: '#334155' }}>
+                  Observaciones
+                  <textarea
+                    rows={3}
+                    value={observacion}
+                    onChange={event => setObservacion(event.target.value)}
+                    placeholder="Detalle las observaciones que debe subsanar el efector..."
+                    style={{ display: 'block', width: '100%', marginTop: 6, padding: 8, borderRadius: 6, border: '1px solid #CBD5E1', fontSize: 12.5, resize: 'vertical' }}
+                  />
+                </label>
+              </div>
+            )}
+
+            {accionEmision === 'RECHAZO' && (
+              <label style={{ fontSize: 12.5, fontWeight: 700, color: '#334155', display: 'block', marginBottom: 16 }}>
+                Motivo del rechazo
+                <textarea
+                  rows={3}
+                  value={observacion}
+                  onChange={event => setObservacion(event.target.value)}
+                  placeholder="Indique el motivo técnico del rechazo..."
+                  style={{ display: 'block', width: '100%', marginTop: 6, padding: 8, borderRadius: 6, border: '1px solid #CBD5E1', fontSize: 12.5, resize: 'vertical' }}
+                />
+              </label>
+            )}
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+              <button
+                type="button"
+                onClick={onClose}
+                style={{ padding: '8px 14px', borderRadius: 6, border: '1px solid #CBD5E1', background: 'white', fontWeight: 700, cursor: 'pointer', fontSize: 12 }}
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                disabled={accionEmision === 'RECHAZO' && !observacion.trim()}
+                onClick={handleConfirmarEmision}
+                style={{
+                  padding: '8px 16px',
+                  borderRadius: 6,
+                  border: 'none',
+                  background: accionEmision === 'RECHAZO' ? '#b91c1c' : '#0055A5',
+                  color: 'white',
+                  fontWeight: 700,
+                  cursor: accionEmision === 'RECHAZO' && !observacion.trim() ? 'not-allowed' : 'pointer',
+                  opacity: accionEmision === 'RECHAZO' && !observacion.trim() ? 0.4 : 1,
+                  fontSize: 12,
+                }}
+              >
+                {accionEmision === 'RECHAZO' ? 'Confirmar rechazo' : 'Confirmar emplazamiento'}
+              </button>
+            </div>
           </div>
         ) : (
           <div>

@@ -78,9 +78,37 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return saved ? JSON.parse(saved) : null
   })
 
+  const limpiarInspeccionActiva = (tramiteId: string) => {
+    if (inspeccionActiva?.tramiteId !== tramiteId) return
+    setInspeccionActiva(null)
+    localStorage.removeItem('clicsalud_inspeccion')
+  }
+
   useEffect(() => {
     localStorage.setItem('clicsalud_ordenes_denuncia', JSON.stringify(ordenesDenuncia))
   }, [ordenesDenuncia])
+
+  useEffect(() => {
+    const savedRutina = localStorage.getItem('clicsalud_establecimientos_rutina')
+    if (!savedRutina) return
+
+    try {
+      const parsed: unknown = JSON.parse(savedRutina)
+      if (!Array.isArray(parsed)) return
+
+      const tramitesPorId = new Map(tramites.map((tramite) => [tramite.id, tramite]))
+      const updated = parsed.map((savedTramite) => {
+        if (!savedTramite || typeof savedTramite !== 'object' || !('id' in savedTramite)) {
+          return savedTramite
+        }
+        const current = tramitesPorId.get(savedTramite.id)
+        return current ? { ...savedTramite, ...current } : savedTramite
+      })
+      localStorage.setItem('clicsalud_establecimientos_rutina', JSON.stringify(updated))
+    } catch (error) {
+      console.error('Error al sincronizar los trámites de rutina guardados:', error)
+    }
+  }, [tramites])
 
   const iniciarInspeccion = (tramiteId: string) => {
     const nueva: InspeccionData = {
@@ -215,6 +243,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }
 
   const emplazarTramite = (tramiteId: string, plazo: string, observaciones?: string[]) => {
+    limpiarInspeccionActiva(tramiteId)
     setTramites(prev => prev.map(t => {
       if (t.id === tramiteId) {
         const dias = parseInt(plazo, 10) || 10
@@ -352,6 +381,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   const actualizarTramite = (tramiteActualizado: Tramite) => {
+    if (tramiteActualizado.estado === 'RECHAZADO_INSP') {
+      limpiarInspeccionActiva(tramiteActualizado.id)
+    }
     setTramites(prev => prev.map(t => t.id === tramiteActualizado.id ? tramiteActualizado : t));
   };
 

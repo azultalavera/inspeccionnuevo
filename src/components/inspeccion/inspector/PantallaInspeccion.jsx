@@ -61,6 +61,7 @@ import { useApp } from "../../../context/AppContext";
 import { useAuth } from "../../../context/AuthContext";
 import { getMasterConfig, DEFAULT_EFECTOR_DATA } from "../../../data/masterConfig";
 import ModalRadiofisicaServicios from "../../../components/ModalRadiofisicaServicios";
+import ModalResponderEmplazamiento from "../../../components/ModalResponderEmplazamiento";
 import { getRadiofisicaConfig } from "../../../data/radiofisicaConfig";
 import ModalOrigenFoto from "./components/ModalOrigenFoto";
 
@@ -97,7 +98,7 @@ const PantallaInspeccion = ({
   const { id } = useParams();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { tramites, finalizarInspeccion, actualizarInspeccion, responderEmplazamiento, solicitarReInspeccion, emplazarTramite, actualizarEstadoTramite } = useApp();
+  const { tramites, finalizarInspeccion, actualizarInspeccion, responderEmplazamiento, solicitarReInspeccion, emplazarTramite, actualizarEstadoTramite, actualizarTramite } = useApp();
   const { user } = useAuth();
 
   const tramiteActual = React.useMemo(() => {
@@ -194,6 +195,7 @@ const PantallaInspeccion = ({
   const [closeActaModalOpen, setCloseActaModalOpen] = useState(false);
   const [closeActaAction, setCloseActaAction] = useState("");
   const [closeActaNote, setCloseActaNote] = useState("");
+  const [emisionEmplazamientoOpen, setEmisionEmplazamientoOpen] = useState(false);
 
   const [saveSuccessOpen, setSaveSuccessOpen] = useState(false);
 
@@ -265,6 +267,11 @@ const PantallaInspeccion = ({
   };
 
   const handleOpenCloseActa = (action) => {
+    if (action === "NO APROBAR" || action === "RECHAZAR") {
+      setEmisionEmplazamientoOpen(true);
+      return;
+    }
+
     setCloseActaAction(action);
     setCloseActaNote("");
     setCloseActaModalOpen(true);
@@ -3289,7 +3296,18 @@ const PantallaInspeccion = ({
         onSave={handleSaveSignature}
       />
 
-      {/* Diálogo de Cierre / Nota Final / No Aprobación */}
+      {emisionEmplazamientoOpen && tramiteActual && (
+        <ModalResponderEmplazamiento
+          tramite={tramiteActual}
+          mode="emision"
+          isRadiofisica={isRadiofisica}
+          observacionesIniciales={obsDatosTramite.map(observacion => observacion.text || observacion.label).filter(Boolean)}
+          onClose={() => setEmisionEmplazamientoOpen(false)}
+          onOpenIniciarModificacion={() => {}}
+          onEmitirFinalizado={() => navigate(backPath)}
+        />
+      )}
+
       <Dialog
         open={closeActaModalOpen}
         onClose={() => setCloseActaModalOpen(false)}
