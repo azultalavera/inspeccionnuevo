@@ -24,6 +24,7 @@ import {
   Alert,
   Divider,
   Collapse,
+  Switch,
 } from "@mui/material";
 import {
   Description as DescriptionIcon,
@@ -39,6 +40,7 @@ import {
   AssignmentTurnedIn as AssignmentTurnedInIcon,
   Warning as WarningIcon,
   KeyboardArrowDown as KeyboardArrowDownIcon,
+  ChatBubble as ChatBubbleIcon,
 } from "@mui/icons-material";
 import { useNavigate, useParams } from "react-router-dom";
 import ReporteInspeccionPDF from "../../../ReporteInspeccion.pdf";
@@ -84,6 +86,19 @@ const RevisionActa = () => {
     setExpandedRows((prev) => ({
       ...prev,
       [rowId]: !prev[rowId],
+    }));
+  };
+
+  // Switch de existencia (¿Existe? Sí/No) para equipamientos observados y agregados
+  const [unidadesExistencia, setUnidadesExistencia] = useState({
+    "obs-0": true,
+    "agr-0": true,
+  });
+
+  const handleToggleExistencia = (key) => {
+    setUnidadesExistencia((prev) => ({
+      ...prev,
+      [key]: prev[key] === undefined ? false : !prev[key],
     }));
   };
 
@@ -705,10 +720,10 @@ const RevisionActa = () => {
                         <TableCell colSpan={4} sx={{ p: 0, borderBottom: isExpanded ? "1px solid #e2e8f0" : "none" }}>
                           <Collapse in={isExpanded} timeout="auto" unmountOnExit>
                             <Box sx={{ p: 2.5, bgcolor: "#f8fafc", borderTop: "1px dashed #cbd5e1" }}>
-                              {/* EXTRA SOLO EN EQUIPAMIENTO: 2 TABLAS */}
+                              {/* EXTRA SOLO EN EQUIPAMIENTO: FORMATO CARDS CON SWITCH ¿EXISTE? */}
                               {isEquipamiento && (
                                 <Box sx={{ mb: 2.5 }}>
-                                  {/* TABLA 1: UNIDADES OBSERVADAS (1) */}
+                                  {/* CARD 1: UNIDADES OBSERVADAS (1) */}
                                   <Paper
                                     variant="outlined"
                                     sx={{
@@ -716,6 +731,7 @@ const RevisionActa = () => {
                                       borderRadius: "8px",
                                       overflow: "hidden",
                                       border: "1px solid #cbd5e1",
+                                      bgcolor: "#f8fafc",
                                     }}
                                   >
                                     <Box sx={{ bgcolor: "#e2e8f0", px: 2, py: 1 }}>
@@ -723,39 +739,133 @@ const RevisionActa = () => {
                                         UNIDADES OBSERVADAS (1)
                                       </Typography>
                                     </Box>
-                                    <TableContainer>
-                                      <Table size="small">
-                                        <TableHead sx={{ bgcolor: "#f8fafc" }}>
-                                          <TableRow>
-                                            <TableCell sx={{ fontWeight: 800, fontSize: "0.72rem", color: "#475569" }}>Marca</TableCell>
-                                            <TableCell sx={{ fontWeight: 800, fontSize: "0.72rem", color: "#475569" }}>Modelo</TableCell>
-                                            <TableCell sx={{ fontWeight: 800, fontSize: "0.72rem", color: "#475569" }}>Serie</TableCell>
-                                            <TableCell sx={{ fontWeight: 800, fontSize: "0.72rem", color: "#475569" }}>Condición</TableCell>
-                                            <TableCell sx={{ fontWeight: 800, fontSize: "0.72rem", color: "#475569" }}>Año Fab.</TableCell>
-                                            <TableCell sx={{ fontWeight: 800, fontSize: "0.72rem", color: "#475569" }}>Tipo Revelado</TableCell>
-                                          </TableRow>
-                                        </TableHead>
-                                        <TableBody sx={{ bgcolor: "#ffffff" }}>
-                                          <TableRow sx={{ "&:hover": { bgcolor: "#f8fafc" } }}>
-                                            <TableCell sx={{ fontWeight: 800, fontSize: "0.75rem", color: "#dc2626" }}>SIEMENS</TableCell>
-                                            <TableCell sx={{ fontSize: "0.75rem", color: "#334155" }}>Multix Impact</TableCell>
-                                            <TableCell sx={{ fontSize: "0.75rem", color: "#334155" }}>SN-684291-DE</TableCell>
-                                            <TableCell sx={{ fontWeight: 800, fontSize: "0.75rem", color: "#dc2626" }}>Propio</TableCell>
-                                            <TableCell sx={{ fontWeight: 800, fontSize: "0.75rem", color: "#dc2626" }}>2000</TableCell>
-                                            <TableCell sx={{ fontWeight: 800, fontSize: "0.75rem", color: "#dc2626" }}>DIGITAL</TableCell>
-                                          </TableRow>
-                                        </TableBody>
-                                      </Table>
-                                    </TableContainer>
+                                    <Box sx={{ p: 2 }}>
+                                      <Paper
+                                        elevation={0}
+                                        sx={{
+                                          p: 2.5,
+                                          bgcolor: "#ffffff",
+                                          border: "1px solid #cbd5e1",
+                                          borderRadius: "8px",
+                                        }}
+                                      >
+                                        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
+                                          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                                            <Typography sx={{ fontWeight: 900, fontSize: "1.05rem", color: "#1e293b", letterSpacing: 0.5 }}>
+                                              SIEMENS
+                                            </Typography>
+                                            <ChatBubbleIcon sx={{ color: "#0ea5e9", fontSize: 18 }} />
+                                          </Box>
+                                          <Chip
+                                            label="MULTIX IMPACT"
+                                            size="small"
+                                            sx={{
+                                              bgcolor: "#f1f5f9",
+                                              color: "#1e293b",
+                                              fontWeight: 850,
+                                              fontSize: "0.72rem",
+                                              borderRadius: "6px",
+                                              height: 24,
+                                              letterSpacing: 0.5,
+                                            }}
+                                          />
+                                        </Box>
+
+                                        <Box
+                                          sx={{
+                                            display: "grid",
+                                            gridTemplateColumns: { xs: "repeat(2, 1fr)", sm: "repeat(3, 1fr)", md: "repeat(5, 1fr)" },
+                                            gap: 2.5,
+                                            alignItems: "flex-start",
+                                            mb: 2,
+                                          }}
+                                        >
+                                          <Box>
+                                            <Typography sx={{ fontSize: "0.72rem", fontWeight: 700, color: "#64748b", mb: 0.4 }}>
+                                              Serie
+                                            </Typography>
+                                            <Typography sx={{ fontSize: "0.85rem", fontWeight: 800, color: "#1e293b" }}>
+                                              SN-684291-DE
+                                            </Typography>
+                                          </Box>
+
+                                          <Box>
+                                            <Typography sx={{ fontSize: "0.72rem", fontWeight: 700, color: "#64748b", mb: 0.4 }}>
+                                              Condición
+                                            </Typography>
+                                            <Typography sx={{ fontSize: "0.85rem", fontWeight: 800, color: "#dc2626" }}>
+                                              Propio
+                                            </Typography>
+                                          </Box>
+
+                                          <Box>
+                                            <Typography sx={{ fontSize: "0.72rem", fontWeight: 700, color: "#64748b", mb: 0.4 }}>
+                                              Año Fab.
+                                            </Typography>
+                                            <Typography sx={{ fontSize: "0.85rem", fontWeight: 800, color: "#dc2626" }}>
+                                              2000
+                                            </Typography>
+                                          </Box>
+
+                                          <Box>
+                                            <Typography sx={{ fontSize: "0.72rem", fontWeight: 700, color: "#64748b", mb: 0.4 }}>
+                                              Tipo Revelado
+                                            </Typography>
+                                            <Typography sx={{ fontSize: "0.85rem", fontWeight: 800, color: "#dc2626" }}>
+                                              DIGITAL
+                                            </Typography>
+                                          </Box>
+
+                                          <Box>
+                                            <Typography sx={{ fontSize: "0.72rem", fontWeight: 700, color: "#64748b", mb: 0.2 }}>
+                                              ¿Existe?
+                                            </Typography>
+                                            <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, mt: -0.2 }}>
+                                              <Switch
+                                                size="small"
+                                                checked={unidadesExistencia["obs-0"] ?? true}
+                                                onChange={() => handleToggleExistencia("obs-0")}
+                                                sx={{
+                                                  "& .MuiSwitch-switchBase.Mui-checked": { color: "#0ea5e9" },
+                                                  "& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track": { bgcolor: "#0ea5e9" },
+                                                }}
+                                              />
+                                              <Typography
+                                                sx={{
+                                                  fontSize: "0.82rem",
+                                                  fontWeight: 850,
+                                                  color: (unidadesExistencia["obs-0"] ?? true) ? "#0284c7" : "#64748b",
+                                                }}
+                                              >
+                                                {(unidadesExistencia["obs-0"] ?? true) ? "Si" : "No"}
+                                              </Typography>
+                                            </Box>
+                                          </Box>
+                                        </Box>
+
+                                        <Typography
+                                          sx={{
+                                            color: "#dc2626",
+                                            fontWeight: 750,
+                                            fontSize: "0.80rem",
+                                            pt: 1.2,
+                                            borderTop: "1px dashed #e2e8f0",
+                                          }}
+                                        >
+                                          Observación del inspector: no corresponden los siguientes campos Marca: SIEMENS, Condición: Propio, Año fabricación: 2000, Tipo revelado: DIGITAL.
+                                        </Typography>
+                                      </Paper>
+                                    </Box>
                                   </Paper>
 
-                                  {/* TABLA 2: UNIDADES AGREGADAS (1) */}
+                                  {/* CARD 2: UNIDADES AGREGADAS (1) */}
                                   <Paper
                                     variant="outlined"
                                     sx={{
                                       borderRadius: "8px",
                                       overflow: "hidden",
                                       border: "1px solid #cbd5e1",
+                                      bgcolor: "#f8fafc",
                                     }}
                                   >
                                     <Box sx={{ bgcolor: "#e2e8f0", px: 2, py: 1 }}>
@@ -763,30 +873,110 @@ const RevisionActa = () => {
                                         UNIDADES AGREGADAS (1)
                                       </Typography>
                                     </Box>
-                                    <TableContainer>
-                                      <Table size="small">
-                                        <TableHead sx={{ bgcolor: "#f8fafc" }}>
-                                          <TableRow>
-                                            <TableCell sx={{ fontWeight: 800, fontSize: "0.72rem", color: "#475569" }}>Marca</TableCell>
-                                            <TableCell sx={{ fontWeight: 800, fontSize: "0.72rem", color: "#475569" }}>Modelo</TableCell>
-                                            <TableCell sx={{ fontWeight: 800, fontSize: "0.72rem", color: "#475569" }}>Serie</TableCell>
-                                            <TableCell sx={{ fontWeight: 800, fontSize: "0.72rem", color: "#475569" }}>Condición</TableCell>
-                                            <TableCell sx={{ fontWeight: 800, fontSize: "0.72rem", color: "#475569" }}>Año Fab.</TableCell>
-                                            <TableCell sx={{ fontWeight: 800, fontSize: "0.72rem", color: "#475569" }}>Tipo Revelado</TableCell>
-                                          </TableRow>
-                                        </TableHead>
-                                        <TableBody sx={{ bgcolor: "#ffffff" }}>
-                                          <TableRow sx={{ "&:hover": { bgcolor: "#f8fafc" } }}>
-                                            <TableCell sx={{ fontWeight: 800, fontSize: "0.75rem", color: "#16a34a" }}>PHILIPS</TableCell>
-                                            <TableCell sx={{ fontSize: "0.75rem", color: "#334155" }}>Multix Impact</TableCell>
-                                            <TableCell sx={{ fontSize: "0.75rem", color: "#334155" }}>SN-684291-DE</TableCell>
-                                            <TableCell sx={{ fontWeight: 800, fontSize: "0.75rem", color: "#16a34a" }}>Tercerizado</TableCell>
-                                            <TableCell sx={{ fontWeight: 800, fontSize: "0.75rem", color: "#16a34a" }}>2015</TableCell>
-                                            <TableCell sx={{ fontSize: "0.75rem", color: "#334155" }}>DIGITAL</TableCell>
-                                          </TableRow>
-                                        </TableBody>
-                                      </Table>
-                                    </TableContainer>
+                                    <Box sx={{ p: 2 }}>
+                                      <Paper
+                                        elevation={0}
+                                        sx={{
+                                          p: 2.5,
+                                          bgcolor: "#ffffff",
+                                          border: "1px solid #cbd5e1",
+                                          borderRadius: "8px",
+                                        }}
+                                      >
+                                        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
+                                          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                                            <Typography sx={{ fontWeight: 900, fontSize: "1.05rem", color: "#1e293b", letterSpacing: 0.5 }}>
+                                              PHILIPS
+                                            </Typography>
+                                            <ChatBubbleIcon sx={{ color: "#0ea5e9", fontSize: 18 }} />
+                                          </Box>
+                                          <Chip
+                                            label="MULTIX IMPACT"
+                                            size="small"
+                                            sx={{
+                                              bgcolor: "#f1f5f9",
+                                              color: "#1e293b",
+                                              fontWeight: 850,
+                                              fontSize: "0.72rem",
+                                              borderRadius: "6px",
+                                              height: 24,
+                                              letterSpacing: 0.5,
+                                            }}
+                                          />
+                                        </Box>
+
+                                        <Box
+                                          sx={{
+                                            display: "grid",
+                                            gridTemplateColumns: { xs: "repeat(2, 1fr)", sm: "repeat(3, 1fr)", md: "repeat(5, 1fr)" },
+                                            gap: 2.5,
+                                            alignItems: "flex-start",
+                                          }}
+                                        >
+                                          <Box>
+                                            <Typography sx={{ fontSize: "0.72rem", fontWeight: 700, color: "#64748b", mb: 0.4 }}>
+                                              Serie
+                                            </Typography>
+                                            <Typography sx={{ fontSize: "0.85rem", fontWeight: 800, color: "#1e293b" }}>
+                                              SN-684291-DE
+                                            </Typography>
+                                          </Box>
+
+                                          <Box>
+                                            <Typography sx={{ fontSize: "0.72rem", fontWeight: 700, color: "#64748b", mb: 0.4 }}>
+                                              Condición
+                                            </Typography>
+                                            <Typography sx={{ fontSize: "0.85rem", fontWeight: 800, color: "#16a34a" }}>
+                                              Tercerizado
+                                            </Typography>
+                                          </Box>
+
+                                          <Box>
+                                            <Typography sx={{ fontSize: "0.72rem", fontWeight: 700, color: "#64748b", mb: 0.4 }}>
+                                              Año Fab.
+                                            </Typography>
+                                            <Typography sx={{ fontSize: "0.85rem", fontWeight: 800, color: "#16a34a" }}>
+                                              2015
+                                            </Typography>
+                                          </Box>
+
+                                          <Box>
+                                            <Typography sx={{ fontSize: "0.72rem", fontWeight: 700, color: "#64748b", mb: 0.4 }}>
+                                              Tipo Revelado
+                                            </Typography>
+                                            <Typography sx={{ fontSize: "0.85rem", fontWeight: 800, color: "#1e293b" }}>
+                                              DIGITAL
+                                            </Typography>
+                                          </Box>
+
+                                          <Box>
+                                            <Typography sx={{ fontSize: "0.72rem", fontWeight: 700, color: "#64748b", mb: 0.2 }}>
+                                              ¿Existe?
+                                            </Typography>
+                                            <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, mt: -0.2 }}>
+                                              <Switch
+                                                size="small"
+                                                checked={unidadesExistencia["agr-0"] ?? true}
+                                                onChange={() => handleToggleExistencia("agr-0")}
+                                                sx={{
+                                                  "& .MuiSwitch-switchBase.Mui-checked": { color: "#0ea5e9" },
+                                                  "& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track": { bgcolor: "#0ea5e9" },
+                                                }}
+                                              />
+                                              <Typography
+                                                sx={{
+                                                  fontSize: "0.82rem",
+                                                  fontWeight: 850,
+                                                  color: (unidadesExistencia["agr-0"] ?? true) ? "#0284c7" : "#64748b",
+                                                }}
+                                              >
+                                                {(unidadesExistencia["agr-0"] ?? true) ? "Si" : "No"}
+                                              </Typography>
+                                            </Box>
+                                          </Box>
+                                        </Box>
+                                      </Paper>
+                                    </Box>
                                   </Paper>
                                 </Box>
                               )}
