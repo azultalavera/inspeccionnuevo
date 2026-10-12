@@ -246,15 +246,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
     limpiarInspeccionActiva(tramiteId)
     setTramites(prev => prev.map(t => {
       if (t.id === tramiteId) {
-        const dias = parseInt(plazo, 10) || 10
+        const plazoPartes = plazo.trim().match(/^(\d+)\s*(horas?|d[ií]as?)$/i)
+        const cantidad = plazoPartes ? Number(plazoPartes[1]) : 10
+        const esHoras = plazoPartes?.[2].toLowerCase().startsWith('hora') ?? false
+        const milisegundosPlazo = cantidad * (esHoras ? 60 * 60 * 1000 : 24 * 60 * 60 * 1000)
+        const diasRestantes = Math.max(1, Math.ceil(milisegundosPlazo / (24 * 60 * 60 * 1000)))
         return {
           ...t,
           estado: 'OBSERVADO_INSP' as const,
           emplazamiento: {
             actaNumero: `ACTA-001/2026`,
             faltasCriticasCount: observaciones?.length || 2,
-            diasRestantes: dias,
-            fechaVencimiento: new Date(Date.now() + dias * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+            diasRestantes,
+            fechaVencimiento: new Date(Date.now() + milisegundosPlazo).toISOString().split('T')[0],
             respuestaEmplazamientoRealizada: false,
             observaciones: observaciones || ['Requerimientos observados en revisión de descargo pendientes de subsanación'],
           }

@@ -24,10 +24,17 @@ export default function ModalResponderEmplazamiento({
   const { responderEmplazamiento, emplazarTramite, actualizarTramite } = useApp()
   const [opcion, setOpcion] = useState<'DOCUMENTAL' | 'MODIFICACION' | null>(null)
   const [observacion, setObservacion] = useState(() => mode === 'emision' ? observacionesIniciales.join('\n') : '')
+  const [motivoRechazo, setMotivoRechazo] = useState('')
   const [archivos, setArchivos] = useState<string[]>([])
   const [completado, setCompletado] = useState(false)
   const [accionEmision, setAccionEmision] = useState<'EMPLAZAMIENTO' | 'RECHAZO'>('EMPLAZAMIENTO')
-  const [plazoEmision, setPlazoEmision] = useState('10')
+  const [plazoEmision, setPlazoEmision] = useState('10 días')
+  const [plazoManual, setPlazoManual] = useState('1')
+  const [unidadPlazoManual, setUnidadPlazoManual] = useState<'horas' | 'días'>('días')
+
+  const plazoFinal = plazoEmision === 'MANUAL'
+    ? `${plazoManual} ${unidadPlazoManual}`
+    : plazoEmision
 
   const emplazamiento = tramite.emplazamiento || {
     diasRestantes: 8,
@@ -61,13 +68,13 @@ export default function ModalResponderEmplazamiento({
       actualizarTramite({
         ...tramite,
         estado: 'RECHAZADO_INSP',
-        motivoRechazoActa: observacion.trim(),
+        motivoRechazoActa: motivoRechazo.trim(),
       })
     } else {
       const observaciones = observacion.split('\n').map(line => line.trim()).filter(Boolean)
       emplazarTramite(
         tramite.id,
-        `${plazoEmision} días`,
+        plazoFinal,
         observaciones.length > 0 ? observaciones : ['Observaciones registradas en el acta de inspección'],
       )
     }
@@ -92,32 +99,35 @@ export default function ModalResponderEmplazamiento({
     }}>
       <div style={{
         background: 'white',
-        borderRadius: 8,
-        maxWidth: 560,
+        borderRadius: mode === 'emision' ? 24 : 8,
+        maxWidth: mode === 'emision' ? 820 : 560,
         width: '100%',
-        padding: 24,
-        border: '1px solid #CBD5E1'
+        padding: mode === 'emision' ? 12 : 24,
+        border: '1px solid #CBD5E1',
+        boxSizing: 'border-box',
+        maxHeight: mode === 'emision' ? 'calc(100vh - 32px)' : undefined,
+        overflowY: mode === 'emision' ? 'auto' : undefined,
       }}>
         {/* Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
-          <div>
-            <div style={{ fontSize: 11, fontWeight: 750, color: '#475569', textTransform: 'uppercase', letterSpacing: 0.5, display: 'flex', alignItems: 'center', gap: 4 }}>
-              <span className="material-icons" style={{ fontSize: 16, color: '#DC2626' }}>warning</span>
-              {mode === 'emision' ? 'Resultado de Inspección' : 'Emplazamiento de Inspección'}
+        {mode === 'respuesta' && (
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 750, color: '#475569', textTransform: 'uppercase', letterSpacing: 0.5, display: 'flex', alignItems: 'center', gap: 4 }}>
+                <span className="material-icons" style={{ fontSize: 16, color: '#DC2626' }}>warning</span>
+                Emplazamiento de Inspección
+              </div>
+              <h3 style={{ fontSize: 18, fontWeight: 800, color: '#0F172A', marginTop: 4 }}>
+                Responder Emplazamiento {emplazamiento.actaNumero || `Acta N° ${tramite.nroActa || '102'}`}
+              </h3>
+              <div style={{ fontSize: 13, color: '#64748B', marginTop: 2 }}>
+                Establecimiento: <strong>{tramite.denominacion}</strong>
+              </div>
             </div>
-            <h3 style={{ fontSize: 18, fontWeight: 800, color: '#0F172A', marginTop: 4 }}>
-              {mode === 'emision'
-                ? isRadiofisica ? 'Emplazamiento o rechazo de acta' : 'Emitir emplazamiento'
-                : `Responder Emplazamiento ${emplazamiento.actaNumero || `Acta N° ${tramite.nroActa || '102'}`}`}
-            </h3>
-            <div style={{ fontSize: 13, color: '#64748B', marginTop: 2 }}>
-              Establecimiento: <strong>{tramite.denominacion}</strong>
-            </div>
+            <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748B' }}>
+              <span className="material-icons">close</span>
+            </button>
           </div>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748B' }}>
-            <span className="material-icons">close</span>
-          </button>
-        </div>
+        )}
 
         {mode === 'respuesta' && <div style={{
           background: '#F8FAFC',
@@ -157,101 +167,174 @@ export default function ModalResponderEmplazamiento({
             </p>
           </div>
         ) : mode === 'emision' ? (
-          <div>
-            {isRadiofisica && (
-              <>
-                <label style={{ fontSize: 12.5, fontWeight: 700, color: '#334155', display: 'block', marginBottom: 10 }}>
-                  Seleccioná el resultado para el acta:
-                </label>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
-                  {([
-                    { id: 'EMPLAZAMIENTO' as const, label: 'Emplazamiento', icon: 'warning_amber' },
-                    { id: 'RECHAZO' as const, label: 'Rechazo', icon: 'cancel' },
-                  ]).map((accion) => (
-                    <button
-                      key={accion.id}
-                      type="button"
-                      onClick={() => setAccionEmision(accion.id)}
-                      style={{
-                        padding: 14,
-                        borderRadius: 6,
-                        border: `1.5px solid ${accionEmision === accion.id ? '#0055A5' : '#CBD5E1'}`,
-                        background: accionEmision === accion.id ? '#F8FAFC' : 'white',
-                        textAlign: 'left',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      <span className="material-icons" style={{ fontSize: 24, color: '#0055A5', marginBottom: 4, display: 'block' }}>{accion.icon}</span>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: '#0F172A' }}>{accion.label}</div>
-                    </button>
-                  ))}
-                </div>
-              </>
-            )}
-
-            {accionEmision === 'EMPLAZAMIENTO' && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 16 }}>
-                <label style={{ fontSize: 12.5, fontWeight: 700, color: '#334155' }}>
-                  Plazo para subsanar
-                  <select
-                    value={plazoEmision}
-                    onChange={event => setPlazoEmision(event.target.value)}
-                    style={{ display: 'block', width: '100%', marginTop: 6, padding: 9, border: '1px solid #CBD5E1', borderRadius: 6, background: 'white' }}
-                  >
-                    {['5', '10', '15'].map(dias => <option key={dias} value={dias}>{dias} días</option>)}
-                  </select>
-                </label>
-                <label style={{ fontSize: 12.5, fontWeight: 700, color: '#334155' }}>
-                  Observaciones
-                  <textarea
-                    rows={3}
-                    value={observacion}
-                    onChange={event => setObservacion(event.target.value)}
-                    placeholder="Detalle las observaciones que debe subsanar el efector..."
-                    style={{ display: 'block', width: '100%', marginTop: 6, padding: 8, borderRadius: 6, border: '1px solid #CBD5E1', fontSize: 12.5, resize: 'vertical' }}
-                  />
-                </label>
+          <div style={{ padding: 4 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
+              <div style={{
+                width: 40, height: 40, borderRadius: 12, flexShrink: 0,
+                display: 'grid', placeItems: 'center',
+                background: accionEmision === 'RECHAZO' ? '#FEE2E2' : '#E0F7FA',
+                color: accionEmision === 'RECHAZO' ? '#DC2626' : '#06A6C8',
+              }}>
+                <span className="material-icons" style={{ fontSize: 22 }}>
+                  {accionEmision === 'RECHAZO' ? 'cancel' : 'schedule'}
+                </span>
               </div>
-            )}
+              <div>
+                <h3 style={{ margin: 0, fontSize: 18, lineHeight: 1.2, fontWeight: 800, color: '#111827' }}>
+                  {accionEmision === 'RECHAZO' ? 'Rechazo Definitivo del Trámite' : 'Plazo de Emplazamiento'}
+                </h3>
+                <div style={{ marginTop: 4, fontSize: 11, lineHeight: 1.4, color: '#718096' }}>
+                  {accionEmision === 'RECHAZO'
+                    ? 'Indique la fundamentación técnica para desestimar el trámite.'
+                    : 'Seleccione el plazo otorgado para regularizar las observaciones.'}
+                </div>
+              </div>
+            </div>
 
-            {accionEmision === 'RECHAZO' && (
-              <label style={{ fontSize: 12.5, fontWeight: 700, color: '#334155', display: 'block', marginBottom: 16 }}>
-                Motivo del rechazo
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 3, padding: 3, marginBottom: 14, borderRadius: 12, background: '#F1F5F9' }}>
+              {([
+                { id: 'EMPLAZAMIENTO' as const, label: 'Emplazar con plazo', icon: 'schedule' },
+                { id: 'RECHAZO' as const, label: 'Rechazar trámite', icon: 'cancel' },
+              ]).map((accion) => {
+                const selected = accionEmision === accion.id
+                const color = accion.id === 'RECHAZO' ? '#DC2626' : '#0284C7'
+                return (
+                  <button
+                    key={accion.id}
+                    type="button"
+                    onClick={() => setAccionEmision(accion.id)}
+                    style={{
+                      minHeight: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                      border: 0, borderRadius: 10, background: selected ? '#FFFFFF' : 'transparent',
+                      boxShadow: selected ? '0 2px 8px rgba(15, 23, 42, 0.10)' : 'none',
+                      color: selected ? color : '#718096', fontSize: 12, fontWeight: 750, cursor: 'pointer',
+                    }}
+                  >
+                    <span className="material-icons" style={{ fontSize: 16 }}>{accion.icon}</span>
+                    {accion.label}
+                  </button>
+                )
+              })}
+            </div>
+
+            {accionEmision === 'EMPLAZAMIENTO' ? (
+              <>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 8, marginBottom: 14 }}>
+                  {[
+                    { value: '24 horas', label: '24 horas' },
+                    { value: '48 horas', label: '48 horas' },
+                    { value: '5 días', label: '5 días' },
+                    { value: '10 días', label: '10 días' },
+                    { value: '15 días', label: '15 días' },
+                    { value: 'MANUAL', label: 'Manual' },
+                  ].map(option => {
+                    const selected = plazoEmision === option.value
+                    return (
+                      <button
+                        key={option.value}
+                        type="button"
+                        onClick={() => setPlazoEmision(option.value)}
+                        style={{
+                          minHeight: 42, borderRadius: 12,
+                          border: `1.5px solid ${selected ? '#0EA5E9' : '#E2E8F0'}`,
+                          background: selected ? '#F0F9FF' : '#FFFFFF',
+                          color: '#1E293B', fontSize: 13, fontWeight: 750, cursor: 'pointer',
+                        }}
+                      >
+                        {option.label}
+                      </button>
+                    )
+                  })}
+                </div>
+
+                {plazoEmision === 'MANUAL' && (
+                  <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
+                    <input
+                      type="number"
+                      min="1"
+                      value={plazoManual}
+                      onChange={event => setPlazoManual(event.target.value)}
+                      aria-label="Cantidad de plazo manual"
+                      style={{ flex: 1, minWidth: 0, padding: 8, borderRadius: 8, border: '1px solid #CBD5E1', fontSize: 12 }}
+                    />
+                    <select
+                      value={unidadPlazoManual}
+                      onChange={event => setUnidadPlazoManual(event.target.value as 'horas' | 'días')}
+                      aria-label="Unidad de plazo manual"
+                      style={{ padding: 8, borderRadius: 8, border: '1px solid #CBD5E1', background: '#FFFFFF', fontSize: 12 }}
+                    >
+                      <option value="horas">Horas</option>
+                      <option value="días">Días</option>
+                    </select>
+                  </div>
+                )}
+
+                <label style={{ display: 'block', color: '#718096', fontSize: 12, fontWeight: 700, marginBottom: 6 }}>
+                  Observaciones del emplazamiento (opcional):
+                </label>
                 <textarea
                   rows={3}
                   value={observacion}
                   onChange={event => setObservacion(event.target.value)}
-                  placeholder="Indique el motivo técnico del rechazo..."
-                  style={{ display: 'block', width: '100%', marginTop: 6, padding: 8, borderRadius: 6, border: '1px solid #CBD5E1', fontSize: 12.5, resize: 'vertical' }}
+                  placeholder="Detalle instrucciones de regularización para el efector..."
+                  style={{
+                    display: 'block', width: '100%', boxSizing: 'border-box', resize: 'vertical',
+                    padding: '8px 10px', border: '1.5px solid #CBD5E1', borderRadius: 10,
+                    background: '#F8FAFC', color: '#334155', fontSize: 12, lineHeight: 1.5,
+                  }}
                 />
-              </label>
+              </>
+            ) : (
+              <>
+                <div style={{ padding: '12px 14px', marginBottom: 14, borderRadius: 12, border: '1px solid #FECdd3', background: '#FFF1F2' }}>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16, color: '#BE123C' }}>
+                    <span className="material-icons" style={{ marginTop: 2, fontSize: 16 }}>warning</span>
+                    <div>
+                      <div style={{ fontSize: 12, fontWeight: 800, marginBottom: 3 }}>Dictamen de Rechazo Definitivo</div>
+                      <div style={{ fontSize: 11, lineHeight: 1.5 }}>
+                        Esta acción finalizará la inspección desestimando el trámite. No se otorgará plazo para regularizar observaciones.
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <label style={{ display: 'block', color: '#334155', fontSize: 12, fontWeight: 750, marginBottom: 6 }}>
+                  Fundamentación técnica del rechazo <span style={{ color: '#DC2626' }}>*</span>
+                </label>
+                <textarea
+                  rows={3}
+                  required
+                  value={motivoRechazo}
+                  onChange={event => setMotivoRechazo(event.target.value)}
+                  placeholder="Escriba los motivos o infracciones graves que justifican el rechazo definitivo..."
+                  style={{
+                    display: 'block', width: '100%', boxSizing: 'border-box', resize: 'vertical',
+                    padding: '8px 10px', border: '1.5px solid #0284C7', borderRadius: 10,
+                    background: '#FFFFFF', color: '#334155', fontSize: 12, lineHeight: 1.5,
+                  }}
+                />
+              </>
             )}
 
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 14 }}>
               <button
                 type="button"
                 onClick={onClose}
-                style={{ padding: '8px 14px', borderRadius: 6, border: '1px solid #CBD5E1', background: 'white', fontWeight: 700, cursor: 'pointer', fontSize: 12 }}
+                style={{ padding: '8px 14px', border: 0, borderRadius: 8, background: 'transparent', color: '#64748B', fontSize: 12, fontWeight: 750, cursor: 'pointer' }}
               >
                 Cancelar
               </button>
               <button
                 type="button"
-                disabled={accionEmision === 'RECHAZO' && !observacion.trim()}
+                disabled={accionEmision === 'RECHAZO' ? !motivoRechazo.trim() : (plazoEmision === 'MANUAL' && (!Number(plazoManual) || Number(plazoManual) < 1))}
                 onClick={handleConfirmarEmision}
                 style={{
-                  padding: '8px 16px',
-                  borderRadius: 6,
-                  border: 'none',
-                  background: accionEmision === 'RECHAZO' ? '#b91c1c' : '#0055A5',
-                  color: 'white',
-                  fontWeight: 700,
-                  cursor: accionEmision === 'RECHAZO' && !observacion.trim() ? 'not-allowed' : 'pointer',
-                  opacity: accionEmision === 'RECHAZO' && !observacion.trim() ? 0.4 : 1,
-                  fontSize: 12,
+                  minWidth: 120, padding: '8px 14px', border: 0, borderRadius: 10,
+                  background: accionEmision === 'RECHAZO' ? '#DC2626' : '#0EA5E9',
+                  color: '#FFFFFF', fontSize: 12, fontWeight: 800,
+                  cursor: 'pointer',
                 }}
               >
-                {accionEmision === 'RECHAZO' ? 'Confirmar rechazo' : 'Confirmar emplazamiento'}
+                {accionEmision === 'RECHAZO' ? 'Confirmar Rechazo' : 'Emplazar'}
               </button>
             </div>
           </div>
